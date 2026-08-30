@@ -16,6 +16,8 @@ const exposedNames = [
   'RAW_DATA', 'FALLBACK_DATA', 'DAYS_FULL', 'SLOT_TIMES', 'state', 'COURSES',
   'dayPartForMinutes',
   'teachingWeek', 'academicPhase', 'dateForWeekDay', 'dayIndex', 'isActive',
+  'scheduleTermForDate',
+  'normalizeWeekRange', 'weekDateRangeLabel', 'segmentDateHint', 'weekRangeValue', 'weekOptions',
   'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput',
   'stageCourseUpsert', 'stageCourseDelete',
   'setupMobileMoreMenu', 'formatUpdatedAt', 'formatUpdatedDateTime', 'latestModifiedAt',
@@ -77,6 +79,21 @@ test('first teaching week begins on Monday August 24 and Sunday stays day seven'
   assert.ok((html.match(/state\.selectedDay = 0;/g) || []).length >= 2, 'changing week should select Monday');
 });
 
+test('course week selectors show exact Monday-to-Sunday dates and prevent reverse ranges', () => {
+  assert.equal(api.weekDateRangeLabel(1), '第1周：8月24日—8月30日');
+  assert.equal(api.weekDateRangeLabel(2), '第2周：8月31日—9月6日');
+  assert.equal(api.weekDateRangeLabel(21), '第21周：1月11日—1月17日');
+  assert.equal(api.segmentDateHint(2, 5), '第2周：8月31日—9月6日\n至第5周：9月21日—9月27日');
+  assert.equal(api.weekRangeValue(2, 5), '2-5');
+  assert.equal(api.weekRangeValue(7, 7), '7');
+  assert.equal(api.normalizeWeekRange(8, 2, 'start')[0], 8);
+  assert.equal(api.normalizeWeekRange(8, 2, 'start')[1], 8);
+  assert.equal(api.normalizeWeekRange(8, 2, 'end')[0], 2);
+  assert.equal(api.normalizeWeekRange(8, 2, 'end')[1], 2);
+  assert.equal((api.weekOptions(4).match(/<option/g) || []).length, 21);
+  assert.match(api.weekOptions(4), /value="4" selected>第4周/);
+});
+
 test('all 396 calendar dates return a visible phase without gaps', () => {
   const start = localDate(2026, 8, 1);
   for (let offset = 0; offset < 396; offset += 1) {
@@ -106,6 +123,16 @@ test('academic calendar switches phase on every published boundary', () => {
   for (const [parts, expected] of cases) {
     assert.equal(api.academicPhase(localDate(...parts)).key, expected, parts.join('-'));
   }
+});
+
+test('week heading term follows the current academic date', () => {
+  assert.equal(api.scheduleTermForDate(localDate(2026, 8, 30)), '第一学期课程');
+  assert.equal(api.scheduleTermForDate(localDate(2027, 2, 28)), '第一学期课程');
+  assert.equal(api.scheduleTermForDate(localDate(2027, 3, 1)), '第二学期课程');
+  assert.equal(api.scheduleTermForDate(localDate(2027, 8, 20)), '第二学期课程');
+  assert.equal(api.scheduleTermForDate(localDate(2027, 8, 21)), '新学年课程');
+  assert.match(html, /id="weekTermNote"/);
+  assert.match(html, /scheduleTermForDate\(now\) \+ ' · 红色实线表示本周上课 · 灰色虚线表示此时间段无课'/);
 });
 
 test('live status reports current class, next class and remaining time', () => {
@@ -158,7 +185,7 @@ test('desktop matrix renders all seven days, six time bands and mentor warning',
   assert.match(matrix.innerHTML, /设施农业与装备（专硕）/);
   assert.match(matrix.innerHTML, /导师课 · 不可缺席/);
   assert.match(matrix.innerHTML, /本周上课/);
-  assert.match(matrix.innerHTML, /本周不上/);
+  assert.match(matrix.innerHTML, /此时间段无课/);
   assert.match(matrix.innerHTML, />上午</);
   assert.match(matrix.innerHTML, />下午</);
   assert.match(matrix.innerHTML, />晚上</);
@@ -175,7 +202,7 @@ test('course editor validation matches the cloud contract', () => {
   assert.throws(() => api.validateCoursesInput([{ ...good[0], '授课分段': [{ '周次': '8-2', '教师': '测试教师' }] }]), /周次范围无效/);
   assert.throws(() => api.validateCoursesInput([{ ...good[0], '授课分段': [
     { '周次': '2-5', '教师': '教师甲' }, { '周次': '5-8', '教师': '教师乙' }
-  ] }]), /授课分段周次重叠/);
+  ] }]), /教师安排周次重叠/);
   assert.throws(() => api.validateCoursesInput([good[0], { ...good[0], '教室': ['公教楼102'] }]), /重复课程/);
   assert.throws(() => api.validateCoursesInput([good[0], { ...good[0], '课程': '另一门课程' }]), /课程时间冲突/);
   const separated = api.validateCoursesInput([good[0], { ...good[0], '授课分段': [{ '周次': '5-6', '教师': '测试教师' }] }]);
@@ -208,7 +235,27 @@ test('course management uses one unified entry on desktop and mobile', () => {
   assert.doesNotMatch(html, /id=["']openAdd/i);
   assert.match(html, /id="openManagerTop"/);
   assert.match(html, /id="openManagerMobile"/);
-  assert.match(html, /id="addCourse"[^>]*>新增课程</);
+  assert.match(html, /class="primary-button pane-add-course" id="addCourse"[^>]*>＋ 新增课程</);
+  assert.match(html, /<div class="pane-head">[\s\S]*?id="courseListTitle"[\s\S]*?id="addCourse"/);
+  assert.doesNotMatch(html, /<div class="manager-toolbar">\s*<button[^>]*id="addCourse"/);
+  assert.match(html, /compactScreen = window\.matchMedia && window\.matchMedia\('\(max-width: 980px\)'\)\.matches[\s\S]*?editorPane\.scrollIntoView/);
+  assert.match(html, /nameInput\.focus\(\{ preventScroll: true \}\)/);
+});
+
+test('course editor groups class periods and explains week-and-teacher ranges clearly', () => {
+  assert.match(html, />上课周次与教师</);
+  assert.match(html, /一行表示哪些周由哪位教师上课；如果整门课都是同一位教师，只填一行。/);
+  assert.match(html, /data-week-start/);
+  assert.match(html, /data-week-end/);
+  assert.match(html, /data-date-hint/);
+  assert.match(html, /\{ label: '上午', slots: \['第1-2节', '第3-5节'\] \}/);
+  assert.match(html, /\{ label: '下午', slots: \['第6-8节', '第9-10节', '第11节'\] \}/);
+  assert.match(html, /\{ label: '晚上', slots: \['第12-13节'\] \}/);
+  assert.match(html, /<optgroup label="' \+ group\.label \+ '">/);
+  assert.match(html, /normalizeSegmentWeekRange\(select\.closest\('\.segment-row'\)/);
+  assert.match(css, /#courseEditorEmpty\[hidden\], #courseForm\[hidden\] \{ display: none !important; \}/);
+  assert.match(css, /\.manager-pane\.editor-pane \{ align-self: start; \}/);
+  assert.match(css, /@media \(max-width: 980px\)[\s\S]*?\.manager-grid \{ grid-template-columns: 1fr; \}/);
 });
 
 test('footer expands to four columns and collapses responsively', () => {
@@ -322,7 +369,7 @@ test('manager password is numeric, hidden by default and optionally remembered',
 });
 
 test('modification sync status uses the latest page or schedule change in China time', () => {
-  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T20:38:25\+08:00'/);
+  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T21:04:23\+08:00'/);
   assert.match(html, /function latestModifiedAt\(scheduleUpdatedAt\)/);
   assert.match(html, /getUTC(?:Month|Date|Hours|Minutes)/);
   assert.match(html, /修改同步时间/);
@@ -332,7 +379,7 @@ test('modification sync status uses the latest page or schedule change in China 
 test('China time formatting and remembered-secret storage behave deterministically', () => {
   assert.equal(api.formatUpdatedAt('2026-08-30T08:00:00.000Z'), '16:00');
   assert.equal(api.formatUpdatedDateTime('2026-08-30T08:00:00.000Z'), '2026年8月30日 16:00');
-  assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), '20:38');
+  assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), '21:04');
   assert.equal(api.latestModifiedAt('2026-08-31T00:00:00.000Z'), '2026-08-31T00:00:00.000Z');
 
   const remembered = new Map();

@@ -1555,8 +1555,9 @@
     .sync-banner.error { color: #8a2134; border-color: rgba(158,27,50,.18); background: var(--mentor-soft); }
     .sync-banner.warning { color: #7a5318; border-color: rgba(143,92,18,.18); background: var(--amber-soft); }
 
-    .manager-grid { display: grid; grid-template-columns: minmax(310px, .82fr) minmax(420px, 1.18fr); gap: 16px; min-height: 520px; }
+    .manager-grid { display: grid; grid-template-columns: minmax(310px, .82fr) minmax(420px, 1.18fr); align-items: start; gap: 16px; min-height: 520px; }
     .manager-pane { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 17px; background: #fbf9f5; }
+    .manager-pane.editor-pane { align-self: start; }
     .pane-head { display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 11px 14px; border-bottom: 1px solid var(--line); }
     .pane-head strong { font-size: 13px; }
     .pane-head span { color: var(--muted); font-size: 11px; }
@@ -1573,14 +1574,33 @@
     .editor-empty { display: grid; min-height: 100%; padding: 28px; place-content: center; text-align: center; color: var(--muted); }
     .editor-empty strong { color: var(--ink); font-family: var(--display-font); font-size: 22px; }
     .editor-empty span { margin-top: 6px; font-size: 12px; }
+    #courseEditorEmpty[hidden], #courseForm[hidden] { display: none !important; }
     .course-form { padding: 17px; }
     .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
     .field.full { grid-column: 1 / -1; }
     .time-preview { display: flex; align-items: center; min-height: 46px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 11px; color: var(--muted); background: #f3efe8; font-size: 13px; font-variant-numeric: tabular-nums; }
-    .segment-list { display: grid; gap: 8px; margin-top: 8px; }
-    .segment-row { display: grid; grid-template-columns: 110px minmax(0,1fr) auto; gap: 7px; align-items: center; }
-    .segment-row .text-input { min-height: 42px; }
-    .remove-segment { width: 38px; height: 38px; border: 1px solid rgba(158,27,50,.17); border-radius: 9px; color: var(--mentor); background: var(--mentor-soft); cursor: pointer; }
+    .segment-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+    .segment-copy { display: grid; gap: 4px; }
+    .segment-help { color: var(--muted); font-size: 11px; font-weight: 500; line-height: 1.55; }
+    .segment-list { display: grid; gap: 10px; margin-top: 10px; }
+    .segment-row {
+      display: grid;
+      grid-template-columns: minmax(260px, 1.15fr) minmax(150px, .85fr) 38px;
+      gap: 8px 10px;
+      align-items: end;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255,255,255,.72);
+    }
+    .segment-week-range { display: grid; grid-column: 1; grid-row: 1; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: end; gap: 7px; }
+    .segment-control-label { display: grid; min-width: 0; gap: 5px; }
+    .segment-control-label > span { color: var(--muted); font-size: 10px; font-weight: 750; }
+    .segment-week-range .select-input, .segment-teacher .text-input { min-height: 42px; }
+    .segment-range-separator { display: flex; min-height: 42px; align-items: center; color: var(--muted); font-size: 12px; font-weight: 750; }
+    .segment-teacher { grid-column: 2; grid-row: 1; }
+    .remove-segment { grid-column: 3; grid-row: 1; width: 38px; height: 38px; margin-bottom: 2px; border: 1px solid rgba(158,27,50,.17); border-radius: 9px; color: var(--mentor); background: var(--mentor-soft); cursor: pointer; }
+    .segment-date-hint { grid-column: 1 / -1; grid-row: 2; margin: 0; color: #6d675f; font-size: 11px; font-weight: 650; line-height: 1.55; white-space: pre-line; }
     .add-segment { width: fit-content; margin-top: 9px; }
     .form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--line); }
     .manager-footnote { margin: 14px 2px 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
@@ -1593,20 +1613,26 @@
       .manager-editor { padding: 12px; }
       .manager-grid { grid-template-columns: 1fr; min-height: 0; }
       .manager-list { max-height: 360px; }
-      .manager-pane.editor-pane { min-height: 440px; }
+      .manager-pane.editor-pane { min-height: 0; }
+      .editor-empty { min-height: 220px; }
       .form-grid { grid-template-columns: 1fr; }
       .field.full { grid-column: auto; }
+      .segment-row { grid-template-columns: minmax(0,1fr) 36px; align-items: start; }
+      .segment-week-range { grid-column: 1; grid-row: 1; }
+      .segment-teacher { grid-column: 1; grid-row: 2; }
+      .remove-segment { grid-column: 2; grid-row: 1 / span 2; margin-top: 20px; margin-bottom: 0; }
+      .segment-date-hint { grid-column: 1 / -1; grid-row: 3; }
     }
 
     @media (max-width: 420px) {
       .manager-toolbar .spacer { display: none; }
       .manager-toolbar { align-items: stretch; }
       .manager-toolbar button { flex: 1 1 calc(50% - 5px); }
-      .segment-row { grid-template-columns: 92px minmax(0,1fr) 36px; }
+      .segment-row { grid-template-columns: minmax(0,1fr) 36px; padding: 9px; }
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=20260830-2038">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=20260830-2104">
 </head>
 <body>
   <a class="skip-link" href="#mainContent">跳到课表内容</a>
@@ -1666,7 +1692,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4m8-4v4M3 10h18m5 4-4 4-2-2"/></svg>
           一周课表
         </h2>
-        <span class="section-note">第一学期课程 · 红色实线为本周上课 · 灰色虚线为本周不上</span>
+        <span class="section-note" id="weekTermNote">正在读取学期 · 红色实线表示本周上课 · 灰色虚线表示此时间段无课</span>
       </div>
 
       <div class="mentor-reminder">喻黎明老师课程已重点标记：导师课 · 不可缺席</div>
@@ -1693,7 +1719,7 @@
           <span><i class="legend-live"></i>正在上课</span>
           <span><i class="legend-active"></i>本周上课</span>
           <span><i class="legend-mentor">★</i>导师课 · 不可缺席</span>
-          <span><i class="legend-off"></i>本周不上</span>
+          <span><i class="legend-off"></i>此时间段无课</span>
         </div>
       </div>
 
@@ -1863,7 +1889,6 @@
 
         <section class="manager-editor" id="managerEditor" hidden>
           <div class="manager-toolbar">
-            <button class="primary-button" id="addCourse" type="button">新增课程</button>
             <label class="manager-search" aria-label="搜索课程">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
               <input id="managerSearch" type="search" placeholder="搜索课程、教师或教室" autocomplete="off">
@@ -1880,7 +1905,10 @@
 
           <div class="manager-grid">
             <section class="manager-pane" aria-labelledby="courseListTitle">
-              <div class="pane-head"><strong id="courseListTitle">课程列表</strong><span id="managerCourseCount">0 门次</span></div>
+              <div class="pane-head">
+                <div class="pane-head-title"><strong id="courseListTitle">课程列表</strong><span id="managerCourseCount">0 门次</span></div>
+                <button class="primary-button pane-add-course" id="addCourse" type="button">＋ 新增课程</button>
+              </div>
               <div class="manager-list" id="managerCourseList"></div>
             </section>
 
@@ -1914,9 +1942,14 @@
                     <input class="text-input" id="courseRooms" type="text" maxlength="260" placeholder="例如：公教楼247">
                   </label>
                   <div class="field full">
-                    <span class="field-label">授课分段（周次 / 教师）</span>
+                    <div class="segment-heading">
+                      <div class="segment-copy">
+                        <span class="field-label">上课周次与教师</span>
+                        <span class="segment-help">一行表示哪些周由哪位教师上课；如果整门课都是同一位教师，只填一行。</span>
+                      </div>
+                    </div>
                     <div class="segment-list" id="segmentList"></div>
-                    <button class="secondary-button add-segment" id="addSegment" type="button">＋ 添加授课分段</button>
+                    <button class="secondary-button add-segment" id="addSegment" type="button">＋ 添加另一组周次与教师</button>
                   </div>
                 </div>
                 <div class="form-actions">
@@ -1955,7 +1988,7 @@
     const CACHE_KEY = 'kust-lab-schedule-cache-v1';
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
-    const SITE_UPDATED_AT = '2026-08-30T20:38:25+08:00';
+    const SITE_UPDATED_AT = '2026-08-30T21:04:23+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
     const SLOT_TIMES = new Map([
@@ -2128,6 +2161,13 @@
       return { key: 'after', label: '本学年已结束' };
     }
 
+    function scheduleTermForDate(date) {
+      const value = dateAtNoon(date).getTime();
+      if (value < CALENDAR.secondRegistration.getTime()) return '第一学期课程';
+      if (value <= CALENDAR.summerEnd.getTime()) return '第二学期课程';
+      return '新学年课程';
+    }
+
     function dateForWeekDay(week, day) {
       const date = new Date(START_DATE.getTime());
       date.setDate(date.getDate() + (week - 1) * 7 + day);
@@ -2137,6 +2177,41 @@
     function shortDate(date) { return (date.getMonth() + 1) + '/' + date.getDate(); }
 
     function longDate(date) { return (date.getMonth() + 1) + '月' + date.getDate() + '日'; }
+
+    function normalizeWeekRange(startWeek, endWeek, changedSide) {
+      let start = Math.max(1, Math.min(MAX_WEEK, Number(startWeek) || 1));
+      let end = Math.max(1, Math.min(MAX_WEEK, Number(endWeek) || start));
+      if (start > end) {
+        if (changedSide === 'end') start = end;
+        else end = start;
+      }
+      return [start, end];
+    }
+
+    function weekDateRangeLabel(week) {
+      const safeWeek = normalizeWeekRange(week, week)[0];
+      return '第' + safeWeek + '周：' + longDate(dateForWeekDay(safeWeek, 0)) + '—' + longDate(dateForWeekDay(safeWeek, 6));
+    }
+
+    function segmentDateHint(startWeek, endWeek) {
+      const range = normalizeWeekRange(startWeek, endWeek);
+      if (range[0] === range[1]) return weekDateRangeLabel(range[0]);
+      return weekDateRangeLabel(range[0]) + '\n至第' + range[1] + '周：' + longDate(dateForWeekDay(range[1], 0)) + '—' + longDate(dateForWeekDay(range[1], 6));
+    }
+
+    function weekRangeValue(startWeek, endWeek) {
+      const range = normalizeWeekRange(startWeek, endWeek);
+      return range[0] === range[1] ? String(range[0]) : range[0] + '-' + range[1];
+    }
+
+    function weekOptions(selectedWeek) {
+      const selected = normalizeWeekRange(selectedWeek, selectedWeek)[0];
+      let output = '';
+      for (let week = 1; week <= MAX_WEEK; week += 1) {
+        output += '<option value="' + week + '"' + (week === selected ? ' selected' : '') + '>第' + week + '周</option>';
+      }
+      return output;
+    }
 
     function activeParts(course, week) {
       return course.parts.filter(function (part) { return week >= part.start && week <= part.end; });
@@ -2428,7 +2503,7 @@
             let badge = '';
             if (mentor) badge = '<span class="matrix-badge">★ 导师课 · 不可缺席</span>';
             else if (live) badge = '<span class="matrix-badge">正在上课</span>';
-            else if (!on) badge = '<span class="matrix-badge is-off-status">本周不上' + (mentorPlan ? ' · ' + esc(mentorPlan) : '') + '</span>';
+            else if (!on) badge = '<span class="matrix-badge is-off-status">此时间段无课' + (mentorPlan ? ' · ' + esc(mentorPlan) : '') + '</span>';
             else badge = '<span class="matrix-badge is-on-status">本周上课</span>';
             const details = on
               ? active.teachers + ' · ' + active.rooms
@@ -2444,6 +2519,8 @@
     }
 
     function renderWeek(now) {
+      const termNote = document.getElementById('weekTermNote');
+      if (termNote) termNote.textContent = scheduleTermForDate(now) + ' · 红色实线表示本周上课 · 灰色虚线表示此时间段无课';
       const currentWeek = teachingWeek(now);
       const currentButton = document.getElementById('weekCurrent');
       const weekStart = dateForWeekDay(state.viewWeek, 0);
@@ -2461,7 +2538,7 @@
       const list = COURSES.filter(function (course) { return course.day === state.selectedDay; });
       const activeCount = list.filter(function (course) { return isActive(course, state.viewWeek); }).length;
       const selectedDate = dateForWeekDay(state.viewWeek, state.selectedDay);
-      document.getElementById('weekSummary').textContent = DAYS_FULL[state.selectedDay] + ' · ' + longDate(selectedDate) + ' · ' + activeCount + ' 门上课，' + (list.length - activeCount) + ' 门本周不上';
+      document.getElementById('weekSummary').textContent = DAYS_FULL[state.selectedDay] + ' · ' + longDate(selectedDate) + ' · ' + activeCount + ' 门上课，' + (list.length - activeCount) + ' 个时间段无课';
 
       const container = document.getElementById('weekList');
       if (!list.length) {
@@ -2482,7 +2559,7 @@
         else if (mentorPlan) labels.push('<span class="mentor-schedule-label">' + esc(mentorPlan) + '</span>');
         if (on) labels.push('<span class="on-label">本周上课</span>');
         if (live) labels.push('<span class="live-label">上课中</span>');
-        if (!on) labels.push('<span class="off-label">本周不上</span>');
+        if (!on) labels.push('<span class="off-label">此时间段无课</span>');
         const label = labels.length ? '<div class="week-badges">' + labels.join('') + '</div>' : '';
         const details = on
           ? '<span>' + esc(active.teachers) + ' · ' + esc(active.rooms) + '</span>'
@@ -2523,10 +2600,10 @@
         if (DAYS_FULL.indexOf(day) === -1) throw new Error('第' + (index + 1) + '门课程的星期无效');
         if (!SLOT_TIMES.has(slot) || SLOT_TIMES.get(slot) !== time) throw new Error('第' + (index + 1) + '门课程的节次与时间不匹配');
         if (!Array.isArray(course['授课分段']) || course['授课分段'].length < 1 || course['授课分段'].length > 20) {
-          throw new Error('第' + (index + 1) + '门课程需要 1 至 20 个授课分段');
+          throw new Error('第' + (index + 1) + '门课程需要 1 至 20 组上课周次与教师');
         }
         const segments = course['授课分段'].map(function (part) {
-          if (!part || typeof part !== 'object' || Array.isArray(part)) throw new Error('授课分段格式无效');
+          if (!part || typeof part !== 'object' || Array.isArray(part)) throw new Error('上课周次与教师格式无效');
           return {
             '周次': cleanWeekRange(part['周次']),
             '教师': cleanText(part['教师'], '教师', 40)
@@ -2537,7 +2614,7 @@
             const leftRange = parseRange(segments[leftSegment]['周次']);
             const rightRange = parseRange(segments[rightSegment]['周次']);
             if (Math.max(leftRange[0], rightRange[0]) <= Math.min(leftRange[1], rightRange[1])) {
-              throw new Error('“' + (course['课程'] || '该课程') + '”的授课分段周次重叠，请为每周只保留一位教师');
+              throw new Error('“' + (course['课程'] || '该课程') + '”的教师安排周次重叠，请为每周只保留一位教师');
             }
           }
         }
@@ -2862,22 +2939,49 @@
     function renderSegments(parts) {
       const container = document.getElementById('segmentList');
       container.innerHTML = parts.map(function (part, index) {
+        const parsedRange = parseRange(part['周次']);
+        const range = normalizeWeekRange(parsedRange[0], parsedRange[1]);
+        const hintId = 'segmentDateHint' + index;
         return '<div class="segment-row" data-segment="' + index + '">' +
-          '<input class="text-input" data-week type="text" maxlength="12" aria-label="周次" placeholder="2-5" value="' + esc(part['周次']) + '">' +
-          '<input class="text-input" data-teacher type="text" maxlength="40" aria-label="教师" placeholder="教师姓名" value="' + esc(part['教师']) + '">' +
-          '<button class="remove-segment" type="button" data-remove-segment aria-label="删除这个授课分段">×</button></div>';
+          '<div class="segment-week-range">' +
+            '<label class="segment-control-label"><span>从第几周</span><select class="select-input" data-week-start aria-label="从第几周" aria-describedby="' + hintId + '">' + weekOptions(range[0]) + '</select></label>' +
+            '<span class="segment-range-separator" aria-hidden="true">至</span>' +
+            '<label class="segment-control-label"><span>到第几周</span><select class="select-input" data-week-end aria-label="到第几周" aria-describedby="' + hintId + '">' + weekOptions(range[1]) + '</select></label>' +
+          '</div>' +
+          '<label class="segment-control-label segment-teacher"><span>任课教师</span><input class="text-input" data-teacher type="text" maxlength="40" placeholder="教师姓名" value="' + esc(part['教师']) + '"></label>' +
+          '<button class="remove-segment" type="button" data-remove-segment aria-label="删除这组周次与教师">×</button>' +
+          '<p class="segment-date-hint" id="' + hintId + '" data-date-hint aria-live="polite">' + esc(segmentDateHint(range[0], range[1])) + '</p></div>';
       }).join('');
+    }
+
+    function updateSegmentDateHint(row) {
+      if (!row) return;
+      const hint = row.querySelector('[data-date-hint]');
+      if (!hint) return;
+      hint.textContent = segmentDateHint(row.querySelector('[data-week-start]').value, row.querySelector('[data-week-end]').value);
+    }
+
+    function normalizeSegmentWeekRange(row, changedSide) {
+      if (!row) return;
+      const startSelect = row.querySelector('[data-week-start]');
+      const endSelect = row.querySelector('[data-week-end]');
+      const range = normalizeWeekRange(startSelect.value, endSelect.value, changedSide);
+      startSelect.value = String(range[0]);
+      endSelect.value = String(range[1]);
+      updateSegmentDateHint(row);
     }
 
     function addSegmentRow(part) {
       const current = Array.from(document.querySelectorAll('#segmentList .segment-row')).map(function (row) {
-        return { '周次': row.querySelector('[data-week]').value, '教师': row.querySelector('[data-teacher]').value };
+        return { '周次': weekRangeValue(row.querySelector('[data-week-start]').value, row.querySelector('[data-week-end]').value), '教师': row.querySelector('[data-teacher]').value };
       });
-      current.push(part || { '周次': '', '教师': '' });
+      const previousRange = current.length ? parseRange(current[current.length - 1]['周次']) : [1, 1];
+      const nextWeek = Math.min(MAX_WEEK, previousRange[1] + 1);
+      current.push(part || { '周次': String(nextWeek), '教师': '' });
       renderSegments(current);
       const rows = document.querySelectorAll('#segmentList .segment-row');
       const last = rows[rows.length - 1];
-      if (last) last.querySelector('[data-week]').focus();
+      if (last) last.querySelector('[data-week-start]').focus({ preventScroll: true });
     }
 
     function updateCourseTimePreview() {
@@ -2906,7 +3010,15 @@
       renderSegments(course['授课分段']);
       updateCourseTimePreview();
       state.formDirty = false;
-      document.getElementById('courseName').focus();
+      const nameInput = document.getElementById('courseName');
+      const compactScreen = window.matchMedia && window.matchMedia('(max-width: 980px)').matches;
+      if (compactScreen) {
+        window.requestAnimationFrame(function () {
+          const editorPane = document.querySelector('.manager-pane.editor-pane');
+          if (editorPane) editorPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          nameInput.focus({ preventScroll: true });
+        });
+      } else nameInput.focus({ preventScroll: true });
     }
 
     function readCourseForm() {
@@ -2914,7 +3026,7 @@
       const rooms = document.getElementById('courseRooms').value.split(/[,，]/).map(function (room) { return room.trim(); }).filter(Boolean);
       const segments = Array.from(document.querySelectorAll('#segmentList .segment-row')).map(function (row) {
         return {
-          '周次': row.querySelector('[data-week]').value.trim(),
+          '周次': weekRangeValue(row.querySelector('[data-week-start]').value, row.querySelector('[data-week-end]').value),
           '教师': row.querySelector('[data-teacher]').value.trim()
         };
       });
@@ -3088,8 +3200,15 @@
       const rememberedSecret = getRememberedSecret();
       document.getElementById('rememberAdminPassword').checked = Boolean(rememberedSecret);
       daySelect.innerHTML = DAYS_FULL.map(function (day) { return '<option value="' + day + '">' + day + '</option>'; }).join('');
-      slotSelect.innerHTML = Array.from(SLOT_TIMES.entries()).map(function (entry) {
-        return '<option value="' + entry[0] + '">' + entry[0] + ' · ' + entry[1].replace('-', '—') + '</option>';
+      const slotGroups = [
+        { label: '上午', slots: ['第1-2节', '第3-5节'] },
+        { label: '下午', slots: ['第6-8节', '第9-10节', '第11节'] },
+        { label: '晚上', slots: ['第12-13节'] }
+      ];
+      slotSelect.innerHTML = slotGroups.map(function (group) {
+        return '<optgroup label="' + group.label + '">' + group.slots.map(function (slot) {
+          return '<option value="' + slot + '">' + slot + ' · ' + SLOT_TIMES.get(slot).replace('-', '—') + '</option>';
+        }).join('') + '</optgroup>';
       }).join('');
 
       document.getElementById('openManager').addEventListener('click', openManagerDialog);
@@ -3165,16 +3284,21 @@
       document.getElementById('addSegment').addEventListener('click', function () {
         addSegmentRow();
         state.formDirty = true;
-        setManagerStatus('已添加授课分段，请填写周次与教师后保存本门课程。', 'warning');
+        setManagerStatus('已添加一组上课周次与教师，请填写后保存本门课程。', 'warning');
+      });
+      document.getElementById('segmentList').addEventListener('change', function (event) {
+        const select = event.target.closest('[data-week-start], [data-week-end]');
+        if (!select) return;
+        normalizeSegmentWeekRange(select.closest('.segment-row'), select.hasAttribute('data-week-end') ? 'end' : 'start');
       });
       document.getElementById('segmentList').addEventListener('click', function (event) {
         const button = event.target.closest('[data-remove-segment]');
         if (!button) return;
         const rows = document.querySelectorAll('#segmentList .segment-row');
-        if (rows.length <= 1) { setManagerStatus('每门课程至少需要一个授课分段。', 'error'); return; }
+        if (rows.length <= 1) { setManagerStatus('每门课程至少需要一组上课周次与教师。', 'error'); return; }
         button.closest('.segment-row').remove();
         state.formDirty = true;
-        setManagerStatus('授课分段已从编辑器移除，保存本门课程后才会加入待同步列表。', 'warning');
+        setManagerStatus('这组上课周次与教师已移除，保存本门课程后才会加入待同步列表。', 'warning');
       });
       document.getElementById('managerCourseList').addEventListener('click', function (event) {
         const edit = event.target.closest('[data-edit]');
