@@ -1793,7 +1793,7 @@
 
       <div class="footer-bottom">
         <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO</span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">1.0</span></span>
       </div>
     </div>
   </footer>
@@ -1990,7 +1990,9 @@
     const CACHE_KEY = 'kust-lab-schedule-cache-v1';
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
-    const SITE_UPDATED_AT = '2026-08-30T21:30:26+08:00';
+    // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
+    const SITE_VERSION = '1.0';
+    const SITE_UPDATED_AT = '2026-08-30T21:38:38+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
     const SLOT_TIMES = new Map([
@@ -3485,6 +3487,7 @@
 
     function init() {
       const now = new Date();
+      document.getElementById('footerVersion').textContent = SITE_VERSION;
       state.currentWeek = teachingWeek(now);
       state.viewWeek = Math.max(1, Math.min(MAX_WEEK, state.currentWeek));
       state.selectedDay = dayIndex(now);

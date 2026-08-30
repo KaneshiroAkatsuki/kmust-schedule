@@ -310,6 +310,11 @@ test('course editor groups class periods and explains week-and-teacher ranges cl
 test('footer expands to four columns and collapses responsively', () => {
   assert.equal((html.match(/class="footer-group"/g) || []).length, 4);
   assert.match(html, /@玉衡山科学院·KANESHIRO/);
+  const version = html.match(/const SITE_VERSION = '([^']+)'/);
+  assert.ok(version, 'site version constant should exist');
+  assert.match(version[1], /^\d+\.\d+$/);
+  assert.match(html, new RegExp('id="footerVersion">' + version[1].replace('.', '\\.') + '<'));
+  assert.match(html, /getElementById\('footerVersion'\)\.textContent = SITE_VERSION/);
   assert.match(html, /<summary>数据与管理<\/summary>/);
   assert.match(html, /<summary>学校链接<\/summary>/);
   assert.match(css, /@media \(min-width: 980px\)[\s\S]*?grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
@@ -418,7 +423,7 @@ test('manager password is numeric, hidden by default and optionally remembered',
 });
 
 test('modification sync status uses the latest page or schedule change in China time', () => {
-  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T21:30:26\+08:00'/);
+  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T21:38:38\+08:00'/);
   assert.match(html, /function latestModifiedAt\(scheduleUpdatedAt\)/);
   assert.match(html, /getUTC(?:Month|Date|Hours|Minutes)/);
   assert.match(html, /修改同步时间/);
@@ -428,7 +433,9 @@ test('modification sync status uses the latest page or schedule change in China 
 test('China time formatting and remembered-secret storage behave deterministically', () => {
   assert.equal(api.formatUpdatedAt('2026-08-30T08:00:00.000Z'), '16:00');
   assert.equal(api.formatUpdatedDateTime('2026-08-30T08:00:00.000Z'), '2026年8月30日 16:00');
-  assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), '21:30');
+  const siteUpdatedAt = html.match(/const SITE_UPDATED_AT = '([^']+)'/)[1];
+  assert.equal(api.latestModifiedAt(null), siteUpdatedAt);
+  assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), api.formatUpdatedAt(siteUpdatedAt));
   assert.equal(api.latestModifiedAt('2026-08-31T00:00:00.000Z'), '2026-08-31T00:00:00.000Z');
 
   const remembered = new Map();
