@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createApp, createMemoryStore } from '../src/index.mjs';
+import fs from 'node:fs';
+import {
+  createApp,
+  createBaiduWeatherProvider,
+  createMemoryStore,
+  createMemoryWeatherStore,
+  createWeatherService,
+  normalizeBaiduWeather
+} from '../src/index.mjs';
 
 const ORIGIN = 'https://kaneshiroakatsuki.github.io';
 const SECRET = 'test-only-secret';
@@ -17,13 +25,32 @@ function sampleCourse(overrides = {}) {
   };
 }
 
-function makeApp() {
+function makeApp(overrides = {}) {
   return createApp({
     store: createMemoryStore(),
     adminSecret: SECRET,
     allowedOrigin: ORIGIN,
-    now: () => '2026-08-30T08:00:00.000Z'
+    now: () => '2026-08-30T08:00:00.000Z',
+    ...overrides
   });
+}
+
+function baiduWeatherPayload() {
+  return {
+    status: 0,
+    message: 'success',
+    result: {
+      location: { name: '呈贡区' },
+      now: {
+        text: '多云', temp: 17, feels_like: 16, rh: 74,
+        wind_dir: '西南风', wind_class: '2级', uptime: '20260830222500'
+      },
+      forecasts: [{
+        date: '2026-08-30', high: 22, low: 14,
+        text_day: '多云', text_night: '阵雨'
+      }]
+    }
+  };
 }
 
 function request(path, init = {}) {
@@ -43,6 +70,101 @@ test('health endpoint responds without database access', async () => {
   const response = await makeApp().fetch(request('/api/health'));
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { ok: true });
+});
+
+test('weather endpoint returns normalized Chenggong weather and reuses the 15-minute cache', async () => {
+  let upstreamCalls = 0;
+  const provider = createBaiduWeatherProvider({
+    apiKey: 'test-only-baidu-key',
+    now: () => Date.parse('2026-08-30T14:30:00.000Z'),
+    fetchFn: async (url) => {
+      upstreamCalls += 1;
+      assert.match(url, /district_id=530114/);
+      assert.match(url, /data_type=all/);
+      return new Response(JSON.stringify(baiduWeatherPayload()), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  });
+  const app = makeApp({ weatherProvider: provider });
+
+  const first = await app.fetch(request('/api/weather', { headers: { Origin: ORIGIN } }));
+  assert.equal(first.status, 200);
+  assert.equal(first.headers.get('access-control-allow-origin'), ORIGIN);
+  assert.match(first.headers.get('cache-control'), /s-maxage=900/);
+  const firstData = (await first.json()).data;
+  assert.equal(firstData.location, '呈贡区');
+  assert.equal(firstData.current.condition, '多云');
+  assert.equal(firstData.current.temperature, 17);
+  assert.equal(firstData.today.high, 22);
+  assert.equal(firstData.observedAt, '2026-08-30T22:25:00+08:00');
+  assert.equal(firstData.cached, false);
+
+  const second = await app.fetch(request('/api/weather'));
+  assert.equal((await second.json()).data.cached, true);
+  assert.equal(upstreamCalls, 1);
+});
+
+test('hourly cloud weather survives closed webpages and refreshes on the cron schedule', async () => {
+  let currentTime = Date.parse('2026-08-30T14:30:00.000Z');
+  let providerCalls = 0;
+  let providerFails = false;
+  const store = createMemoryWeatherStore();
+  const provider = async (options) => {
+    assert.equal(options.force, true);
+    providerCalls += 1;
+    if (providerFails) throw new Error('upstream unavailable');
+    return {
+      source: '百度地图天气',
+      location: '呈贡区',
+      observedAt: new Date(currentTime).toISOString(),
+      fetchedAt: new Date(currentTime).toISOString(),
+      current: { condition: '多云', temperature: 17 },
+      today: { high: 22, low: 14 },
+      cached: false,
+      stale: false
+    };
+  };
+  const service = createWeatherService({
+    store,
+    provider,
+    now: () => currentTime,
+    maxAgeMs: 60 * 60 * 1000
+  });
+
+  const initial = await service.get();
+  assert.equal(initial.cached, false);
+  assert.equal(providerCalls, 1);
+
+  currentTime += 30 * 60 * 1000;
+  const halfHour = await service.get();
+  assert.equal(halfHour.cached, true);
+  assert.equal(providerCalls, 1, 'fresh D1 weather should not call Baidu again');
+
+  await service.refresh();
+  assert.equal(providerCalls, 2, 'scheduled refresh must run even when no webpage is open');
+
+  currentTime += 61 * 60 * 1000;
+  providerFails = true;
+  const fallback = await service.get();
+  assert.equal(fallback.cached, true);
+  assert.equal(fallback.stale, true);
+  assert.equal(fallback.current.temperature, 17);
+
+  const wranglerConfig = fs.readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8');
+  assert.match(wranglerConfig, /"crons"\s*:\s*\["0 \* \* \* \*"\]/);
+});
+
+test('weather response validation and upstream failures never expose provider details', async () => {
+  assert.throws(() => normalizeBaiduWeather({ status: 2, message: 'bad key' }), /天气响应无效/);
+  const app = makeApp({ weatherProvider: async () => { throw new Error('sensitive upstream detail'); } });
+  const response = await app.fetch(request('/api/weather', { headers: { Origin: ORIGIN } }));
+  assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), {
+    ok: false,
+    error: { code: 'WEATHER_UNAVAILABLE', message: '天气暂时不可用' }
+  });
 });
 
 test('public read reports an uninitialized schedule', async () => {

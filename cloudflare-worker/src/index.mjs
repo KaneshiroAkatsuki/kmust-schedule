@@ -1,6 +1,10 @@
 const SCHEMA_VERSION = 1;
 const MAX_BODY_BYTES = 256 * 1024;
 const MAX_COURSES = 200;
+const WEATHER_PROVIDER_CACHE_MS = 15 * 60 * 1000;
+const WEATHER_REFRESH_MS = 60 * 60 * 1000;
+const BAIDU_WEATHER_ENDPOINT = 'https://api.map.baidu.com/weather/v1/';
+const CHENGGONG_DISTRICT_ID = '530114';
 const DAYS = new Set(['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']);
 const SLOTS = new Map([
   ['第1-2节', '08:00-09:35'],
@@ -12,6 +16,8 @@ const SLOTS = new Map([
 ]);
 
 class ValidationError extends Error {}
+
+class WeatherError extends Error {}
 
 function clone(value) {
   return value == null ? value : JSON.parse(JSON.stringify(value));
@@ -163,10 +169,10 @@ async function secureEqual(actual, expected) {
   return difference === 0;
 }
 
-function responseHeaders(origin, allowedOrigin) {
+function responseHeaders(origin, allowedOrigin, cacheControl = 'no-store') {
   const headers = new Headers({
     'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store',
+    'Cache-Control': cacheControl,
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'no-referrer'
   });
@@ -180,11 +186,132 @@ function responseHeaders(origin, allowedOrigin) {
   return headers;
 }
 
-function json(body, status, origin, allowedOrigin) {
+function json(body, status, origin, allowedOrigin, cacheControl) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: responseHeaders(origin, allowedOrigin)
+    headers: responseHeaders(origin, allowedOrigin, cacheControl)
   });
+}
+
+function cleanWeatherNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function baiduObservedAt(value, fallback) {
+  const match = String(value || '').match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/);
+  if (!match) return fallback;
+  return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}+08:00`;
+}
+
+export function normalizeBaiduWeather(payload, fetchedAt = new Date().toISOString()) {
+  if (!payload || Number(payload.status) !== 0 || !payload.result?.now) {
+    throw new WeatherError('百度天气响应无效');
+  }
+  const result = payload.result;
+  const now = result.now;
+  const today = Array.isArray(result.forecasts) && result.forecasts.length ? result.forecasts[0] : {};
+  return {
+    source: '百度地图天气',
+    location: String(result.location?.name || '呈贡区'),
+    observedAt: baiduObservedAt(now.uptime, fetchedAt),
+    fetchedAt,
+    current: {
+      condition: String(now.text || '天气未知'),
+      temperature: cleanWeatherNumber(now.temp),
+      feelsLike: cleanWeatherNumber(now.feels_like),
+      humidity: cleanWeatherNumber(now.rh),
+      windDirection: String(now.wind_dir || ''),
+      windLevel: String(now.wind_class || '')
+    },
+    today: {
+      high: cleanWeatherNumber(today.high),
+      low: cleanWeatherNumber(today.low),
+      conditionDay: String(today.text_day || now.text || ''),
+      conditionNight: String(today.text_night || '')
+    },
+    cached: false,
+    stale: false
+  };
+}
+
+export function createBaiduWeatherProvider({ apiKey, fetchFn = fetch, now = () => Date.now(), cacheMs = WEATHER_PROVIDER_CACHE_MS }) {
+  let cachedWeather = null;
+  let expiresAt = 0;
+  return async function getWeather(options = {}) {
+    const currentTime = now();
+    if (cachedWeather && currentTime < expiresAt && !options.force) {
+      return { ...clone(cachedWeather), cached: true, stale: false };
+    }
+    try {
+      if (typeof apiKey !== 'string' || !apiKey.trim()) throw new WeatherError('天气服务尚未配置');
+      const url = new URL(BAIDU_WEATHER_ENDPOINT);
+      url.searchParams.set('district_id', CHENGGONG_DISTRICT_ID);
+      url.searchParams.set('data_type', 'all');
+      url.searchParams.set('ak', apiKey.trim());
+      const response = await fetchFn(url.toString(), {
+        method: 'GET',
+        headers: { Accept: 'application/json' }
+      });
+      if (!response.ok) throw new WeatherError('百度天气网络响应异常');
+      const data = normalizeBaiduWeather(await response.json(), new Date(currentTime).toISOString());
+      cachedWeather = clone(data);
+      expiresAt = currentTime + cacheMs;
+      return data;
+    } catch (error) {
+      if (cachedWeather && !options.force) return { ...clone(cachedWeather), cached: true, stale: true };
+      if (error instanceof WeatherError) throw error;
+      throw new WeatherError('天气服务暂时不可用');
+    }
+  };
+}
+
+export function createMemoryWeatherStore(seed = null) {
+  let weather = clone(seed);
+  return {
+    async get() {
+      return clone(weather);
+    },
+    async put(nextWeather) {
+      weather = clone(nextWeather);
+      return clone(weather);
+    }
+  };
+}
+
+export function createWeatherService({ store, provider, now = () => Date.now(), maxAgeMs = WEATHER_REFRESH_MS }) {
+  if (!store || typeof store.get !== 'function' || typeof store.put !== 'function') {
+    throw new Error('天气缓存存储无效');
+  }
+  if (typeof provider !== 'function') throw new Error('天气服务提供器无效');
+
+  async function fetchAndStore() {
+    const weather = await provider({ force: true });
+    if (!weather || !weather.current || !weather.fetchedAt) throw new WeatherError('天气服务返回无效');
+    const fresh = { ...clone(weather), cached: false, stale: false };
+    await store.put(fresh);
+    return fresh;
+  }
+
+  return {
+    async get() {
+      const cached = await store.get();
+      const fetchedAt = Date.parse(cached?.fetchedAt || '');
+      const age = now() - fetchedAt;
+      if (cached && Number.isFinite(fetchedAt) && age >= 0 && age < maxAgeMs) {
+        return { ...clone(cached), cached: true, stale: false };
+      }
+      try {
+        return await fetchAndStore();
+      } catch (error) {
+        if (cached) return { ...clone(cached), cached: true, stale: true };
+        throw error;
+      }
+    },
+    async refresh() {
+      return fetchAndStore();
+    }
+  };
 }
 
 export function createMemoryStore(seed = null) {
@@ -243,7 +370,33 @@ export function createD1Store(database) {
   };
 }
 
-export function createApp({ store, adminSecret, allowedOrigin, now = () => new Date().toISOString() }) {
+export function createD1WeatherStore(database) {
+  if (!database) throw new Error('D1 binding DB is missing');
+  return {
+    async get() {
+      const row = await database.prepare('SELECT fetched_at, weather_json FROM weather_state WHERE id = 1').first();
+      if (!row) return null;
+      try {
+        const weather = JSON.parse(row.weather_json);
+        if (!weather || !weather.current) return null;
+        return { ...weather, fetchedAt: row.fetched_at };
+      } catch {
+        return null;
+      }
+    },
+    async put(weather) {
+      const fetchedAt = String(weather?.fetchedAt || '');
+      if (!fetchedAt || !weather?.current) throw new WeatherError('天气缓存内容无效');
+      await database.prepare(
+        `INSERT INTO weather_state (id, fetched_at, weather_json) VALUES (1, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET fetched_at = excluded.fetched_at, weather_json = excluded.weather_json`
+      ).bind(fetchedAt, JSON.stringify(weather)).run();
+      return clone(weather);
+    }
+  };
+}
+
+export function createApp({ store, adminSecret, allowedOrigin, now = () => new Date().toISOString(), weatherProvider = null }) {
   return {
     async fetch(request) {
       const url = new URL(request.url);
@@ -258,6 +411,26 @@ export function createApp({ store, adminSecret, allowedOrigin, now = () => new D
       }
       if (url.pathname === '/api/health' && request.method === 'GET') {
         return json({ ok: true }, 200, origin, allowedOrigin);
+      }
+      if (url.pathname === '/api/weather') {
+        if (request.method !== 'GET') {
+          return json({ ok: false, error: { code: 'METHOD_NOT_ALLOWED', message: '请求方法不允许' } }, 405, origin, allowedOrigin);
+        }
+        if (!weatherProvider) {
+          return json({ ok: false, error: { code: 'WEATHER_NOT_CONFIGURED', message: '天气服务尚未配置' } }, 503, origin, allowedOrigin);
+        }
+        try {
+          const weather = await weatherProvider();
+          return json(
+            { ok: true, data: weather },
+            200,
+            origin,
+            allowedOrigin,
+            'public, max-age=300, s-maxage=900, stale-while-revalidate=3600'
+          );
+        } catch {
+          return json({ ok: false, error: { code: 'WEATHER_UNAVAILABLE', message: '天气暂时不可用' } }, 502, origin, allowedOrigin);
+        }
       }
       if (url.pathname === '/api/auth/verify') {
         if (request.method !== 'POST') {
@@ -330,13 +503,30 @@ export function createApp({ store, adminSecret, allowedOrigin, now = () => new D
   };
 }
 
+let liveWeatherProvider = null;
+
+function createLiveWeatherService(env) {
+  if (!liveWeatherProvider) {
+    liveWeatherProvider = createBaiduWeatherProvider({ apiKey: env.BAIDU_MAP_AK });
+  }
+  return createWeatherService({
+    store: createD1WeatherStore(env.DB),
+    provider: liveWeatherProvider
+  });
+}
+
 export default {
   async fetch(request, env) {
+    const weatherService = createLiveWeatherService(env);
     const app = createApp({
       store: createD1Store(env.DB),
       adminSecret: env.ADMIN_SECRET,
-      allowedOrigin: env.ALLOWED_ORIGIN
+      allowedOrigin: env.ALLOWED_ORIGIN,
+      weatherProvider: () => weatherService.get()
     });
     return app.fetch(request);
+  },
+  async scheduled(_controller, env, context) {
+    context.waitUntil(createLiveWeatherService(env).refresh());
   }
 };

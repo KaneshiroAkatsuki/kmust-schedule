@@ -21,6 +21,7 @@ const exposedNames = [
   'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput',
   'stageCourseUpsert', 'stageCourseDelete',
   'cloudSaveButtonView',
+  'weatherKind', 'weatherSummary', 'readWeatherCache', 'loadWeather',
   'setupMobileMoreMenu', 'formatUpdatedAt', 'formatUpdatedDateTime', 'latestModifiedAt',
   'getRememberedSecret', 'setRememberedSecret', 'clearRememberedSecret'
 ];
@@ -53,7 +54,8 @@ test('required interactive ids exist exactly once', () => {
   const ids = [
     'clock', 'dateLine', 'statusCard', 'todayList', 'weekList', 'weekMatrix', 'dayTabs',
     'prevWeek', 'nextWeek', 'weekCurrent', 'openManager', 'openManagerTop', 'openManagerMobile', 'managerDialog',
-    'managerCourseList', 'managerSearch', 'courseForm', 'saveCloud', 'syncPill'
+    'managerCourseList', 'managerSearch', 'courseForm', 'saveCloud', 'syncPill',
+    'weatherChip', 'weatherIcon', 'weatherPrimary', 'weatherSecondary'
   ];
   for (const id of ids) {
     const count = (html.match(new RegExp(`id=["']${id}["']`, 'g')) || []).length;
@@ -321,6 +323,86 @@ test('footer expands to four columns and collapses responsively', () => {
   assert.match(css, /@media \(min-width: 641px\) and \(max-width: 979px\)[\s\S]*?grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
 });
 
+test('weather is readable, cached locally and refreshed automatically or on demand', async () => {
+  assert.match(html, /const WEATHER_REFRESH_MS = 60 \* 60 \* 1000/);
+  assert.equal(api.weatherKind('晴'), 'sun');
+  assert.equal(api.weatherKind('多云'), 'cloud');
+  assert.equal(api.weatherKind('雷阵雨'), 'storm');
+  assert.equal(api.weatherKind('小雨'), 'rain');
+  assert.equal(api.weatherKind('雾'), 'fog');
+
+  const cachedData = {
+    source: '百度地图天气',
+    location: '呈贡区',
+    observedAt: '2026-08-30T22:25:00+08:00',
+    current: { condition: '多云', temperature: 17, feelsLike: 16 },
+    today: { high: 22, low: 14 }
+  };
+  const summary = api.weatherSummary(cachedData);
+  assert.equal(summary.primary, '呈贡 17° · 多云');
+  assert.equal(summary.secondary, '体感 16° · 今日 14—22°');
+
+  class WeatherElement {
+    constructor() {
+      this.className = '';
+      this.attributes = {};
+      this.textContent = '';
+      this.innerHTML = '';
+      this.classList = {
+        add: (name) => { if (!this.className.includes(name)) this.className += ' ' + name; },
+        remove: (name) => { this.className = this.className.replace(name, '').trim(); }
+      };
+    }
+    setAttribute(name, value) { this.attributes[name] = value; }
+  }
+
+  const elements = Object.fromEntries([
+    'weatherChip', 'weatherIcon', 'weatherPrimary', 'weatherSecondary'
+  ].map((id) => [id, new WeatherElement()]));
+  const storage = new Map();
+  storage.set('kust-lab-weather-cache-v1', JSON.stringify({
+    schemaVersion: 1,
+    savedAt: Date.now(),
+    data: cachedData
+  }));
+  context.document = { getElementById: (id) => elements[id] || null };
+  context.localStorage = {
+    getItem: (key) => storage.get(key) || null,
+    setItem: (key, value) => storage.set(key, value),
+    removeItem: (key) => storage.delete(key)
+  };
+  context.window = { setTimeout, clearTimeout };
+  context.AbortController = AbortController;
+  let fetchCalls = 0;
+  context.fetch = async () => {
+    fetchCalls += 1;
+    return {
+      ok: true,
+      json: async () => ({
+        ok: true,
+        data: {
+          ...cachedData,
+          current: { condition: '晴', temperature: 19, feelsLike: 18 }
+        }
+      })
+    };
+  };
+
+  assert.equal(await api.loadWeather(), true);
+  assert.equal(fetchCalls, 0, 'fresh local cache should render without another request');
+  assert.equal(elements.weatherPrimary.textContent, '呈贡 17° · 多云');
+
+  assert.equal(await api.loadWeather({ force: true }), true);
+  assert.equal(fetchCalls, 1, 'click-to-refresh should bypass the fresh-cache shortcut');
+  assert.equal(elements.weatherPrimary.textContent, '呈贡 19° · 晴');
+  assert.match(storage.get('kust-lab-weather-cache-v1'), /\"temperature\":19/);
+
+  assert.match(html, /loadWeather\(\{ force: true \}\);[\s\S]*?weatherChip'\)\.addEventListener\('click',[\s\S]*?loadWeather\(\{ force: true \}\)/);
+  assert.match(html, /window\.setInterval\(function \(\) \{\s*if \(!document\.hidden\) loadWeather\(\);\s*\}, WEATHER_REFRESH_MS\)/);
+  assert.match(html, /visibilitychange[\s\S]*?if \(!document\.hidden\)[\s\S]*?loadWeather\(\)/);
+  assert.match(html, /天气数据 · 百度地图/);
+});
+
 test('foldable and phone breakpoints avoid narrow side columns', () => {
   assert.match(css, /grid-template-areas:\s*"hero"\s*"today"\s*"week"/);
   assert.match(css, /@media \(min-width: 801px\) and \(max-width: 1159px\)[\s\S]*?"hero today"\s*"week week"/);
@@ -423,7 +505,7 @@ test('manager password is numeric, hidden by default and optionally remembered',
 });
 
 test('modification sync status uses the latest page or schedule change in China time', () => {
-  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T21:38:38\+08:00'/);
+  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T22:49:23\+08:00'/);
   assert.match(html, /function latestModifiedAt\(scheduleUpdatedAt\)/);
   assert.match(html, /getUTC(?:Month|Date|Hours|Minutes)/);
   assert.match(html, /修改同步时间/);
