@@ -58,6 +58,28 @@ test('public read reports an uninitialized schedule', async () => {
   });
 });
 
+test('admin password is verified before the editor opens', async () => {
+  const app = makeApp();
+  const valid = await app.fetch(request('/api/auth/verify', {
+    method: 'POST',
+    headers: adminHeaders()
+  }));
+  assert.equal(valid.status, 200);
+  assert.deepEqual(await valid.json(), { ok: true });
+
+  const invalid = await app.fetch(request('/api/auth/verify', {
+    method: 'POST',
+    headers: adminHeaders({ Authorization: 'Bearer wrong' })
+  }));
+  assert.equal(invalid.status, 401);
+
+  const missingOrigin = await app.fetch(request('/api/auth/verify', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${SECRET}` }
+  }));
+  assert.equal(missingOrigin.status, 403);
+});
+
 test('write requires the allowed origin and bearer secret', async () => {
   const app = makeApp();
   const body = JSON.stringify({ baseRevision: 0, courses: [sampleCourse()] });
@@ -167,11 +189,29 @@ test('duplicate and overlapping course meetings are rejected', async () => {
   assert.equal(separated.status, 200);
 });
 
+test('overlapping teacher segments inside one course are rejected', async () => {
+  const response = await makeApp().fetch(request('/api/schedule', {
+    method: 'PUT',
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      baseRevision: 0,
+      courses: [sampleCourse({
+        授课分段: [
+          { 周次: '2-5', 教师: '教师甲' },
+          { 周次: '5-8', 教师: '教师乙' }
+        ]
+      })]
+    })
+  }));
+  assert.equal(response.status, 422);
+  assert.match((await response.json()).error.message, /授课分段周次重叠/);
+});
+
 test('preflight allows only the configured site origin', async () => {
   const response = await makeApp().fetch(request('/api/schedule', {
     method: 'OPTIONS',
     headers: { Origin: ORIGIN }
   }));
   assert.equal(response.status, 204);
-  assert.equal(response.headers.get('access-control-allow-methods'), 'GET, PUT, OPTIONS');
+  assert.equal(response.headers.get('access-control-allow-methods'), 'GET, POST, PUT, OPTIONS');
 });

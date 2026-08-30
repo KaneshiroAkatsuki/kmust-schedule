@@ -16,7 +16,9 @@ const exposedNames = [
   'RAW_DATA', 'FALLBACK_DATA', 'DAYS_FULL', 'SLOT_TIMES', 'state', 'COURSES',
   'teachingWeek', 'academicPhase', 'dateForWeekDay', 'dayIndex', 'isActive',
   'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput',
-  'setupMobileMoreMenu'
+  'stageCourseUpsert', 'stageCourseDelete',
+  'setupMobileMoreMenu', 'formatUpdatedAt', 'formatUpdatedDateTime', 'latestModifiedAt',
+  'getRememberedSecret', 'setRememberedSecret', 'clearRememberedSecret'
 ];
 
 const testSource = scriptMatch[1].replace(/\s*init\(\);\s*$/, '') +
@@ -157,10 +159,35 @@ test('course editor validation matches the cloud contract', () => {
   assert.equal(api.validateCoursesInput(good)[0]['课程'], '新增测试课');
   assert.throws(() => api.validateCoursesInput([{ ...good[0], '时间': '08:01-09:35' }]), /节次与时间不匹配/);
   assert.throws(() => api.validateCoursesInput([{ ...good[0], '授课分段': [{ '周次': '8-2', '教师': '测试教师' }] }]), /周次范围无效/);
+  assert.throws(() => api.validateCoursesInput([{ ...good[0], '授课分段': [
+    { '周次': '2-5', '教师': '教师甲' }, { '周次': '5-8', '教师': '教师乙' }
+  ] }]), /授课分段周次重叠/);
   assert.throws(() => api.validateCoursesInput([good[0], { ...good[0], '教室': ['公教楼102'] }]), /重复课程/);
   assert.throws(() => api.validateCoursesInput([good[0], { ...good[0], '课程': '另一门课程' }]), /课程时间冲突/);
   const separated = api.validateCoursesInput([good[0], { ...good[0], '授课分段': [{ '周次': '5-6', '教师': '测试教师' }] }]);
   assert.equal(separated.length, 2, 'same course in non-overlapping weeks remains valid');
+});
+
+test('course staging really adds, edits and deletes without mutating the previous list', () => {
+  const course = {
+    '星期': '星期三', '节次': '第11节', '时间': '17:50-18:35', '课程': '事务测试课',
+    '授课分段': [{ '周次': '2-3', '教师': '教师甲' }], '教室': ['公教楼101']
+  };
+  const empty = [];
+  const added = api.stageCourseUpsert(empty, course, -1);
+  assert.equal(empty.length, 0);
+  assert.equal(added.length, 1);
+  assert.equal(added[0]['课程'], '事务测试课');
+
+  const edited = api.stageCourseUpsert(added, { ...course, '教室': ['公教楼202'] }, 0);
+  assert.equal(added[0]['教室'][0], '公教楼101');
+  assert.equal(edited[0]['教室'][0], '公教楼202');
+
+  const deleted = api.stageCourseDelete(edited, 0);
+  assert.equal(edited.length, 1);
+  assert.equal(deleted.length, 0);
+  assert.throws(() => api.stageCourseDelete(deleted, 0), /未找到要删除的课程/);
+  assert.throws(() => api.stageCourseUpsert(added, { ...course, '教室': ['公教楼303'] }, -1), /重复课程/);
 });
 
 test('course management uses one unified entry on desktop and mobile', () => {
@@ -172,6 +199,7 @@ test('course management uses one unified entry on desktop and mobile', () => {
 
 test('footer expands to four columns and collapses responsively', () => {
   assert.equal((html.match(/class="footer-group"/g) || []).length, 4);
+  assert.match(html, /@玉衡山科学院·KANESHIRO/);
   assert.match(html, /<summary>数据与管理<\/summary>/);
   assert.match(html, /<summary>学校链接<\/summary>/);
   assert.match(css, /@media \(min-width: 980px\)[\s\S]*?grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
@@ -258,15 +286,67 @@ test('mobile more menu opens and closes with synchronized accessibility state', 
   assert.equal(ids.openMoreMobile.attributes['aria-expanded'], 'false');
 });
 
-test('admin secret is session-only and revision conflicts have a visible recovery path', () => {
+test('manager password is numeric, hidden by default and optionally remembered', () => {
+  assert.match(html, /请输入管理员密码，密码为数字构成，忘记密码请联系金城中月管理员/);
+  assert.match(html, /id="adminPassword"[^>]*type="password"[^>]*inputmode="numeric"[^>]*pattern="\[0-9\]\*"[^>]*placeholder="请输入管理员密码"/);
+  assert.match(html, /id="showAdminPassword"[^>]*type="checkbox"/);
+  assert.match(html, /id="rememberAdminPassword"[^>]*type="checkbox"/);
+  assert.match(html, /showAdminPassword[\s\S]*?password\.type = event\.target\.checked \? 'text' : 'password'/);
+  assert.match(html, /\/\^\\d\+\$\//);
+  assert.match(html, /localStorage\.setItem\(REMEMBERED_SECRET_KEY, value\)/);
+  assert.match(html, /localStorage\.removeItem\(REMEMBERED_SECRET_KEY\)/);
+  assert.match(html, /async function verifyAdminSecret\(secret\)/);
+  assert.match(html, /SYNC_ENDPOINT \+ '\/api\/auth\/verify'/);
+  assert.match(html, /unlockManager'\)\.addEventListener\('click', async function/);
+  assert.match(html, /response\.status === 401[\s\S]*?clearRememberedSecret\(\)/);
+});
+
+test('modification sync status uses the latest page or schedule change in China time', () => {
+  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T20:31:02\+08:00'/);
+  assert.match(html, /function latestModifiedAt\(scheduleUpdatedAt\)/);
+  assert.match(html, /getUTC(?:Month|Date|Hours|Minutes)/);
+  assert.match(html, /修改同步时间/);
+  assert.doesNotMatch(html, /'已同步' \+ \(time/);
+});
+
+test('China time formatting and remembered-secret storage behave deterministically', () => {
+  assert.equal(api.formatUpdatedAt('2026-08-30T08:00:00.000Z'), '16:00');
+  assert.equal(api.formatUpdatedDateTime('2026-08-30T08:00:00.000Z'), '2026年8月30日 16:00');
+  assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), '20:31');
+  assert.equal(api.latestModifiedAt('2026-08-31T00:00:00.000Z'), '2026-08-31T00:00:00.000Z');
+
+  const remembered = new Map();
+  context.localStorage = {
+    getItem: (key) => remembered.get(key) || null,
+    setItem: (key, value) => remembered.set(key, value),
+    removeItem: (key) => remembered.delete(key)
+  };
+  api.setRememberedSecret('24680');
+  assert.equal(api.getRememberedSecret(), '24680');
+  api.clearRememberedSecret();
+  assert.equal(api.getRememberedSecret(), '');
+});
+
+test('main clock uses a modern sans-serif tabular style', () => {
+  assert.match(css, /\.clock \{[\s\S]*?font-family: "SF Pro Display", "Segoe UI Variable Display"[\s\S]*?font-weight: 700[\s\S]*?font-variant-numeric: tabular-nums/);
+  assert.match(css, /\.clock-seconds \{[\s\S]*?background: var\(--kust-red-soft\)/);
+  assert.doesNotMatch(css, /\.clock \{[^}]*Georgia/);
+});
+
+test('admin secret persistence is explicit and revision conflicts remain recoverable', () => {
   assert.match(html, /sessionStorage\.setItem\(SECRET_KEY/);
-  assert.doesNotMatch(html, /localStorage\.setItem\(SECRET_KEY/);
+  assert.match(html, /const REMEMBERED_SECRET_KEY/);
   assert.match(html, /baseRevision: state\.revision/);
   assert.match(html, /response\.status === 409/);
   assert.match(html, /id="reloadCloud"/);
   assert.match(html, /function setupFooterDisclosure\(\)/);
   assert.match(html, /window\.setInterval\(function \(\) \{ loadCloudSchedule\(\); \}, SYNC_INTERVAL_MS\)/);
   assert.match(html, /function renderWeekMatrix\(now\)/);
-  assert.match(html, /state\.workingData\.splice\(index, 1\)/);
-  assert.match(html, /state\.workingData = validateCoursesInput\(nextData\)/);
+  assert.match(html, /state\.workingData = stageCourseDelete\(state\.workingData, index\)/);
+  assert.match(html, /state\.workingData = stageCourseUpsert\(state\.workingData, course, state\.editingIndex\)/);
+  assert.match(html, /if \(!state\.managerDirty && !state\.formDirty\) return/);
+  assert.match(html, /没有待保存修改/);
+  assert.match(html, /重新载入会放弃当前未保存的修改/);
+  assert.match(html, /课程“' \+ course\['课程'\] \+ '”已从待同步列表删除/);
+  assert.match(html, /editingCourse \? '课程修改已暂存/);
 });

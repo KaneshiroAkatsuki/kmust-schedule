@@ -120,17 +120,34 @@ body {
 .hero-kicker { color: var(--kust-red); letter-spacing: .12em; }
 
 .clock {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
   color: #10100f;
-  font-family: Georgia, "Times New Roman", "Songti SC", serif;
-  font-weight: 400;
+  font-family: "SF Pro Display", "Segoe UI Variable Display", "Segoe UI", Arial, sans-serif;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -.055em;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -.065em;
 }
 
 .clock-seconds {
+  display: inline-flex;
+  min-width: 2.55em;
+  margin-left: 0;
+  padding: .3em .38em .24em;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(178,12,37,.16);
+  border-radius: 8px;
   color: var(--kust-red);
+  background: var(--kust-red-soft);
   font-family: var(--body-font);
-  font-weight: 700;
+  font-size: .19em;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: .04em;
+  transform: translateY(-.08em);
 }
 
 .date-line { font-weight: 680; }
@@ -283,12 +300,18 @@ body {
 .manager-search input::placeholder { color: #9c968e; }
 .primary-button { background: var(--kust-red); }
 .primary-button:hover { background: var(--kust-red-deep); }
+.primary-button:disabled,
+.primary-button:disabled:hover { color: #7d7770; background: #e5e1da; opacity: 1; cursor: not-allowed; }
 .danger-button { color: var(--kust-red); background: var(--kust-red-soft); }
 .manager-grid { grid-template-columns: minmax(350px, .78fr) minmax(500px, 1.22fr); }
 .manager-pane { background: #f9f7f2; }
 .manager-course { border-radius: 9px; }
 .manager-course:hover { background: #fff; }
 .manager-course.is-mentor { border-left-color: var(--kust-red); background: #fff2f4; }
+.password-options { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 11px; }
+.password-option { display: inline-flex; align-items: center; gap: 7px; color: #57514b; font-size: 12px; font-weight: 700; cursor: pointer; }
+.password-option input { width: 16px; height: 16px; margin: 0; accent-color: var(--kust-red); }
+.password-storage-note { margin-top: 8px; color: #8a837b; font-size: 10px; line-height: 1.5; }
 .mini-button.delete { color: var(--kust-red); }
 .remove-segment { color: var(--kust-red); background: var(--kust-red-soft); }
 

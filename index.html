@@ -1541,7 +1541,7 @@
     }
     .primary-button { color: #fff; background: var(--mentor); }
     .primary-button:hover { background: #85162a; }
-    .primary-button:disabled { opacity: .45; cursor: wait; }
+    .primary-button:disabled { opacity: .45; cursor: not-allowed; }
     .secondary-button { border-color: var(--line-strong); background: #fff; }
     .secondary-button:hover { border-color: rgba(158,27,50,.35); }
     .danger-button { color: #8a2134; border-color: rgba(158,27,50,.18); background: var(--mentor-soft); }
@@ -1606,7 +1606,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=20260830-2031">
 </head>
 <body>
   <a class="skip-link" href="#mainContent">跳到课表内容</a>
@@ -1761,7 +1761,7 @@
 
       <div class="footer-bottom">
         <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
-        <span>© 2026 KUST·Lab</span>
+        <span>@玉衡山科学院·KANESHIRO</span>
       </div>
     </div>
   </footer>
@@ -1845,11 +1845,16 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v2"/></svg>
           </div>
           <h3>管理员验证</h3>
-          <p>公开查看不需要密码。只有新增、修改、删除并保存课表时才需要管理密码；密码只保存在当前浏览器会话，不会写进网页。</p>
+          <p>请输入管理员密码，密码为数字构成，忘记密码请联系金城中月管理员。</p>
           <label class="field">
-            <span>管理密码</span>
-            <input class="text-input" id="adminPassword" type="password" autocomplete="current-password" placeholder="输入 Cloudflare 管理密码">
+            <span>管理员密码</span>
+            <input class="text-input" id="adminPassword" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="32" autocomplete="current-password" placeholder="请输入管理员密码">
           </label>
+          <div class="password-options">
+            <label class="password-option"><input id="showAdminPassword" type="checkbox"><span>显示密码</span></label>
+            <label class="password-option"><input id="rememberAdminPassword" type="checkbox"><span>记住密码</span></label>
+          </div>
+          <div class="password-storage-note">记住后仅保存在当前设备的这个浏览器中，请勿在共用设备启用。</div>
           <div class="auth-actions">
             <button class="primary-button" id="unlockManager" type="button">进入管理</button>
             <span class="manager-subtitle" id="authMessage" role="status"></span>
@@ -1923,7 +1928,7 @@
           </div>
 
           <div class="form-actions">
-            <button class="primary-button" id="saveCloud" type="button">保存全部修改到云端</button>
+            <button class="primary-button" id="saveCloud" type="button" disabled>没有待保存修改</button>
           </div>
           <p class="manager-footnote">为避免覆盖另一台设备的新内容，保存时会核对云端修订号；若发现冲突，请先重新载入云端再修改。</p>
         </section>
@@ -1949,6 +1954,8 @@
     const SYNC_ENDPOINT = 'https://kmust-schedule-sync.kaneshiroakatsuki.workers.dev';
     const CACHE_KEY = 'kust-lab-schedule-cache-v1';
     const SECRET_KEY = 'kust-lab-admin-secret';
+    const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
+    const SITE_UPDATED_AT = '2026-08-30T20:31:02+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
     const SLOT_TIMES = new Map([
@@ -2050,6 +2057,7 @@
       dataSource: 'fallback',
       syncBusy: false,
       managerDirty: false,
+      formDirty: false,
       editingIndex: -1,
       workingData: [],
       conflictData: null
@@ -2511,6 +2519,15 @@
             '教师': cleanText(part['教师'], '教师', 40)
           };
         });
+        for (let leftSegment = 0; leftSegment < segments.length; leftSegment += 1) {
+          for (let rightSegment = leftSegment + 1; rightSegment < segments.length; rightSegment += 1) {
+            const leftRange = parseRange(segments[leftSegment]['周次']);
+            const rightRange = parseRange(segments[rightSegment]['周次']);
+            if (Math.max(leftRange[0], rightRange[0]) <= Math.min(leftRange[1], rightRange[1])) {
+              throw new Error('“' + (course['课程'] || '该课程') + '”的授课分段周次重叠，请为每周只保留一位教师');
+            }
+          }
+        }
         if (!Array.isArray(course['教室']) || course['教室'].length < 1 || course['教室'].length > 8) {
           throw new Error('第' + (index + 1) + '门课程需要 1 至 8 个教室');
         }
@@ -2553,11 +2570,52 @@
       return clean;
     }
 
-    function formatUpdatedAt(value) {
+    function stageCourseUpsert(courses, course, editingIndex) {
+      const nextData = cloneData(courses);
+      if (Number.isInteger(editingIndex) && editingIndex >= 0) {
+        if (!nextData[editingIndex]) throw new Error('未找到要编辑的课程，请重新选择。');
+        nextData[editingIndex] = course;
+      } else {
+        nextData.push(course);
+      }
+      return validateCoursesInput(nextData);
+    }
+
+    function stageCourseDelete(courses, index) {
+      if (!Number.isInteger(index) || index < 0 || !courses[index]) throw new Error('未找到要删除的课程，请重新选择。');
+      const nextData = cloneData(courses);
+      nextData.splice(index, 1);
+      return validateCoursesInput(nextData);
+    }
+
+    function chinaTimeParts(value) {
       if (!value) return '';
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return '';
-      return pad(date.getHours()) + ':' + pad(date.getMinutes());
+      const china = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+      return {
+        year: china.getUTCFullYear(),
+        month: china.getUTCMonth() + 1,
+        day: china.getUTCDate(),
+        hour: china.getUTCHours(),
+        minute: china.getUTCMinutes()
+      };
+    }
+
+    function formatUpdatedAt(value) {
+      const parts = chinaTimeParts(value);
+      return parts ? pad(parts.hour) + ':' + pad(parts.minute) : '';
+    }
+
+    function formatUpdatedDateTime(value) {
+      const parts = chinaTimeParts(value);
+      return parts ? parts.year + '年' + parts.month + '月' + parts.day + '日 ' + pad(parts.hour) + ':' + pad(parts.minute) : '';
+    }
+
+    function latestModifiedAt(scheduleUpdatedAt) {
+      const siteTime = new Date(SITE_UPDATED_AT).getTime();
+      const scheduleTime = new Date(scheduleUpdatedAt || '').getTime();
+      return Number.isFinite(scheduleTime) && scheduleTime > siteTime ? scheduleUpdatedAt : SITE_UPDATED_AT;
     }
 
     function setSyncStatus(kind, shortText, detailText) {
@@ -2567,6 +2625,15 @@
       if (pill) pill.className = 'sync-pill ' + (kind || '');
       if (short) short.textContent = shortText;
       if (footer) footer.textContent = detailText || shortText;
+    }
+
+    function setModifiedSyncStatus(scheduleUpdatedAt, revision, sourceLabel) {
+      const latest = latestModifiedAt(scheduleUpdatedAt);
+      const time = formatUpdatedAt(latest);
+      const fullTime = formatUpdatedDateTime(latest);
+      const revisionText = Number(revision) > 0 ? ' · 云端修订 ' + Number(revision) : '';
+      const sourceText = sourceLabel ? ' · ' + sourceLabel : '';
+      setSyncStatus('synced', '修改同步时间' + (time ? ' ' + time : ''), '页面或课表最后修改同步时间：' + (fullTime || '未知') + revisionText + sourceText);
     }
 
     function applyRuntimeData(courses, metadata) {
@@ -2602,8 +2669,7 @@
         const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
         if (!cached || cached.schemaVersion !== 1 || !Number.isInteger(cached.revision)) return false;
         applyRuntimeData(cached.courses, { revision: cached.revision, updatedAt: cached.updatedAt, source: 'cache' });
-        const time = formatUpdatedAt(cached.updatedAt);
-        setSyncStatus('synced', '本机缓存', '当前使用最近一次同步缓存' + (time ? ' · ' + time : ''));
+        setModifiedSyncStatus(cached.updatedAt, cached.revision, '当前使用本机缓存');
         return true;
       } catch (_) {
         try { localStorage.removeItem(CACHE_KEY); } catch (_) {}
@@ -2619,6 +2685,19 @@
       } finally {
         window.clearTimeout(timer);
       }
+    }
+
+    async function verifyAdminSecret(secret) {
+      const response = await fetchWithTimeout(SYNC_ENDPOINT + '/api/auth/verify', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + secret }
+      });
+      const payload = await response.json().catch(function () { return null; });
+      if (response.status === 401) return false;
+      if (!response.ok || !payload || !payload.ok) {
+        throw new Error(payload && payload.error ? payload.error.message : '验证服务暂时不可用');
+      }
+      return true;
     }
 
     async function loadCloudSchedule(options) {
@@ -2659,8 +2738,7 @@
           renderManagerList();
           resetCourseEditor();
         }
-        const time = formatUpdatedAt(cloud.updatedAt);
-        setSyncStatus('synced', '已同步' + (time ? ' ' + time : ''), '云端课表已同步 · 修订 ' + state.revision + (time ? ' · ' + time : ''));
+        setModifiedSyncStatus(cloud.updatedAt, state.revision, '云端课表');
         return true;
       } catch (error) {
         const source = state.dataSource === 'cache' ? '本机缓存' : '内置课表';
@@ -2684,11 +2762,35 @@
       try { sessionStorage.removeItem(SECRET_KEY); } catch (_) {}
     }
 
+    function getRememberedSecret() {
+      try { return localStorage.getItem(REMEMBERED_SECRET_KEY) || ''; } catch (_) { return ''; }
+    }
+
+    function setRememberedSecret(value) {
+      try { localStorage.setItem(REMEMBERED_SECRET_KEY, value); } catch (_) {}
+    }
+
+    function clearRememberedSecret() {
+      try { localStorage.removeItem(REMEMBERED_SECRET_KEY); } catch (_) {}
+    }
+
     function setManagerStatus(message, kind) {
       const status = document.getElementById('managerStatus');
       if (!status) return;
       status.className = 'sync-banner' + (kind ? ' ' + kind : '');
       status.textContent = message;
+    }
+
+    function updateSaveButton() {
+      const button = document.getElementById('saveCloud');
+      if (!button) return;
+      button.disabled = !state.managerDirty;
+      button.textContent = state.managerDirty ? '保存全部修改到云端' : '没有待保存修改';
+    }
+
+    function setManagerDirty(value) {
+      state.managerDirty = Boolean(value);
+      updateSaveButton();
     }
 
     function rawCourseHasMentor(course) {
@@ -2697,8 +2799,14 @@
 
     function resetCourseEditor() {
       state.editingIndex = -1;
+      state.formDirty = false;
       document.getElementById('courseForm').hidden = true;
       document.getElementById('courseEditorEmpty').hidden = false;
+    }
+
+    function cancelCourseEditor() {
+      if (state.formDirty && !window.confirm('课程编辑器中还有未加入待同步列表的内容，确定放弃吗？')) return;
+      resetCourseEditor();
     }
 
     function renderManagerList() {
@@ -2765,6 +2873,7 @@
     }
 
     function openCourseEditor(index) {
+      if (state.formDirty && !window.confirm('当前课程还没有保存到待同步列表，确定放弃并切换吗？')) return;
       state.editingIndex = Number.isInteger(index) ? index : -1;
       const course = state.editingIndex >= 0 ? state.workingData[state.editingIndex] : {
         '星期': DAYS_FULL[0],
@@ -2783,6 +2892,7 @@
       document.getElementById('courseRooms').value = course['教室'].join('，');
       renderSegments(course['授课分段']);
       updateCourseTimePreview();
+      state.formDirty = false;
       document.getElementById('courseName').focus();
     }
 
@@ -2808,20 +2918,34 @@
     function showManagerAuth(message) {
       document.getElementById('managerEditor').hidden = true;
       document.getElementById('managerAuth').hidden = false;
-      document.getElementById('adminPassword').value = '';
+      const remembered = getRememberedSecret();
+      const password = document.getElementById('adminPassword');
+      password.type = 'password';
+      password.value = remembered;
+      document.getElementById('showAdminPassword').checked = false;
+      document.getElementById('rememberAdminPassword').checked = Boolean(remembered);
       document.getElementById('authMessage').textContent = message || '';
-      window.setTimeout(function () { document.getElementById('adminPassword').focus(); }, 0);
+      window.setTimeout(function () { password.focus(); }, 0);
     }
 
-    function showManagerEditor() {
+    function showManagerEditor(options) {
+      const preserveWorking = Boolean(options && options.preserveWorking && state.managerDirty);
       document.getElementById('managerAuth').hidden = true;
       document.getElementById('managerEditor').hidden = false;
-      state.workingData = cloneData(runtimeData);
-      state.managerDirty = false;
-      state.conflictData = null;
+      if (!preserveWorking) {
+        state.workingData = cloneData(runtimeData);
+        setManagerDirty(false);
+        state.conflictData = null;
+      } else {
+        updateSaveButton();
+      }
       renderManagerList();
       resetCourseEditor();
-      setManagerStatus(isSyncConfigured() ? '已载入当前课表，修改完成后点击“保存全部修改到云端”。' : '云端服务尚未部署；可以先编辑和导出，部署后再保存到云端。', isSyncConfigured() ? '' : 'warning');
+      if (preserveWorking) {
+        setManagerStatus('验证成功，之前尚未保存的修改仍然保留。', 'warning');
+      } else {
+        setManagerStatus(isSyncConfigured() ? '已载入当前课表，修改完成后点击“保存全部修改到云端”。' : '云端服务尚未部署；可以先编辑和导出，部署后再保存到云端。', isSyncConfigured() ? '' : 'warning');
+      }
     }
 
     function openManagerDialog() {
@@ -2832,8 +2956,9 @@
     }
 
     function closeManagerDialog() {
-      if (state.managerDirty && !window.confirm('还有未保存到云端的修改，确定关闭并放弃吗？')) return;
-      state.managerDirty = false;
+      if ((state.managerDirty || state.formDirty) && !window.confirm('还有未保存的课程内容，确定关闭并放弃吗？')) return;
+      setManagerDirty(false);
+      state.formDirty = false;
       document.getElementById('managerDialog').close();
     }
 
@@ -2847,12 +2972,22 @@
         showManagerAuth('会话已过期，请重新输入管理密码。');
         return;
       }
+      if (state.formDirty) {
+        setManagerStatus('课程编辑器中还有内容未加入待同步列表，请先点击“保存到待同步列表”或取消编辑。', 'error');
+        return;
+      }
+      if (!state.managerDirty) {
+        setManagerStatus('当前没有需要保存的修改。', '');
+        updateSaveButton();
+        return;
+      }
       let clean;
       try { clean = validateCoursesInput(state.workingData); }
       catch (error) { setManagerStatus(error.message, 'error'); return; }
 
       const button = document.getElementById('saveCloud');
       button.disabled = true;
+      button.textContent = '正在保存…';
       setManagerStatus('正在核对修订号并保存…', '');
       try {
         const response = await fetchWithTimeout(SYNC_ENDPOINT + '/api/schedule', {
@@ -2863,6 +2998,7 @@
         const payload = await response.json().catch(function () { return null; });
         if (response.status === 401) {
           clearSessionSecret();
+          clearRememberedSecret();
           showManagerAuth('管理密码不正确，请重新输入。');
           return;
         }
@@ -2875,26 +3011,25 @@
         applyRuntimeData(payload.data.courses, { revision: Number(payload.data.revision), updatedAt: payload.data.updatedAt, source: 'cloud' });
         saveCache();
         state.workingData = cloneData(runtimeData);
-        state.managerDirty = false;
+        setManagerDirty(false);
         state.conflictData = null;
         renderManagerList();
         resetCourseEditor();
-        const time = formatUpdatedAt(state.updatedAt);
         setManagerStatus('已保存到云端。电脑和手机重新打开或回到页面时会自动同步。', 'success');
-        setSyncStatus('synced', '已同步' + (time ? ' ' + time : ''), '云端课表已同步 · 修订 ' + state.revision + (time ? ' · ' + time : ''));
+        setModifiedSyncStatus(state.updatedAt, state.revision, '云端课表');
       } catch (error) {
         setManagerStatus('保存失败：' + (error.name === 'AbortError' ? '连接超时，请检查网络后重试' : error.message), 'error');
       } finally {
-        button.disabled = false;
+        updateSaveButton();
       }
     }
 
     async function reloadManagerFromCloud() {
-      if (state.managerDirty && !window.confirm('重新载入会放弃当前未保存的修改，是否继续？')) return;
-      state.managerDirty = false;
+      if ((state.managerDirty || state.formDirty) && !window.confirm('重新载入会放弃当前未保存的修改，是否继续？')) return;
       const loaded = await loadCloudSchedule({ force: true, fromManager: true });
       if (loaded) {
         state.workingData = cloneData(runtimeData);
+        setManagerDirty(false);
         state.conflictData = null;
         renderManagerList();
         resetCourseEditor();
@@ -2903,6 +3038,10 @@
     }
 
     function exportWorkingData() {
+      if (state.formDirty) {
+        setManagerStatus('课程编辑器中还有内容未加入待同步列表，请先保存或取消编辑后再导出。', 'error');
+        return;
+      }
       const content = JSON.stringify({ schemaVersion: 1, exportedAt: new Date().toISOString(), courses: state.workingData }, null, 2);
       const url = URL.createObjectURL(new Blob([content], { type: 'application/json;charset=utf-8' }));
       const anchor = document.createElement('a');
@@ -2916,11 +3055,12 @@
     }
 
     async function importWorkingData(file) {
+      if ((state.managerDirty || state.formDirty) && !window.confirm('导入 JSON 会替换当前待同步列表和编辑器内容，是否继续？')) return;
       try {
         const parsed = JSON.parse(await file.text());
         const clean = validateCoursesInput(Array.isArray(parsed) ? parsed : parsed.courses);
         state.workingData = clean;
-        state.managerDirty = true;
+        setManagerDirty(true);
         renderManagerList();
         resetCourseEditor();
         setManagerStatus('已导入 ' + clean.length + ' 门次课程，尚未保存到云端。', 'warning');
@@ -2932,6 +3072,8 @@
     function setupManager() {
       const daySelect = document.getElementById('courseDay');
       const slotSelect = document.getElementById('courseSlot');
+      const rememberedSecret = getRememberedSecret();
+      document.getElementById('rememberAdminPassword').checked = Boolean(rememberedSecret);
       daySelect.innerHTML = DAYS_FULL.map(function (day) { return '<option value="' + day + '">' + day + '</option>'; }).join('');
       slotSelect.innerHTML = Array.from(SLOT_TIMES.entries()).map(function (entry) {
         return '<option value="' + entry[0] + '">' + entry[0] + ' · ' + entry[1].replace('-', '—') + '</option>';
@@ -2942,61 +3084,113 @@
       document.getElementById('openManagerMobile').addEventListener('click', openManagerDialog);
       document.getElementById('closeManager').addEventListener('click', closeManagerDialog);
       document.getElementById('managerDialog').addEventListener('cancel', function (event) { event.preventDefault(); closeManagerDialog(); });
-      document.getElementById('unlockManager').addEventListener('click', function () {
-        const secret = document.getElementById('adminPassword').value;
-        if (!secret) { document.getElementById('authMessage').textContent = '请输入管理密码。'; return; }
-        setSessionSecret(secret);
-        showManagerEditor();
+      document.getElementById('unlockManager').addEventListener('click', async function () {
+        const secret = document.getElementById('adminPassword').value.trim();
+        if (!secret) { document.getElementById('authMessage').textContent = '请输入管理员密码。'; return; }
+        if (!/^\d+$/.test(secret)) { document.getElementById('authMessage').textContent = '管理员密码只能输入数字。'; return; }
+        const button = document.getElementById('unlockManager');
+        const message = document.getElementById('authMessage');
+        const originalLabel = button.textContent;
+        button.disabled = true;
+        button.textContent = '正在验证…';
+        message.textContent = '正在安全验证，请稍候。';
+        try {
+          const valid = await verifyAdminSecret(secret);
+          if (!valid) {
+            clearSessionSecret();
+            clearRememberedSecret();
+            document.getElementById('rememberAdminPassword').checked = false;
+            message.textContent = '管理员密码错误，请重新输入。';
+            return;
+          }
+          setSessionSecret(secret);
+          if (document.getElementById('rememberAdminPassword').checked) setRememberedSecret(secret);
+          else clearRememberedSecret();
+          showManagerEditor({ preserveWorking: state.managerDirty });
+        } catch (error) {
+          clearSessionSecret();
+          message.textContent = error.name === 'AbortError'
+            ? '验证超时，请检查网络后重试。'
+            : '暂时无法验证：' + error.message;
+        } finally {
+          button.disabled = false;
+          button.textContent = originalLabel;
+        }
+      });
+      document.getElementById('showAdminPassword').addEventListener('change', function (event) {
+        const password = document.getElementById('adminPassword');
+        password.type = event.target.checked ? 'text' : 'password';
+        password.focus();
+      });
+      document.getElementById('rememberAdminPassword').addEventListener('change', function (event) {
+        if (!event.target.checked) clearRememberedSecret();
       });
       document.getElementById('adminPassword').addEventListener('keydown', function (event) {
         if (event.key === 'Enter') { event.preventDefault(); document.getElementById('unlockManager').click(); }
       });
       document.getElementById('lockManager').addEventListener('click', function () {
-        if (state.managerDirty && !window.confirm('退出管理会放弃当前未保存修改，是否继续？')) return;
-        state.managerDirty = false;
+        if ((state.managerDirty || state.formDirty) && !window.confirm('退出管理会放弃当前未保存修改，是否继续？')) return;
+        setManagerDirty(false);
+        state.formDirty = false;
         clearSessionSecret();
         showManagerAuth('已退出管理。');
       });
       document.getElementById('addCourse').addEventListener('click', function () { openCourseEditor(-1); });
       document.getElementById('managerSearch').addEventListener('input', renderManagerList);
-      document.getElementById('cancelCourseEdit').addEventListener('click', resetCourseEditor);
+      document.getElementById('cancelCourseEdit').addEventListener('click', cancelCourseEditor);
       document.getElementById('courseSlot').addEventListener('change', updateCourseTimePreview);
-      document.getElementById('addSegment').addEventListener('click', function () { addSegmentRow(); });
+      document.getElementById('courseForm').addEventListener('input', function () {
+        if (document.getElementById('courseForm').hidden) return;
+        state.formDirty = true;
+        setManagerStatus('课程编辑器内容尚未加入待同步列表。填写完成后请先保存本门课程。', 'warning');
+      });
+      document.getElementById('courseForm').addEventListener('change', function () {
+        if (document.getElementById('courseForm').hidden) return;
+        state.formDirty = true;
+        setManagerStatus('课程编辑器内容尚未加入待同步列表。填写完成后请先保存本门课程。', 'warning');
+      });
+      document.getElementById('addSegment').addEventListener('click', function () {
+        addSegmentRow();
+        state.formDirty = true;
+        setManagerStatus('已添加授课分段，请填写周次与教师后保存本门课程。', 'warning');
+      });
       document.getElementById('segmentList').addEventListener('click', function (event) {
         const button = event.target.closest('[data-remove-segment]');
         if (!button) return;
         const rows = document.querySelectorAll('#segmentList .segment-row');
         if (rows.length <= 1) { setManagerStatus('每门课程至少需要一个授课分段。', 'error'); return; }
         button.closest('.segment-row').remove();
+        state.formDirty = true;
+        setManagerStatus('授课分段已从编辑器移除，保存本门课程后才会加入待同步列表。', 'warning');
       });
       document.getElementById('managerCourseList').addEventListener('click', function (event) {
         const edit = event.target.closest('[data-edit]');
         const remove = event.target.closest('[data-delete]');
         if (edit) { openCourseEditor(Number(edit.dataset.edit)); return; }
         if (!remove) return;
+        if (state.formDirty && !window.confirm('课程编辑器中还有未保存内容，继续删除会放弃这些内容，是否继续？')) return;
         const index = Number(remove.dataset.delete);
         const course = state.workingData[index];
         if (!course) return;
         const warning = rawCourseHasMentor(course) ? '这是导师课，标记为“不可缺席”。\n\n' : '';
         if (!window.confirm(warning + '确定删除“' + course['课程'] + '”这门次吗？删除后还需要点击“保存全部修改到云端”才会生效。')) return;
-        state.workingData.splice(index, 1);
-        state.managerDirty = true;
+        try { state.workingData = stageCourseDelete(state.workingData, index); }
+        catch (error) { setManagerStatus(error.message, 'error'); return; }
+        setManagerDirty(true);
         renderManagerList();
         resetCourseEditor();
-        setManagerStatus('课程已从待同步列表删除，尚未保存到云端。', 'warning');
+        setManagerStatus('课程“' + course['课程'] + '”已从待同步列表删除，保存全部修改后将在所有设备生效。', 'warning');
       });
       document.getElementById('courseForm').addEventListener('submit', function (event) {
         event.preventDefault();
         try {
           const course = readCourseForm();
-          const nextData = cloneData(state.workingData);
-          if (state.editingIndex >= 0) nextData[state.editingIndex] = course;
-          else nextData.push(course);
-          state.workingData = validateCoursesInput(nextData);
-          state.managerDirty = true;
+          const editingCourse = state.editingIndex >= 0;
+          state.workingData = stageCourseUpsert(state.workingData, course, state.editingIndex);
+          setManagerDirty(true);
           renderManagerList();
           resetCourseEditor();
-          setManagerStatus('课程已加入待同步列表，记得保存全部修改到云端。', 'warning');
+          setManagerStatus(editingCourse ? '课程修改已暂存：“' + course['课程'] + '”。保存全部修改后同步到其他设备。' : '课程已新增：“' + course['课程'] + '”。保存全部修改后同步到其他设备。', 'warning');
         } catch (error) {
           setManagerStatus(error.message, 'error');
         }
@@ -3011,7 +3205,7 @@
       document.getElementById('reloadCloud').addEventListener('click', reloadManagerFromCloud);
       document.getElementById('saveCloud').addEventListener('click', saveWorkingDataToCloud);
       window.addEventListener('beforeunload', function (event) {
-        if (!state.managerDirty) return;
+        if (!state.managerDirty && !state.formDirty) return;
         event.preventDefault();
         event.returnValue = '';
       });

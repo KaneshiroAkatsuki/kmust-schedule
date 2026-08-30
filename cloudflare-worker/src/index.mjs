@@ -108,6 +108,15 @@ function cleanCourse(course, index) {
       教师: cleanText(part.教师, '教师', 40)
     };
   });
+  for (let leftIndex = 0; leftIndex < parts.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < parts.length; rightIndex += 1) {
+      const left = weekRange(parts[leftIndex].周次);
+      const right = weekRange(parts[rightIndex].周次);
+      if (Math.max(left[0], right[0]) <= Math.min(left[1], right[1])) {
+        throw new ValidationError(`“${course.课程 || '该课程'}”的授课分段周次重叠，请为每周只保留一位教师`);
+      }
+    }
+  }
 
   if (!Array.isArray(course.教室) || course.教室.length < 1 || course.教室.length > 8) {
     throw new ValidationError('每门课程需要 1 至 8 个教室');
@@ -163,7 +172,7 @@ function responseHeaders(origin, allowedOrigin) {
   });
   if (origin && origin === allowedOrigin) {
     headers.set('Access-Control-Allow-Origin', origin);
-    headers.set('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
+    headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
     headers.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
     headers.set('Access-Control-Max-Age', '600');
     headers.set('Vary', 'Origin');
@@ -248,6 +257,20 @@ export function createApp({ store, adminSecret, allowedOrigin, now = () => new D
         return new Response(null, { status: 204, headers: responseHeaders(origin, allowedOrigin) });
       }
       if (url.pathname === '/api/health' && request.method === 'GET') {
+        return json({ ok: true }, 200, origin, allowedOrigin);
+      }
+      if (url.pathname === '/api/auth/verify') {
+        if (request.method !== 'POST') {
+          return json({ ok: false, error: { code: 'METHOD_NOT_ALLOWED', message: '请求方法不允许' } }, 405, origin, allowedOrigin);
+        }
+        if (!origin) {
+          return json({ ok: false, error: { code: 'ORIGIN_REQUIRED', message: '管理操作缺少来源' } }, 403, '', allowedOrigin);
+        }
+        const authorization = request.headers.get('Authorization') || '';
+        const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
+        if (!(await secureEqual(token, adminSecret))) {
+          return json({ ok: false, error: { code: 'UNAUTHORIZED', message: '管理密码错误' } }, 401, origin, allowedOrigin);
+        }
         return json({ ok: true }, 200, origin, allowedOrigin);
       }
       if (url.pathname !== '/api/schedule') {
