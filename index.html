@@ -1,9 +1,9 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f7fbfc">
+  <meta name="theme-color" content="#f4f0e8">
   <meta name="color-scheme" content="light">
   <meta name="description" content="昆明理工大学呈贡校区研究生智能课表">
   <title>KUST·Lab</title>
@@ -953,25 +953,461 @@
       *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
     }
   </style>
+  <style id="campusRedesign">
+    :root {
+      --bg: #f4f0e8;
+      --surface: #fffdf9;
+      --surface-strong: #ffffff;
+      --ink: #20201e;
+      --ink-soft: #56534e;
+      --muted: #77726a;
+      --line: #dfd9cf;
+      --line-strong: #cbc3b7;
+      --teal: #a32136;
+      --teal-deep: #8f172c;
+      --teal-soft: #f8e9ec;
+      --amber: #8f5c12;
+      --amber-soft: #fbf1df;
+      --mentor: #9e1b32;
+      --mentor-soft: #fbecef;
+      --done: #8b867e;
+      --radius-lg: 30px;
+      --radius-md: 18px;
+      --shadow: 0 22px 70px rgba(55, 45, 31, .09);
+      --page: 1320px;
+      --gutter: clamp(16px, 4vw, 46px);
+      --display-font: "Songti SC", "STSong", "SimSun", serif;
+      --body-font: "MiSans", "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    html { background: var(--bg); }
+
+    body {
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 4%, rgba(158, 27, 50, .055), transparent 28rem),
+        linear-gradient(180deg, #f8f5ef 0, var(--bg) 34rem);
+      font-family: var(--body-font);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      z-index: -1;
+      inset: 0;
+      opacity: .13;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(32,32,30,.16) .55px, transparent .55px);
+      background-size: 6px 6px;
+      mask-image: linear-gradient(to bottom, #000, transparent 75%);
+    }
+
+    a { color: inherit; }
+    button { color: inherit; }
+
+    button:focus-visible,
+    a:focus-visible,
+    summary:focus-visible {
+      outline: 3px solid rgba(158,27,50,.24);
+      outline-offset: 3px;
+    }
+
+    .skip-link {
+      position: fixed;
+      z-index: 100;
+      top: 8px;
+      left: 8px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      color: #fff;
+      background: var(--mentor);
+      transform: translateY(-160%);
+    }
+
+    .skip-link:focus { transform: translateY(0); }
+
+    .site-header {
+      position: sticky;
+      z-index: 40;
+      top: 0;
+      border-bottom: 1px solid rgba(203,195,183,.72);
+      background: rgba(255,253,249,.88);
+      box-shadow: 0 1px 0 rgba(255,255,255,.75);
+      -webkit-backdrop-filter: blur(18px) saturate(1.2);
+      backdrop-filter: blur(18px) saturate(1.2);
+    }
+
+    .nav-inner {
+      width: min(100%, var(--page));
+      min-height: 70px;
+      margin: 0 auto;
+      padding: max(9px, env(safe-area-inset-top)) var(--gutter) 9px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .site-brand {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      gap: 15px;
+      text-decoration: none;
+    }
+
+    .site-brand .brand-logo {
+      width: clamp(160px, 18vw, 218px);
+      flex: 0 1 218px;
+      background: var(--mentor);
+      filter: none;
+    }
+
+    .brand-divider {
+      width: 1px;
+      height: 28px;
+      flex: 0 0 auto;
+      background: var(--line-strong);
+    }
+
+    .product-name {
+      flex: 0 0 auto;
+      font-family: var(--display-font);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -.02em;
+    }
+
+    .term {
+      padding: 7px 12px;
+      border-color: var(--line);
+      color: var(--ink-soft);
+      background: rgba(255,255,255,.62);
+      box-shadow: none;
+      font-size: 11px;
+      letter-spacing: .02em;
+    }
+
+    .app {
+      width: min(100%, var(--page));
+      margin: 0 auto;
+      padding: clamp(18px, 4vw, 50px) var(--gutter) clamp(54px, 7vw, 90px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(18px, 3vw, 32px);
+    }
+
+    .hero {
+      min-width: 0;
+      min-height: 448px;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      grid-template-columns: minmax(0, .88fr) minmax(420px, 1.12fr);
+      overflow: hidden;
+      border: 1px solid rgba(203,195,183,.78);
+      border-radius: var(--radius-lg);
+      background: var(--surface-strong);
+      box-shadow: var(--shadow);
+      isolation: isolate;
+    }
+
+    .hero::before {
+      z-index: -2;
+      inset: 0 auto 0 0;
+      width: 46%;
+      height: auto;
+      background-size: cover;
+      background-position: center 58%;
+      filter: saturate(.86) contrast(.98);
+    }
+
+    .hero::after {
+      z-index: -1;
+      inset: 0 48% 0 28%;
+      width: auto;
+      height: auto;
+      background: linear-gradient(90deg, rgba(255,255,255,0), #fff 80%);
+    }
+
+    .photo-caption {
+      z-index: 1;
+      grid-column: 1;
+      grid-row: 1;
+      align-self: end;
+      width: fit-content;
+      max-width: calc(100% - 40px);
+      margin: 0 0 22px 22px;
+      padding: 7px 10px;
+      border: 1px solid rgba(255,255,255,.28);
+      border-radius: 9px;
+      color: #fff;
+      background: rgba(25,23,20,.48);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      font-size: 11px;
+      font-weight: 650;
+      letter-spacing: .04em;
+    }
+
+    .hero-content {
+      grid-column: 2;
+      grid-row: 1;
+      min-width: 0;
+      padding: clamp(30px, 4vw, 58px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .hero-kicker {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 18px;
+      color: var(--mentor);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .14em;
+    }
+
+    .hero-kicker::before {
+      content: "";
+      width: 28px;
+      height: 2px;
+      border-radius: 99px;
+      background: currentColor;
+    }
+
+    .clock-wrap { min-height: 0; margin: 0; padding: 0; }
+
+    .clock {
+      color: var(--ink);
+      font-family: var(--display-font);
+      font-size: clamp(66px, 8.2vw, 112px);
+      font-weight: 700;
+      line-height: .82;
+      letter-spacing: -.09em;
+      text-shadow: none;
+    }
+
+    .clock-seconds {
+      margin-left: 12px;
+      color: var(--mentor);
+      font-family: var(--body-font);
+      font-size: .22em;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .date-line { gap: 5px 12px; margin-top: 23px; font-size: clamp(15px, 2vw, 19px); font-weight: 650; }
+    .date-phase { color: var(--mentor); }
+
+    .status-card {
+      margin-top: 26px;
+      padding: 20px;
+      border-color: var(--line);
+      border-radius: 18px;
+      background: #f8f5ef;
+      box-shadow: none;
+    }
+
+    .status-card::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 86px;
+      height: 86px;
+      border-radius: 0 0 0 100%;
+      background: rgba(158,27,50,.045);
+      pointer-events: none;
+    }
+
+    .status-time { color: var(--mentor); font-size: 14px; }
+    .status-course { font-size: clamp(21px, 2.7vw, 30px); }
+    .meta-line, .status-period { color: var(--ink-soft); }
+
+    .countdown { color: var(--mentor); border-color: rgba(158,27,50,.16); background: #fff; }
+    .progress-track { background: #e5ded4; }
+    .progress-bar, .status-card.active .progress-bar { background: var(--mentor); }
+    .status-card.active .status-time, .status-card.active .countdown { color: #276450; }
+    .status-card.active .countdown { border-color: rgba(39,100,80,.17); background: #edf5f0; }
+
+    .section {
+      min-width: 0;
+      margin: 0;
+      padding: clamp(20px, 3vw, 32px);
+      border: 1px solid rgba(203,195,183,.8);
+      border-radius: 26px;
+      background: rgba(255,253,249,.88);
+      box-shadow: 0 16px 48px rgba(55,45,31,.055);
+    }
+
+    .section-head { align-items: flex-start; margin-bottom: 18px; }
+    .section-title { gap: 10px; font-family: var(--display-font); font-size: clamp(21px, 2vw, 27px); font-weight: 700; }
+    .section-title svg { color: var(--mentor); }
+    .section-note { max-width: 260px; color: var(--muted); text-align: right; }
+    .timeline::before { background: var(--line-strong); }
+    .timeline-item { border-color: var(--line); }
+    .timeline-dot { background: var(--surface); }
+    .timeline-item.current .timeline-dot, .timeline-item.mentor-course.current .timeline-dot {
+      border-color: var(--mentor);
+      background: var(--mentor);
+      box-shadow: 0 0 0 6px rgba(158,27,50,.12);
+    }
+    .timeline-item.next .timeline-dot { border-color: var(--mentor); }
+    .slot-label { color: var(--mentor); background: var(--mentor-soft); }
+    .state-label { color: #276450; background: #e8f2ed; }
+    .timeline-name { font-size: 17px; }
+    .mentor-label, .mentor-badge { border-color: rgba(158,27,50,.18); color: var(--mentor); background: var(--mentor-soft); }
+    .timeline-item.mentor-course .timeline-body { border-color: rgba(158,27,50,.15); background: rgba(251,236,239,.72); }
+
+    .week-shell { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+    .mentor-reminder { margin: 0 0 18px; border-color: rgba(158,27,50,.15); color: #7b2636; background: var(--mentor-soft); }
+    .mentor-reminder::before { background: var(--mentor); }
+    .nav-button, .week-current { border-color: var(--line); border-radius: 12px; background: #fff; }
+    .nav-button:not(:disabled):hover, .week-current:hover { border-color: rgba(158,27,50,.34); }
+    .week-current.is-offset { color: var(--mentor); border-color: rgba(158,27,50,.2); background: var(--mentor-soft); }
+    .week-current.is-offset .week-range { color: #813246; }
+    .day-tabs { gap: 6px; padding: 5px; border: 1px solid var(--line); border-radius: 16px; background: #f4f0e9; }
+    .day-tab { border-radius: 11px; background: transparent; }
+    .day-tab[aria-selected="true"] { color: #fff; background: var(--mentor); box-shadow: 0 6px 16px rgba(158,27,50,.2); }
+    .day-tab.is-today:not([aria-selected="true"]) { color: var(--mentor); background: var(--mentor-soft); box-shadow: inset 0 0 0 1px rgba(158,27,50,.18); }
+    .week-list, .week-row { border-color: var(--line); }
+    .week-row::before { background: var(--mentor); }
+    .week-row.off { background: rgba(225,219,210,.34); }
+    .week-row.off::before { background: var(--done); }
+    .week-time { color: var(--mentor); }
+    .week-row.mentor-course { background: var(--mentor-soft); }
+    .week-row.mentor-course::before { background: var(--mentor); }
+
+    .calendar-card { margin-top: 20px; border-color: var(--line); background: #f8f5ef; box-shadow: none; }
+    .calendar-card summary::after { border-color: var(--mentor); }
+    .calendar-body, .calendar-item + .calendar-item { border-color: var(--line); }
+
+    .site-footer { border-top: 1px solid #d3cdc4; background: #ebe7df; }
+    .footer-inner { width: min(100%, var(--page)); margin: 0 auto; padding: 44px var(--gutter) max(28px, env(safe-area-inset-bottom)); }
+    .footer-lead { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 24px; padding-bottom: 26px; border-bottom: 1px solid #d3cdc4; }
+    .footer-mark { margin: 0; font-family: var(--display-font); font-size: clamp(25px, 3vw, 38px); font-weight: 700; letter-spacing: -.03em; }
+    .footer-tagline { max-width: 560px; margin: 8px 0 0; color: #615d57; font-size: 13px; line-height: 1.7; }
+    .footer-school { color: var(--mentor); font-size: 12px; font-weight: 800; letter-spacing: .09em; text-align: right; }
+    .footer-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(30px, 6vw, 90px); padding: 32px 0; }
+    .footer-group { border: 0; }
+    .footer-group summary { color: #262522; font-size: 12px; font-weight: 800; letter-spacing: .03em; list-style: none; cursor: default; }
+    .footer-group summary::-webkit-details-marker { display: none; }
+    .footer-links { display: grid; gap: 10px; margin-top: 14px; }
+    .footer-links a, .footer-links span { width: fit-content; color: #615d57; font-size: 12px; line-height: 1.55; text-decoration: none; }
+    .footer-links a:hover { color: var(--mentor); text-decoration: underline; text-underline-offset: 3px; }
+    .footer-bottom { display: flex; align-items: flex-start; justify-content: space-between; gap: 22px; padding-top: 22px; border-top: 1px solid #d3cdc4; color: #6f6a63; font-size: 11px; line-height: 1.7; }
+    .footer-bottom p { max-width: 760px; margin: 0; }
+    .footer-bottom strong { color: #3f3c37; }
+
+    @keyframes campus-reveal { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .hero, .section { animation: campus-reveal .62s cubic-bezier(.2,.75,.25,1) both; }
+    .section:nth-of-type(2) { animation-delay: .08s; }
+    .section:nth-of-type(3) { animation-delay: .14s; }
+
+    @media (min-width: 980px) {
+      .app { grid-template-columns: minmax(310px, .72fr) minmax(560px, 1.28fr); grid-template-areas: "hero hero" "today week"; align-items: start; }
+      .hero { grid-area: hero; }
+      #todaySection { grid-area: today; }
+      #weekSection { grid-area: week; }
+      #todaySection, #weekSection { margin: 0; }
+      .timeline::before { left: 92px; }
+      .timeline-item { grid-template-columns: 70px 18px minmax(0,1fr); gap: 8px; }
+      .timeline-time { font-size: 12px; }
+    }
+
+    @media (max-width: 900px) {
+      .hero { min-height: 0; grid-template-columns: minmax(0,1fr); grid-template-rows: 224px auto; }
+      .hero::before { inset: 0 0 auto; width: 100%; height: 250px; background-position: center 59%; }
+      .hero::after { inset: 150px 0 auto; width: 100%; height: 110px; background: linear-gradient(to bottom, rgba(255,255,255,0), #fff 82%); }
+      .photo-caption { grid-column: 1; grid-row: 1; margin: 0 0 20px 18px; }
+      .hero-content { grid-column: 1; grid-row: 2; padding: 20px clamp(18px, 5vw, 38px) clamp(20px, 5vw, 38px); }
+      .hero-kicker { margin-bottom: 14px; }
+      .clock { font-size: clamp(62px, 15vw, 92px); }
+      .status-card { margin-top: 22px; }
+    }
+
+    @media (max-width: 640px) {
+      .nav-inner { min-height: 62px; gap: 10px; }
+      .site-brand { gap: 9px; }
+      .site-brand .brand-logo { width: min(42vw, 170px); flex-basis: 170px; }
+      .brand-divider { height: 23px; }
+      .product-name { font-size: 15px; }
+      .term { max-width: 88px; padding: 5px 7px; font-size: 9px; text-align: center; line-height: 1.25; }
+      .app { gap: 16px; }
+      .hero { grid-template-rows: 190px auto; border-radius: 22px; }
+      .hero::before { height: 216px; }
+      .hero::after { top: 122px; }
+      .photo-caption { display: none; }
+      .hero-content { padding-top: 15px; }
+      .hero-kicker { font-size: 10px; }
+      .clock { font-size: clamp(58px, 20vw, 80px); }
+      .date-line { margin-top: 16px; }
+      .status-grid { gap: 10px; }
+      .status-card { padding: 17px; }
+      .section { padding: 19px 16px; border-radius: 22px; }
+      .section-head { gap: 10px; }
+      .section-note { max-width: 145px; font-size: 11px; }
+      .footer-inner { padding-top: 32px; }
+      .footer-lead { grid-template-columns: 1fr; align-items: start; gap: 12px; }
+      .footer-school { text-align: left; }
+      .footer-grid { grid-template-columns: 1fr; gap: 0; padding: 18px 0; }
+      .footer-group { border-bottom: 1px solid #d3cdc4; }
+      .footer-group summary { position: relative; min-height: 48px; padding: 15px 30px 15px 0; cursor: pointer; }
+      .footer-group summary::after { content: "+"; position: absolute; right: 3px; top: 12px; color: #5d5952; font-size: 19px; font-weight: 400; }
+      .footer-group[open] summary::after { content: "−"; }
+      .footer-links { padding: 0 0 16px; margin: 0; }
+      .footer-bottom { flex-direction: column; gap: 8px; }
+    }
+
+    @media (min-width: 641px) { .footer-group > .footer-links { display: grid !important; } }
+
+    @media (max-width: 360px) {
+      .site-brand .brand-logo { width: 132px; flex-basis: 132px; }
+      .product-name { font-size: 13px; }
+      .term { display: none; }
+      .hero { grid-template-rows: 172px auto; }
+      .hero::before { height: 198px; }
+      .hero::after { top: 108px; }
+      .status-grid { grid-template-columns: 1fr; }
+      .countdown { display: flex; min-height: 48px; gap: 6px; align-items: baseline; }
+      .section-note { display: none; }
+      .day-tabs { gap: 2px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) { .hero, .section { animation: none; } }
+  </style>
 </head>
 <body>
-  <main class="app">
+  <a class="skip-link" href="#mainContent">跳到课表内容</a>
+  <header class="site-header">
+    <div class="nav-inner">
+      <a class="site-brand" href="#mainContent" aria-label="KUST·Lab 课表首页">
+        <span class="brand-logo" role="img" aria-label="昆明理工大学官方校标"></span>
+        <span class="brand-divider" aria-hidden="true"></span>
+        <span class="product-name">KUST·Lab</span>
+      </a>
+      <div class="term">2026—2027学年</div>
+    </div>
+  </header>
+
+  <main class="app" id="mainContent">
     <section class="hero" aria-labelledby="pageTitle">
       <h1 class="sr-only" id="pageTitle">昆明理工大学呈贡校区研究生智能课表</h1>
-      <div class="brand-row">
-        <div class="brand">
-          <span class="brand-logo" role="img" aria-label="昆明理工大学官方校标"></span>
+      <div class="photo-caption">呈贡校区 · 公教楼片区</div>
+      <div class="hero-content">
+        <div class="hero-kicker">KUNMING UNIVERSITY OF SCIENCE AND TECHNOLOGY</div>
+        <div class="clock-wrap">
+          <time class="clock" id="clock" datetime="">--:--<span class="clock-seconds">--</span></time>
+          <div class="date-line" id="dateLine">正在读取时间…</div>
         </div>
-        <div class="term">2026—2027学年</div>
-      </div>
 
-      <div class="clock-wrap">
-        <time class="clock" id="clock" datetime="">--:--<span class="clock-seconds">--</span></time>
-        <div class="date-line" id="dateLine">正在读取时间…</div>
+        <div class="status-card outside" id="statusCard"></div>
+        <span class="sr-only" id="srStatus" aria-live="polite"></span>
       </div>
-
-      <div class="status-card outside" id="statusCard"></div>
-      <span class="sr-only" id="srStatus" aria-live="polite"></span>
     </section>
 
     <section class="section" id="todaySection" aria-labelledby="todayHeading">
@@ -1027,13 +1463,51 @@
       </details>
     </section>
 
-    <footer class="footer">
-      昆明理工大学 · 呈贡校区 · 2026—2027学年<br>
-      研究生新生 2026年8月22—23日报到；校历第1周从8月24日（周一）开始；研究生课程8月31日开课；本页校历状态覆盖至2027年8月20日。<br>
-      第一学期课程与教室信息整理自研究生课表，临时调课请以学校通知为准。<br>
-      校园图片来源：<a href="https://www.kmust.edu.cn/info/1020/20442.htm" target="_blank" rel="noopener noreferrer">昆明理工大学官网 · 呈贡校区航拍——公教楼</a>
-    </footer>
   </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-lead">
+        <div>
+          <p class="footer-mark">KUST·Lab</p>
+          <p class="footer-tagline">为昆明理工大学呈贡校区研究生日常使用整理的智能课表。抬眼看时间，低头看安排，把注意力留给真正重要的事。</p>
+        </div>
+        <div class="footer-school">KUNMING · CHENGGONG</div>
+      </div>
+
+      <nav class="footer-grid" aria-label="页脚导航">
+        <details class="footer-group">
+          <summary>课表导航</summary>
+          <div class="footer-links">
+            <a href="#mainContent">当前状态</a>
+            <a href="#todaySection">今日课程</a>
+            <a href="#weekSection">一周课表</a>
+          </div>
+        </details>
+        <details class="footer-group">
+          <summary>学年信息</summary>
+          <div class="footer-links">
+            <span>第1周：2026.08.24 起</span>
+            <span>研究生课程：2026.08.31 起</span>
+            <span>校历覆盖至：2027.08.20</span>
+          </div>
+        </details>
+        <details class="footer-group">
+          <summary>来源与说明</summary>
+          <div class="footer-links">
+            <span>第一学期 37 门次课程</span>
+            <a href="https://www.kmust.edu.cn/info/1020/20442.htm" target="_blank" rel="noopener noreferrer">校园图片 · 昆明理工大学官网</a>
+            <a href="https://www.kmust.edu.cn/" target="_blank" rel="noopener noreferrer">昆明理工大学官网</a>
+          </div>
+        </details>
+      </nav>
+
+      <div class="footer-bottom">
+        <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
+        <span>© 2026 KUST·Lab</span>
+      </div>
+    </div>
+  </footer>
 
   <script>
     'use strict';
