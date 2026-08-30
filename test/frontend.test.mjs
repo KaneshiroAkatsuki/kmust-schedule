@@ -186,6 +186,15 @@ test('foldable and phone breakpoints avoid narrow side columns', () => {
   assert.doesNotMatch(css, /\.dock-item\.dock-manage \{[^}]*background: var\(--kust-red-soft\)/);
 });
 
+test('desktop left rail keeps today directly below the current status', () => {
+  assert.match(html, /<div class="left-rail">\s*<section class="hero"[\s\S]*?<section class="section" id="todaySection"/);
+  assert.match(css, /\.left-rail \{ display: contents; \}/);
+  assert.match(css, /@media \(min-width: 1160px\)[\s\S]*?grid-template-areas:\s*"left week"/);
+  assert.match(css, /@media \(min-width: 1160px\)[\s\S]*?\.left-rail \{[\s\S]*?display: grid;[\s\S]*?align-content: start/);
+  assert.match(css, /\.left-rail > \.hero,[\s\S]*?\.left-rail > #todaySection \{ grid-area: auto; \}/);
+  assert.doesNotMatch(css, /"hero week"\s*"today week"/);
+});
+
 test('mobile more menu keeps every compact-screen function reachable', () => {
   const ids = [
     'openMoreMobile', 'mobileMoreDialog', 'closeMoreMobile', 'moreToday',
