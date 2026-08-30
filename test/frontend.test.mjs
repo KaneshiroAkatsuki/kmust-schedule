@@ -232,15 +232,26 @@ test('course staging really adds, edits and deletes without mutating the previou
   assert.throws(() => api.stageCourseUpsert(added, { ...course, '教室': ['公教楼303'] }, -1), /重复课程/);
 });
 
+test('course deletion requires a second confirmation before it enters the pending upload list', () => {
+  const confirmationIndex = html.indexOf("if (!window.confirm(warning + '确定删除“'");
+  const deleteIndex = html.indexOf('state.workingData = stageCourseDelete(state.workingData, index)');
+  assert.ok(confirmationIndex > 0, 'delete confirmation should exist');
+  assert.ok(deleteIndex > confirmationIndex, 'course should only be staged for deletion after confirmation');
+  assert.match(html, /这是导师课，标记为“不可缺席”/);
+  assert.match(html, /删除后还需要回到主页点击“立即上传云端”才会生效/);
+});
+
 test('course management uses one unified entry on desktop and mobile', () => {
   assert.doesNotMatch(html, /id=["']openAdd/i);
   assert.match(html, /id="openManagerTop"/);
   assert.match(html, /id="openManagerMobile"/);
+  assert.doesNotMatch(html, /id="lockManager"|>退出管理</);
   assert.match(html, /class="primary-button pane-add-course" id="addCourse"[^>]*>＋ 新增课程</);
   assert.match(html, /<div class="pane-head">[\s\S]*?id="courseListTitle"[\s\S]*?id="addCourse"/);
   assert.doesNotMatch(html, /<div class="manager-toolbar">\s*<button[^>]*id="addCourse"/);
   assert.match(html, /compactScreen = window\.matchMedia && window\.matchMedia\('\(max-width: 980px\)'\)\.matches[\s\S]*?editorPane\.scrollIntoView/);
   assert.match(html, /nameInput\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(html, /@media \(max-width: 420px\)[\s\S]*?\.manager-toolbar #reloadCloud \{ flex-basis: 100%; \}/);
 });
 
 test('homepage owns the immediate cloud upload action and preserves staged edits when manager closes', () => {
@@ -407,7 +418,7 @@ test('manager password is numeric, hidden by default and optionally remembered',
 });
 
 test('modification sync status uses the latest page or schedule change in China time', () => {
-  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T21:24:36\+08:00'/);
+  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T21:30:26\+08:00'/);
   assert.match(html, /function latestModifiedAt\(scheduleUpdatedAt\)/);
   assert.match(html, /getUTC(?:Month|Date|Hours|Minutes)/);
   assert.match(html, /修改同步时间/);
@@ -417,7 +428,7 @@ test('modification sync status uses the latest page or schedule change in China 
 test('China time formatting and remembered-secret storage behave deterministically', () => {
   assert.equal(api.formatUpdatedAt('2026-08-30T08:00:00.000Z'), '16:00');
   assert.equal(api.formatUpdatedDateTime('2026-08-30T08:00:00.000Z'), '2026年8月30日 16:00');
-  assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), '21:24');
+  assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), '21:30');
   assert.equal(api.latestModifiedAt('2026-08-31T00:00:00.000Z'), '2026-08-31T00:00:00.000Z');
 
   const remembered = new Map();

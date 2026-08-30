@@ -1628,11 +1628,12 @@
       .manager-toolbar .spacer { display: none; }
       .manager-toolbar { align-items: stretch; }
       .manager-toolbar button { flex: 1 1 calc(50% - 5px); }
+      .manager-toolbar #reloadCloud { flex-basis: 100%; }
       .segment-row { grid-template-columns: minmax(0,1fr) 36px; padding: 9px; }
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=20260830-2124">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=20260830-2130">
 </head>
 <body>
   <a class="skip-link" href="#mainContent">跳到课表内容</a>
@@ -1903,7 +1904,6 @@
             <input class="file-input" id="importFile" type="file" accept="application/json,.json">
             <span class="spacer"></span>
             <button class="secondary-button" id="reloadCloud" type="button">重新载入云端</button>
-            <button class="danger-button" id="lockManager" type="button">退出管理</button>
           </div>
 
           <div class="sync-banner" id="managerStatus" role="status" aria-live="polite">尚未修改。</div>
@@ -1990,7 +1990,7 @@
     const CACHE_KEY = 'kust-lab-schedule-cache-v1';
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
-    const SITE_UPDATED_AT = '2026-08-30T21:24:36+08:00';
+    const SITE_UPDATED_AT = '2026-08-30T21:30:26+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
     const SLOT_TIMES = new Map([
@@ -3311,15 +3311,6 @@
       });
       document.getElementById('adminPassword').addEventListener('keydown', function (event) {
         if (event.key === 'Enter') { event.preventDefault(); document.getElementById('unlockManager').click(); }
-      });
-      document.getElementById('lockManager').addEventListener('click', function () {
-        if (state.formDirty) {
-          setManagerStatus('当前课程还在编辑中，请先保存到待上传列表或点击取消。', 'error');
-          return;
-        }
-        state.uploadAfterAuth = false;
-        clearSessionSecret();
-        showManagerAuth(state.managerDirty ? '已退出管理，待上传的课程修改仍然保留。' : '已退出管理。');
       });
       document.getElementById('addCourse').addEventListener('click', function () { openCourseEditor(-1); });
       document.getElementById('managerSearch').addEventListener('input', renderManagerList);
