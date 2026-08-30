@@ -13,7 +13,7 @@
       --surface: #ffffff;
       --ink: #08243f;
       --ink-soft: #4e6378;
-      --muted: #7b8da0;
+      --muted: #5d7186;
       --line: #dce7ed;
       --line-strong: #c6d9e2;
       --teal: #0b8fa2;
@@ -21,7 +21,9 @@
       --teal-soft: #e7f6f8;
       --amber: #b87908;
       --amber-soft: #fff7e8;
-      --done: #92a1b0;
+      --mentor: #a33f2b;
+      --mentor-soft: #fff1ed;
+      --done: #6f8091;
       --radius-lg: 24px;
       --radius-md: 16px;
       --shadow: 0 18px 50px rgba(20, 74, 94, 0.09);
@@ -174,10 +176,19 @@
     }
 
     .date-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 3px 10px;
       margin-top: 14px;
       font-size: clamp(16px, 4.7vw, 20px);
       font-weight: 650;
       letter-spacing: .01em;
+    }
+
+    .date-phase {
+      color: var(--teal-deep);
+      font-weight: 780;
     }
 
     .status-card {
@@ -301,6 +312,45 @@
 
     .status-card.active .progress-bar { background: #0a9b7e; }
 
+    .status-card.mentor {
+      border-color: rgba(163, 63, 43, .34);
+      box-shadow: 0 12px 30px rgba(163, 63, 43, .1);
+    }
+
+    .status-card.mentor::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 5px;
+      background: var(--mentor);
+    }
+
+    .status-card.mentor .status-time { color: var(--mentor); }
+    .status-card.mentor .progress-bar { background: var(--mentor); }
+    .status-card.mentor .countdown {
+      color: var(--mentor);
+      border-color: rgba(163, 63, 43, .2);
+      background: var(--mentor-soft);
+    }
+
+    .mentor-badge,
+    .mentor-label {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      min-height: 26px;
+      padding: 4px 9px;
+      border: 1px solid rgba(163, 63, 43, .2);
+      border-radius: 8px;
+      color: var(--mentor);
+      background: var(--mentor-soft);
+      font-size: 12px;
+      font-weight: 780;
+      line-height: 1.2;
+    }
+
+    .mentor-badge { margin-top: 10px; }
+
     .section { margin-top: 34px; }
     #todaySection { grid-area: today; }
     #weekSection { grid-area: week; }
@@ -324,7 +374,7 @@
 
     .section-title svg { width: 22px; height: 22px; }
 
-    .section-note { color: var(--muted); font-size: 12px; }
+    .section-note { color: var(--muted); font-size: 13px; font-weight: 620; }
 
     .timeline { position: relative; }
 
@@ -390,7 +440,10 @@
 
     .timeline-item.next .timeline-dot { border-color: var(--teal); }
 
-    .timeline-item.done { opacity: .52; }
+    .timeline-item.done .timeline-time,
+    .timeline-item.done .row-meta { color: var(--muted); }
+    .timeline-item.done .timeline-name { color: #53677a; }
+    .timeline-item.done .timeline-dot { border-color: var(--done); }
 
     .timeline-body { min-width: 0; }
 
@@ -412,6 +465,27 @@
       margin-left: 6px;
       color: #087f66;
       background: #e7f7f1;
+    }
+
+    .mentor-label { margin-left: 6px; }
+    .week-badges .mentor-label { margin: 0; }
+
+    .timeline-item.mentor-course .timeline-body {
+      margin: -5px 0;
+      padding: 10px 12px;
+      border: 1px solid rgba(163, 63, 43, .18);
+      border-radius: 13px;
+      background: rgba(255, 241, 237, .72);
+    }
+
+    .timeline-item.mentor-course .timeline-dot {
+      border-color: var(--mentor);
+      background: var(--mentor-soft);
+    }
+
+    .timeline-item.mentor-course.current .timeline-dot {
+      background: var(--mentor);
+      animation: mentor-breathe 2s ease-in-out infinite;
     }
 
     .timeline-name {
@@ -458,6 +532,31 @@
       box-shadow: 0 12px 34px rgba(37, 77, 91, .05);
     }
 
+    .mentor-reminder {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: -2px 0 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(163, 63, 43, .18);
+      border-radius: 12px;
+      color: #7f3526;
+      background: rgba(255, 241, 237, .78);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .mentor-reminder::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--mentor);
+      box-shadow: 0 0 0 4px rgba(163, 63, 43, .1);
+    }
+
     .week-nav { justify-content: space-between; gap: 12px; }
 
     .nav-button,
@@ -483,11 +582,23 @@
     .nav-button:disabled { opacity: .35; cursor: default; }
 
     .week-current {
-      min-width: 104px;
-      padding: 0 14px;
+      display: grid;
+      min-width: 128px;
+      min-height: 48px;
+      padding: 6px 14px;
+      place-content: center;
+      gap: 2px;
       border-color: transparent;
-      font-size: 16px;
-      font-weight: 740;
+      line-height: 1.1;
+    }
+
+    .week-label { font-size: 16px; font-weight: 780; }
+
+    .week-range {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 650;
+      font-variant-numeric: tabular-nums;
     }
 
     .week-current.is-offset {
@@ -495,6 +606,8 @@
       border-color: rgba(11,143,162,.25);
       background: var(--teal-soft);
     }
+
+    .week-current.is-offset .week-range { color: var(--teal-deep); }
 
     .day-tabs {
       display: grid;
@@ -525,29 +638,32 @@
 
     .day-date {
       color: var(--muted);
-      font-size: 10px;
-      font-weight: 650;
+      font-size: 11px;
+      font-weight: 680;
       font-variant-numeric: tabular-nums;
       line-height: 1.1;
     }
 
     .day-tab[aria-selected="true"] {
       color: white;
-      background: var(--teal);
+      background: var(--teal-deep);
       box-shadow: 0 7px 16px rgba(11,143,162,.2);
     }
 
-    .day-tab[aria-selected="true"] .day-date { color: rgba(255,255,255,.8); }
+    .day-tab[aria-selected="true"] .day-date { color: rgba(255,255,255,.94); }
 
     .day-tab.is-today:not([aria-selected="true"]) {
       color: var(--teal-deep);
+      background: var(--teal-soft);
       box-shadow: inset 0 0 0 1px rgba(11,143,162,.26);
     }
 
     .week-summary {
       margin: 3px 3px 9px;
       color: var(--muted);
-      font-size: 12px;
+      font-size: 13px;
+      font-weight: 620;
+      line-height: 1.5;
     }
 
     .week-list { border-top: 1px solid var(--line); }
@@ -575,11 +691,14 @@
     .week-row:last-child { border-bottom: 0; }
 
     .week-row.off {
-      opacity: .45;
-      filter: grayscale(.28);
+      background: rgba(235, 241, 244, .58);
     }
 
     .week-row.off::before { background: var(--done); }
+    .week-row.off .week-time,
+    .week-row.off .week-name { color: #53677a; }
+    .week-row.off .week-detail,
+    .week-row.off .segments { color: var(--muted); }
 
     .week-time {
       color: var(--teal-deep);
@@ -589,15 +708,24 @@
       line-height: 1.42;
     }
 
-    .week-time .period { display: block; color: var(--muted); font-size: 10px; font-weight: 620; }
+    .week-time .period { display: block; color: var(--muted); font-size: 11px; font-weight: 650; }
 
     .week-main { min-width: 0; }
 
     .week-name-row {
       display: flex;
+      flex-wrap: wrap;
       align-items: flex-start;
       justify-content: space-between;
       gap: 8px;
+    }
+
+    .week-badges {
+      display: flex;
+      flex: 0 0 auto;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 5px;
     }
 
     .week-name {
@@ -609,16 +737,30 @@
     }
 
     .off-label,
-    .live-label {
+    .live-label,
+    .mentor-schedule-label {
       flex: 0 0 auto;
-      padding-top: 2px;
+      padding: 3px 6px;
+      border-radius: 7px;
       color: var(--muted);
       font-size: 11px;
       font-weight: 700;
       white-space: nowrap;
     }
 
-    .live-label { color: #087f66; }
+    .off-label { background: rgba(111,128,145,.12); }
+    .live-label { color: #087f66; background: #e7f7f1; }
+    .mentor-schedule-label {
+      color: #855022;
+      border: 1px solid rgba(184, 121, 8, .2);
+      background: #fff7e8;
+    }
+
+    .week-row.mentor-course {
+      background: rgba(255, 247, 238, .86);
+    }
+
+    .week-row.mentor-course::before { background: var(--mentor); }
 
     .week-detail {
       margin-top: 6px;
@@ -674,8 +816,8 @@
     .calendar-card summary span {
       margin-left: auto;
       color: var(--muted);
-      font-size: 11px;
-      font-weight: 600;
+      font-size: 12px;
+      font-weight: 650;
     }
 
     .calendar-body {
@@ -692,12 +834,12 @@
       gap: 12px;
       padding: 10px 4px 2px;
       color: var(--ink-soft);
-      font-size: 12px;
+      font-size: 13px;
       line-height: 1.45;
     }
 
     .calendar-item + .calendar-item { border-top: 1px solid rgba(220,231,237,.76); }
-    .calendar-item strong { color: var(--ink); font-size: 12px; }
+    .calendar-item strong { color: var(--ink); font-size: 13px; }
     .calendar-item time { font-variant-numeric: tabular-nums; }
 
     .footer {
@@ -705,7 +847,7 @@
       padding-top: 18px;
       border-top: 1px solid var(--line);
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
       line-height: 1.75;
       grid-area: footer;
     }
@@ -729,6 +871,11 @@
       50% { box-shadow: 0 0 0 8px rgba(11,143,162,.18); }
     }
 
+    @keyframes mentor-breathe {
+      0%, 100% { box-shadow: 0 0 0 5px rgba(163,63,43,.1); }
+      50% { box-shadow: 0 0 0 8px rgba(163,63,43,.17); }
+    }
+
     @media (max-width: 430px) {
       .hero { padding: 15px; }
       .hero::before { height: 180px; background-position: center 60%; }
@@ -749,7 +896,7 @@
     @media (max-width: 350px) {
       .brand-row { gap: 8px; }
       .brand-logo { width: min(46vw, 150px); }
-      .term { max-width: 86px; padding: 5px 6px; text-align: center; font-size: 9px; line-height: 1.2; }
+      .term { max-width: 90px; padding: 5px 6px; text-align: center; font-size: 10px; line-height: 1.2; }
       .status-grid { grid-template-columns: 1fr; }
       .countdown { display: flex; min-width: 0; min-height: 44px; gap: 5px; align-items: baseline; }
       .countdown-value { font-size: 24px; }
@@ -760,7 +907,8 @@
       .day-tabs { gap: 3px; }
       .day-tab { min-height: 50px; border-radius: 9px; }
       .day-name { font-size: 12px; }
-      .day-date { font-size: 9px; }
+      .day-date { font-size: 10px; }
+      .week-current { min-width: 116px; padding-inline: 9px; }
       .calendar-item { grid-template-columns: 1fr; gap: 2px; }
     }
 
@@ -784,7 +932,7 @@
       .clock-wrap { margin-top: 106px; }
       .brand-row { gap: 8px; }
       .brand-logo { width: clamp(165px, 18vw, 205px); }
-      .term { max-width: 82px; padding: 6px; text-align: center; font-size: 9px; line-height: 1.2; }
+      .term { max-width: 94px; padding: 6px; text-align: center; font-size: 10px; line-height: 1.2; }
     }
 
     @media (min-width: 1240px) {
@@ -846,6 +994,8 @@
         <span class="section-note">第一学期课程 · 灰色为本周不上</span>
       </div>
 
+      <div class="mentor-reminder">喻黎明老师课程已重点标记：导师课 · 不可缺席</div>
+
       <div class="week-shell">
         <div class="week-nav">
           <button class="nav-button" id="prevWeek" type="button" aria-label="上一周">
@@ -864,6 +1014,7 @@
       <details class="calendar-card">
         <summary>2026—2027学年校历节点 <span>展开查看</span></summary>
         <div class="calendar-body">
+          <div class="calendar-item"><strong>第一学期报到</strong><time datetime="2026-08-22">2026.08.22—08.23</time></div>
           <div class="calendar-item"><strong>新生教育</strong><time datetime="2026-08-24">2026.08.24—08.30</time></div>
           <div class="calendar-item"><strong>第一学期教学</strong><time datetime="2026-08-31">2026.08.31—2027.01.03</time></div>
           <div class="calendar-item"><strong>第一学期考试</strong><time datetime="2027-01-04">2027.01.04—01.17</time></div>
@@ -878,7 +1029,7 @@
 
     <footer class="footer">
       昆明理工大学 · 呈贡校区 · 2026—2027学年<br>
-      校历第1周从 2026年8月24日（周一）开始；研究生课程 8月31日开课；本页校历状态覆盖至 2027年8月20日。<br>
+      研究生新生 2026年8月22—23日报到；校历第1周从8月24日（周一）开始；研究生课程8月31日开课；本页校历状态覆盖至2027年8月20日。<br>
       第一学期课程与教室信息整理自研究生课表，临时调课请以学校通知为准。<br>
       校园图片来源：<a href="https://www.kmust.edu.cn/info/1020/20442.htm" target="_blank" rel="noopener noreferrer">昆明理工大学官网 · 呈贡校区航拍——公教楼</a>
     </footer>
@@ -895,8 +1046,11 @@
     const SECOND_TERM_START = new Date(2027, 2, 1, 12, 0, 0, 0);
     const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
     const MAX_WEEK = 21;
+    const MENTOR_NAME = '喻黎明';
 
     const CALENDAR = {
+      firstRegistrationStart: new Date(2026, 7, 22, 12, 0, 0, 0),
+      firstRegistrationEnd: new Date(2026, 7, 23, 12, 0, 0, 0),
       orientationStart: new Date(2026, 7, 24, 12, 0, 0, 0),
       orientationEnd: new Date(2026, 7, 30, 12, 0, 0, 0),
       firstTeachingStart: new Date(2026, 7, 31, 12, 0, 0, 0),
@@ -1002,7 +1156,8 @@
       const value = dateAtNoon(date).getTime();
       const at = function (name) { return CALENDAR[name].getTime(); };
 
-      if (value < at('orientationStart')) return { key: 'before', label: '学年尚未开始' };
+      if (value < at('firstRegistrationStart')) return { key: 'before', label: '学年尚未开始' };
+      if (value <= at('firstRegistrationEnd')) return { key: 'first-registration', label: '第一学期 · 新生报到' };
       if (value <= at('orientationEnd')) return { key: 'orientation', label: '第一学期 · 第1周（新生教育）', week: 1 };
       if (value <= at('firstTeachingEnd')) {
         const week = teachingWeek(date);
@@ -1041,6 +1196,17 @@
     }
 
     function isActive(course, week) { return activeParts(course, week).length > 0; }
+
+    function isMentorCourse(course, week) {
+      return activeParts(course, week).some(function (part) { return part.teacher === MENTOR_NAME; });
+    }
+
+    function mentorSchedule(course) {
+      const ranges = course.parts.filter(function (part) { return part.teacher === MENTOR_NAME; }).map(function (part) {
+        return part.start === part.end ? '第' + part.start + '周' : '第' + part.start + '–' + part.end + '周';
+      });
+      return ranges.length ? ranges.join('、') + '导师授课' : '';
+    }
 
     function roomFor(course, part) {
       if (course.rooms.length === 1) return course.rooms[0];
@@ -1093,8 +1259,11 @@
       const currentMinute = nowMinuteFloat(now);
 
       if (phase.key === 'before') {
-        const days = Math.ceil((CALENDAR.orientationStart.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
-        return { type: 'outside', label: '学年尚未开始', course: '校历第1周从8月24日开始', meta: '距离新生教育周还有 ' + Math.max(0, days) + ' 天', period: '研究生课程：2026年8月31日开课' };
+        const days = Math.ceil((CALENDAR.firstRegistrationStart.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+        return { type: 'outside', label: '学年尚未开始', course: '研究生新生8月22日起报到', meta: '距离报到还有 ' + Math.max(0, days) + ' 天', period: '研究生课程：2026年8月31日开课' };
+      }
+      if (phase.key === 'first-registration') {
+        return { type: 'outside', label: '新生报到', course: '研究生课程8月31日开始', meta: '8月24日起开展新生教育与导师双选', period: '报到：2026年8月22日—8月23日' };
       }
       if (phase.key === 'orientation') {
         return { type: 'outside', label: '新生教育周', course: '研究生课程8月31日开始', meta: '本周安排入学教育、导师双选等事项', period: '2026年8月24日—8月30日' };
@@ -1129,6 +1298,7 @@
           course: current.name,
           teacher: info.teachers,
           room: info.rooms,
+          mentor: isMentorCourse(current, week),
           period: current.start + '–' + current.end + ' · ' + current.slot,
           countdownLabel: '距离下课',
           countdown: left,
@@ -1146,6 +1316,7 @@
           course: next.name,
           teacher: info.teachers,
           room: info.rooms,
+          mentor: isMentorCourse(next, week),
           period: next.start + '–' + next.end + ' · ' + next.slot,
           countdownLabel: '还有',
           countdown: until,
@@ -1168,7 +1339,7 @@
       const seconds = pad(now.getSeconds());
       clock.setAttribute('datetime', now.toISOString());
       clock.innerHTML = hhmm + '<span class="clock-seconds">' + seconds + '</span>';
-      document.getElementById('dateLine').textContent = longDate(now) + ' ' + DAYS_FULL[dayIndex(now)] + ' · ' + academicPhase(now).label;
+      document.getElementById('dateLine').innerHTML = '<span>' + longDate(now) + ' ' + DAYS_FULL[dayIndex(now)] + '</span><span class="date-phase">' + esc(academicPhase(now).label) + '</span>';
     }
 
     function renderStatus(now) {
@@ -1181,12 +1352,13 @@
       const countdown = info.countdown
         ? '<div class="countdown"><span class="countdown-label">' + esc(info.countdownLabel) + '</span><strong class="countdown-value' + (info.countdown.value.length > 4 ? ' long' : '') + '">' + esc(info.countdown.value) + '</strong><span class="countdown-unit">' + esc(info.countdown.unit) + '</span></div>'
         : '';
+      const mentorBadge = info.mentor ? '<span class="mentor-badge">导师课 · 不可缺席</span>' : '';
 
-      card.className = 'status-card ' + info.type;
+      card.className = 'status-card ' + info.type + (info.mentor ? ' mentor' : '');
       card.style.setProperty('--progress', (info.progress || 0).toFixed(2) + '%');
-      card.innerHTML = '<div class="status-grid"><div class="status-copy"><div class="status-time">' + ICONS.clock + '<span>' + esc(info.label) + '</span></div><div class="status-course">' + esc(info.course) + '</div>' + meta + '<div class="status-period">' + esc(info.period || '') + '</div></div>' + countdown + '</div>' + (info.type === 'next' || info.type === 'active' ? '<div class="progress-track" aria-hidden="true"><div class="progress-bar"></div></div>' : '');
+      card.innerHTML = '<div class="status-grid"><div class="status-copy"><div class="status-time">' + ICONS.clock + '<span>' + esc(info.label) + '</span></div>' + mentorBadge + '<div class="status-course">' + esc(info.course) + '</div>' + meta + '<div class="status-period">' + esc(info.period || '') + '</div></div>' + countdown + '</div>' + (info.type === 'next' || info.type === 'active' ? '<div class="progress-track" aria-hidden="true"><div class="progress-bar"></div></div>' : '');
 
-      const spoken = info.label + '，' + info.course + (info.countdown ? '，' + info.countdown.text : '');
+      const spoken = info.label + '，' + info.course + (info.mentor ? '，导师课不可缺席' : '') + (info.countdown ? '，' + info.countdown.text : '');
       const spokenKey = info.type + '|' + info.course + '|' + Math.floor(nowMinuteFloat(now));
       if (spokenKey !== state.lastSpokenKey) {
         document.getElementById('srStatus').textContent = spoken;
@@ -1206,6 +1378,7 @@
     function emptyTodayCopy(now) {
       const key = academicPhase(now).key;
       if (key === 'orientation') return { title: '新生教育周', note: '研究生课程8月31日开始' };
+      if (key === 'first-registration') return { title: '新生报到', note: '8月24日起开展新生教育' };
       if (key === 'first-exam') return { title: '第一学期考试周', note: '具体安排请以学校通知为准' };
       if (key === 'winter') return { title: '寒假中', note: '第二学期3月1日报到' };
       if (key === 'second-registration') return { title: '今天返校报到', note: '研究生课程3月2日开始' };
@@ -1213,7 +1386,7 @@
       if (key === 'second-exam') return { title: '第二学期考试周', note: '具体安排请以学校通知为准' };
       if (key === 'summer') return { title: '暑假中', note: '校历放假至2027年8月20日' };
       if (key === 'after') return { title: '本学年已结束', note: '新学年安排请以学校最新通知为准' };
-      if (key === 'before') return { title: '学年尚未开始', note: '校历第1周从2026年8月24日开始' };
+      if (key === 'before') return { title: '学年尚未开始', note: '研究生新生2026年8月22日起报到' };
       return { title: '今天没有排课', note: '可以从容安排自己的时间' };
     }
 
@@ -1234,8 +1407,10 @@
       container.innerHTML = list.map(function (course) {
         const status = courseState(course, now);
         const info = activeInfo(course, week);
-        const label = status === 'current' ? '<span class="state-label">进行中</span>' : (status === 'next' ? '<span class="state-label">下一节</span>' : '');
-        return '<article class="timeline-item ' + status + '"><div class="timeline-time"><span>' + course.start + '</span><span class="time-end">' + course.end + '</span></div><span class="timeline-dot" aria-hidden="true"></span><div class="timeline-body"><div><span class="slot-label">' + esc(course.slot) + '</span>' + label + '</div><div class="timeline-name">' + esc(course.name) + '</div><div class="row-meta">' + ICONS.user + '<span>' + esc(info.teachers) + '</span><span>·</span>' + ICONS.pin + '<span>' + esc(info.rooms) + '</span></div></div></article>';
+        const mentor = isMentorCourse(course, week);
+        const stateLabel = status === 'current' ? '<span class="state-label">进行中</span>' : (status === 'next' ? '<span class="state-label">下一节</span>' : '');
+        const mentorLabel = mentor ? '<span class="mentor-label">导师课 · 不可缺席</span>' : '';
+        return '<article class="timeline-item ' + status + (mentor ? ' mentor-course' : '') + '"><div class="timeline-time"><span>' + course.start + '</span><span class="time-end">' + course.end + '</span></div><span class="timeline-dot" aria-hidden="true"></span><div class="timeline-body"><div><span class="slot-label">' + esc(course.slot) + '</span>' + stateLabel + mentorLabel + '</div><div class="timeline-name">' + esc(course.name) + '</div><div class="row-meta">' + ICONS.user + '<span>' + esc(info.teachers) + '</span><span>·</span>' + ICONS.pin + '<span>' + esc(info.rooms) + '</span></div></div></article>';
       }).join('');
     }
 
@@ -1243,12 +1418,25 @@
       const tabs = document.getElementById('dayTabs');
       tabs.innerHTML = DAYS_SHORT.map(function (label, index) {
         const date = dateForWeekDay(state.viewWeek, index);
-        return '<button class="day-tab' + (sameDate(date, now) ? ' is-today' : '') + '" type="button" role="tab" aria-selected="' + (index === state.selectedDay) + '" data-day="' + index + '" aria-label="' + DAYS_FULL[index] + '，' + longDate(date) + '"><span class="day-name">' + label + '</span><span class="day-date">' + shortDate(date) + '</span></button>';
+        return '<button class="day-tab' + (sameDate(date, now) ? ' is-today' : '') + '" type="button" role="tab" tabindex="' + (index === state.selectedDay ? '0' : '-1') + '" aria-selected="' + (index === state.selectedDay) + '" data-day="' + index + '" aria-label="' + DAYS_FULL[index] + '，' + longDate(date) + '"><span class="day-name">' + label + '</span><span class="day-date">' + shortDate(date) + '</span></button>';
       }).join('');
       tabs.querySelectorAll('[data-day]').forEach(function (button) {
         button.addEventListener('click', function () {
           state.selectedDay = Number(button.dataset.day);
           renderWeek(new Date());
+        });
+        button.addEventListener('keydown', function (event) {
+          let target = null;
+          if (event.key === 'ArrowLeft') target = (state.selectedDay + 6) % 7;
+          if (event.key === 'ArrowRight') target = (state.selectedDay + 1) % 7;
+          if (event.key === 'Home') target = 0;
+          if (event.key === 'End') target = 6;
+          if (target == null) return;
+          event.preventDefault();
+          state.selectedDay = target;
+          renderWeek(new Date());
+          const selected = document.getElementById('dayTabs').querySelector('[data-day="' + target + '"]');
+          if (selected) selected.focus();
         });
       });
     }
@@ -1260,7 +1448,9 @@
     function renderWeek(now) {
       const currentWeek = teachingWeek(now);
       const currentButton = document.getElementById('weekCurrent');
-      currentButton.textContent = '第' + state.viewWeek + '周';
+      const weekStart = dateForWeekDay(state.viewWeek, 0);
+      const weekEnd = dateForWeekDay(state.viewWeek, 6);
+      currentButton.innerHTML = '<span class="week-label">第' + state.viewWeek + '周</span><span class="week-range">' + shortDate(weekStart) + '—' + shortDate(weekEnd) + '</span>';
       currentButton.classList.toggle('is-offset', state.viewWeek !== currentWeek);
       currentButton.title = currentWeek >= 1 && currentWeek <= MAX_WEEK
         ? (state.viewWeek === currentWeek ? '当前校历周' : '点击回到第' + currentWeek + '周')
@@ -1284,11 +1474,18 @@
         const on = isActive(course, state.viewWeek);
         const active = activeInfo(course, state.viewWeek);
         const live = isLiveCourse(course, now);
-        const label = live ? '<span class="live-label">上课中</span>' : (!on ? '<span class="off-label">本周不上</span>' : '');
+        const mentor = on && isMentorCourse(course, state.viewWeek);
+        const mentorPlan = mentorSchedule(course);
+        const labels = [];
+        if (mentor) labels.push('<span class="mentor-label">导师课 · 不可缺席</span>');
+        else if (mentorPlan) labels.push('<span class="mentor-schedule-label">' + esc(mentorPlan) + '</span>');
+        if (live) labels.push('<span class="live-label">上课中</span>');
+        if (!on) labels.push('<span class="off-label">本周不上</span>');
+        const label = labels.length ? '<div class="week-badges">' + labels.join('') + '</div>' : '';
         const details = on
           ? '<span>' + esc(active.teachers) + ' · ' + esc(active.rooms) + '</span>'
           : '<span>' + esc(course.rooms.join(' / ')) + '</span><span class="segments">' + esc(allSegments(course)) + '</span>';
-        return '<article class="week-row' + (on ? '' : ' off') + '"><div class="week-time">' + course.start + '–<br>' + course.end + '<span class="period">' + esc(course.slot) + '</span></div><div class="week-main"><div class="week-name-row"><div class="week-name">' + esc(course.name) + '</div>' + label + '</div><div class="week-detail">' + details + '</div></div></article>';
+        return '<article class="week-row' + (on ? '' : ' off') + (mentor ? ' mentor-course' : '') + '"><div class="week-time">' + course.start + '–<br>' + course.end + '<span class="period">' + esc(course.slot) + '</span></div><div class="week-main"><div class="week-name-row"><div class="week-name">' + esc(course.name) + '</div>' + label + '</div><div class="week-detail">' + details + '</div></div></article>';
       }).join('');
     }
 
