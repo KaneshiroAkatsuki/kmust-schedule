@@ -43,12 +43,24 @@ function baiduWeatherPayload() {
       location: { name: '呈贡区' },
       now: {
         text: '多云', temp: 17, feels_like: 16, rh: 74,
-        wind_dir: '西南风', wind_class: '2级', uptime: '20260830222500'
+        wind_dir: '西南风', wind_class: '2级', prec_1h: 0.2,
+        clouds: 72, vis: 18000, aqi: 35, uptime: '20260830222500'
       },
-      forecasts: [{
-        date: '2026-08-30', high: 22, low: 14,
-        text_day: '多云', text_night: '阵雨'
-      }]
+      forecasts: [
+        {
+          date: '2026-08-30', week: '星期日', high: 22, low: 14,
+          text_day: '多云', text_night: '阵雨', wd_day: '西南风', wc_day: '2级'
+        },
+        {
+          date: '2026-08-31', week: '星期一', high: 23, low: 15,
+          text_day: '晴', text_night: '多云', wd_day: '南风', wc_day: '2级'
+        }
+      ],
+      forecast_hours: [
+        { data_time: '20260830230000', text: '多云', temp_fc: 17, rh: 76, prec_1h: 0, pop: 10, clouds: 70, wind_dir: '西南风', wind_class: '2级' },
+        { data_time: '2026-08-31 00:00:00', text: '阵雨', temp_fc: 16, rh: 82, prec_1h: 0.8, pop: 45, clouds: 88, wind_dir: '西南风', wind_class: '2级' },
+        { data_time: '202608310100', text: '暂无', temp_fc: null, rh: 999999, prec_1h: 999999, pop: 999999, clouds: 999999, wind_dir: '暂无', wind_class: '暂无' }
+      ]
     }
   };
 }
@@ -99,6 +111,17 @@ test('weather endpoint returns normalized Chenggong weather and reuses the 15-mi
   assert.equal(firstData.current.temperature, 17);
   assert.equal(firstData.today.high, 22);
   assert.equal(firstData.observedAt, '2026-08-30T22:25:00+08:00');
+  assert.equal(firstData.current.precipitation, 0.2);
+  assert.equal(firstData.current.airQualityIndex, 35);
+  assert.equal(firstData.hourly.length, 3);
+  assert.equal(firstData.hourly[0].time, '2026-08-30T23:00:00+08:00');
+  assert.equal(firstData.hourly[1].condition, '阵雨');
+  assert.equal(firstData.hourly[1].precipitationProbability, 45);
+  assert.equal(firstData.hourly[2].temperature, null);
+  assert.equal(firstData.hourly[2].humidity, null);
+  assert.equal(firstData.hourly[2].windDirection, '');
+  assert.equal(firstData.daily.length, 2);
+  assert.equal(firstData.daily[1].conditionDay, '晴');
   assert.equal(firstData.cached, false);
 
   const second = await app.fetch(request('/api/weather'));

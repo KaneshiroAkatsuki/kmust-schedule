@@ -194,14 +194,26 @@ function json(body, status, origin, allowedOrigin, cacheControl) {
 }
 
 function cleanWeatherNumber(value) {
+  if (value == null || value === '') return null;
   const number = Number(value);
-  return Number.isFinite(number) ? number : null;
+  return Number.isFinite(number) && number !== 999999 ? number : null;
 }
 
-function baiduObservedAt(value, fallback) {
-  const match = String(value || '').match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/);
-  if (!match) return fallback;
-  return `${match[1]}-${match[2]}-${match[3]}T${match[4]}:${match[5]}:${match[6]}+08:00`;
+function cleanWeatherText(value) {
+  const text = String(value || '').trim();
+  return text && text !== '暂无' ? text : '';
+}
+
+function baiduTimeAt(value, fallback = '') {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.length < 10) return fallback;
+  const year = digits.slice(0, 4);
+  const month = digits.slice(4, 6);
+  const day = digits.slice(6, 8);
+  const hour = digits.slice(8, 10);
+  const minute = digits.length >= 12 ? digits.slice(10, 12) : '00';
+  const second = digits.length >= 14 ? digits.slice(12, 14) : '00';
+  return `${year}-${month}-${day}T${hour}:${minute}:${second}+08:00`;
 }
 
 export function normalizeBaiduWeather(payload, fetchedAt = new Date().toISOString()) {
@@ -210,26 +222,55 @@ export function normalizeBaiduWeather(payload, fetchedAt = new Date().toISOStrin
   }
   const result = payload.result;
   const now = result.now;
-  const today = Array.isArray(result.forecasts) && result.forecasts.length ? result.forecasts[0] : {};
+  const daily = (Array.isArray(result.forecasts) ? result.forecasts : []).map((item) => ({
+    date: String(item?.date || ''),
+    week: cleanWeatherText(item?.week),
+    high: cleanWeatherNumber(item?.high),
+    low: cleanWeatherNumber(item?.low),
+    conditionDay: cleanWeatherText(item?.text_day),
+    conditionNight: cleanWeatherText(item?.text_night),
+    windDirectionDay: cleanWeatherText(item?.wd_day),
+    windDirectionNight: cleanWeatherText(item?.wd_night),
+    windLevelDay: cleanWeatherText(item?.wc_day),
+    windLevelNight: cleanWeatherText(item?.wc_night)
+  })).filter((item) => item.date).slice(0, 7);
+  const hourly = (Array.isArray(result.forecast_hours) ? result.forecast_hours : []).map((item) => ({
+    time: baiduTimeAt(item?.data_time),
+    condition: cleanWeatherText(item?.text) || '天气未知',
+    temperature: cleanWeatherNumber(item?.temp_fc),
+    humidity: cleanWeatherNumber(item?.rh),
+    precipitation: cleanWeatherNumber(item?.prec_1h),
+    precipitationProbability: cleanWeatherNumber(item?.pop),
+    cloudCover: cleanWeatherNumber(item?.clouds),
+    windDirection: cleanWeatherText(item?.wind_dir),
+    windLevel: cleanWeatherText(item?.wind_class)
+  })).filter((item) => item.time).slice(0, 24);
+  const today = daily[0] || {};
   return {
     source: '百度地图天气',
     location: String(result.location?.name || '呈贡区'),
-    observedAt: baiduObservedAt(now.uptime, fetchedAt),
+    observedAt: baiduTimeAt(now.uptime, fetchedAt),
     fetchedAt,
     current: {
-      condition: String(now.text || '天气未知'),
+      condition: cleanWeatherText(now.text) || '天气未知',
       temperature: cleanWeatherNumber(now.temp),
       feelsLike: cleanWeatherNumber(now.feels_like),
       humidity: cleanWeatherNumber(now.rh),
-      windDirection: String(now.wind_dir || ''),
-      windLevel: String(now.wind_class || '')
+      precipitation: cleanWeatherNumber(now.prec_1h),
+      cloudCover: cleanWeatherNumber(now.clouds),
+      visibility: cleanWeatherNumber(now.vis),
+      airQualityIndex: cleanWeatherNumber(now.aqi),
+      windDirection: cleanWeatherText(now.wind_dir),
+      windLevel: cleanWeatherText(now.wind_class)
     },
     today: {
       high: cleanWeatherNumber(today.high),
       low: cleanWeatherNumber(today.low),
-      conditionDay: String(today.text_day || now.text || ''),
-      conditionNight: String(today.text_night || '')
+      conditionDay: cleanWeatherText(today.conditionDay) || cleanWeatherText(now.text),
+      conditionNight: cleanWeatherText(today.conditionNight)
     },
+    hourly,
+    daily,
     cached: false,
     stale: false
   };

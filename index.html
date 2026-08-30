@@ -1633,7 +1633,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=20260830-2249">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=20260830-2317">
 </head>
 <body>
   <a class="skip-link" href="#mainContent">跳到课表内容</a>
@@ -1669,18 +1669,21 @@
       <h1 class="sr-only" id="pageTitle">昆明理工大学呈贡校区研究生智能课表</h1>
       <div class="photo-meta">
         <div class="photo-caption">呈贡校区 · 公教楼片区</div>
-        <button class="weather-chip is-loading" id="weatherChip" type="button" aria-live="polite" aria-busy="true" title="点击刷新呈贡区天气">
-          <span class="weather-icon" id="weatherIcon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.3 1.4A3.4 3.4 0 0 0 7 18Z"/></svg>
-          </span>
-          <span class="weather-copy"><strong id="weatherPrimary">呈贡天气</strong><small id="weatherSecondary">正在更新…</small></span>
-        </button>
       </div>
       <div class="hero-content">
         <div class="hero-kicker">KUNMING UNIVERSITY OF SCIENCE AND TECHNOLOGY</div>
-        <div class="clock-wrap">
-          <time class="clock" id="clock" datetime="">--:--<span class="clock-seconds">--</span></time>
-          <div class="date-line" id="dateLine">正在读取时间…</div>
+        <div class="clock-weather-row">
+          <div class="clock-wrap">
+            <time class="clock" id="clock" datetime="">--:--<span class="clock-seconds">--</span></time>
+            <div class="date-line" id="dateLine">正在读取时间…</div>
+          </div>
+          <button class="weather-chip is-loading" id="weatherChip" type="button" aria-live="polite" aria-busy="true" aria-haspopup="dialog" aria-controls="weatherDialog" title="查看呈贡区天气">
+            <span class="weather-icon weather-symbol is-cloud" id="weatherIcon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.3 1.4A3.4 3.4 0 0 0 7 18Z"/></svg>
+            </span>
+            <span class="weather-copy"><strong id="weatherPrimary">--°</strong><small id="weatherSecondary">天气更新中</small></span>
+            <svg class="weather-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
         </div>
 
         <div class="status-card outside" id="statusCard"></div>
@@ -1802,7 +1805,7 @@
 
       <div class="footer-bottom">
         <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">1.1</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">1.2</span></span>
       </div>
     </div>
   </footer>
@@ -1866,6 +1869,63 @@
       </div>
       <p class="mobile-more-note">课程与临时调课请以学院和任课教师最新通知为准。</p>
     </section>
+  </dialog>
+
+  <dialog class="weather-dialog" id="weatherDialog" aria-labelledby="weatherDialogTitle">
+    <div class="weather-shell" id="weatherShell">
+      <header class="weather-dialog-head">
+        <div>
+          <p class="weather-dialog-location">昆明理工大学 · 呈贡校区</p>
+          <h2 id="weatherDialogTitle">呈贡天气</h2>
+          <p class="weather-dialog-updated" id="weatherDialogUpdated">正在读取云端天气…</p>
+        </div>
+        <div class="weather-dialog-actions">
+          <button class="weather-dialog-button" id="refreshWeather" type="button" aria-label="更新天气" title="重新读取云端天气">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 8.7A7 7 0 0 1 18.6 7L20 12M4 12l1.4 5A7 7 0 0 0 18 15.3"/></svg>
+          </button>
+          <button class="weather-dialog-button" id="closeWeather" type="button" aria-label="关闭天气">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="weather-dialog-body">
+        <section class="weather-current" aria-label="当前天气">
+          <div class="weather-current-copy">
+            <span class="weather-current-label">现在</span>
+            <div class="weather-current-temperature" id="weatherDialogTemperature">--°</div>
+            <strong class="weather-current-condition" id="weatherDialogCondition">天气更新中</strong>
+            <span class="weather-current-range" id="weatherDialogRange">正在读取今日温度</span>
+          </div>
+          <div class="weather-current-symbol weather-symbol is-cloud" id="weatherDialogIcon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.3 1.4A3.4 3.4 0 0 0 7 18Z"/></svg>
+          </div>
+        </section>
+
+        <div class="weather-metrics" id="weatherMetrics" aria-label="天气指标"></div>
+
+        <section class="weather-forecast-section" aria-labelledby="hourlyWeatherTitle">
+          <div class="weather-section-head">
+            <h3 id="hourlyWeatherTitle">未来 24 小时</h3>
+            <span>从现在开始</span>
+          </div>
+          <div class="hourly-weather" id="hourlyWeather"><p class="weather-empty">正在读取逐小时天气…</p></div>
+        </section>
+
+        <section class="weather-forecast-section" aria-labelledby="dailyWeatherTitle">
+          <div class="weather-section-head">
+            <h3 id="dailyWeatherTitle">未来天气</h3>
+            <span>每日高低温</span>
+          </div>
+          <div class="daily-weather" id="dailyWeather"><p class="weather-empty">正在读取未来天气…</p></div>
+        </section>
+
+        <footer class="weather-dialog-footer">
+          <span id="weatherDialogStatus" role="status" aria-live="polite">每小时由云端自动更新</span>
+          <a href="https://lbsyun.baidu.com/docs/webapi?title=weatherinquiry/weather/base" target="_blank" rel="noopener noreferrer">数据来源：百度地图天气</a>
+        </footer>
+      </div>
+    </div>
   </dialog>
 
   <dialog class="manager-dialog" id="managerDialog" aria-labelledby="managerTitle">
@@ -2001,8 +2061,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '1.1';
-    const SITE_UPDATED_AT = '2026-08-30T22:49:23+08:00';
+    const SITE_VERSION = '1.2';
+    const SITE_UPDATED_AT = '2026-08-30T23:17:59+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -2120,6 +2180,7 @@
       dataSource: 'fallback',
       syncBusy: false,
       weatherBusy: false,
+      weatherData: null,
       cloudSaveBusy: false,
       managerDirty: false,
       formDirty: false,
@@ -2815,6 +2876,7 @@
     }
 
     function weatherNumber(value) {
+      if (value == null || value === '') return null;
       const number = Number(value);
       return Number.isFinite(number) ? Math.round(number) : null;
     }
@@ -2835,9 +2897,140 @@
       if (low != null && high != null) details.push('今日 ' + low + '—' + high + '°');
       return {
         kind: weatherKind(condition),
+        temperature: temperature == null ? '--°' : temperature + '°',
+        condition: condition,
         primary: primary,
         secondary: details.join(' · ') || '点击刷新天气'
       };
+    }
+
+    function weatherIconMarkup(condition, className) {
+      const kind = weatherKind(condition);
+      return '<span class="weather-symbol is-' + kind + (className ? ' ' + className : '') + '" aria-hidden="true">' + (WEATHER_ICONS[kind] || WEATHER_ICONS.cloud) + '</span>';
+    }
+
+    function visibleWeatherHours(hourly, now) {
+      const current = now instanceof Date ? now : new Date();
+      const currentHour = new Date(current.getTime());
+      currentHour.setMinutes(0, 0, 0);
+      const cutoff = currentHour.getTime();
+      return (Array.isArray(hourly) ? hourly : []).filter(function (item) {
+        const time = new Date(item && item.time).getTime();
+        return Number.isFinite(time) && time >= cutoff;
+      }).slice(0, 24);
+    }
+
+    function weatherHourLabel(value, index, now) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '--:--';
+      const current = now instanceof Date ? now : new Date();
+      if (index === 0 && date.getFullYear() === current.getFullYear() && date.getMonth() === current.getMonth() && date.getDate() === current.getDate() && date.getHours() === current.getHours()) return '现在';
+      return pad(date.getHours()) + ':00';
+    }
+
+    function weatherDayLabel(value, now) {
+      const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!match) return '未来';
+      const current = now instanceof Date ? now : new Date();
+      const targetDay = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+      const currentDay = Date.UTC(current.getFullYear(), current.getMonth(), current.getDate());
+      const difference = Math.round((targetDay - currentDay) / 86400000);
+      if (difference === 0) return '今天';
+      if (difference === 1) return '明天';
+      if (difference === 2) return '后天';
+      const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+      return '周' + DAYS_SHORT[dayIndex(date)];
+    }
+
+    function weatherMetricHtml(label, value) {
+      return '<div class="weather-metric"><span>' + esc(label) + '</span><strong>' + esc(value) + '</strong></div>';
+    }
+
+    function renderWeatherDialog(data) {
+      const shell = document.getElementById('weatherShell');
+      const temperature = document.getElementById('weatherDialogTemperature');
+      const condition = document.getElementById('weatherDialogCondition');
+      const range = document.getElementById('weatherDialogRange');
+      const icon = document.getElementById('weatherDialogIcon');
+      const updated = document.getElementById('weatherDialogUpdated');
+      const metrics = document.getElementById('weatherMetrics');
+      const hourly = document.getElementById('hourlyWeather');
+      const daily = document.getElementById('dailyWeather');
+      const status = document.getElementById('weatherDialogStatus');
+      if (!shell || !temperature || !condition || !range || !icon || !updated || !metrics || !hourly || !daily || !status) return;
+
+      if (!data || !data.current) {
+        shell.className = 'weather-shell weather-kind-cloud';
+        temperature.textContent = '--°';
+        condition.textContent = '天气暂不可用';
+        range.textContent = '请检查网络后点击更新';
+        icon.className = 'weather-current-symbol weather-symbol is-cloud';
+        icon.innerHTML = WEATHER_ICONS.cloud;
+        updated.textContent = '尚未取得天气数据';
+        metrics.innerHTML = '';
+        hourly.innerHTML = '<p class="weather-empty">逐小时天气暂不可用，稍后点击更新重试。</p>';
+        daily.innerHTML = '<p class="weather-empty">未来天气暂不可用。</p>';
+        status.textContent = '天气服务暂时不可用';
+        return;
+      }
+
+      const summary = weatherSummary(data);
+      const current = data.current;
+      const today = data.today || {};
+      const stale = Boolean(data.stale);
+      shell.className = 'weather-shell weather-kind-' + summary.kind;
+      temperature.textContent = summary.temperature;
+      condition.textContent = summary.condition;
+      const rangeParts = [];
+      const high = weatherNumber(today.high);
+      const low = weatherNumber(today.low);
+      const feelsLike = weatherNumber(current.feelsLike);
+      if (low != null && high != null) rangeParts.push('最高 ' + high + '° · 最低 ' + low + '°');
+      if (feelsLike != null) rangeParts.push('体感 ' + feelsLike + '°');
+      range.textContent = rangeParts.join(' · ') || '呈贡区当前天气';
+      icon.className = 'weather-current-symbol weather-symbol is-' + summary.kind;
+      icon.innerHTML = WEATHER_ICONS[summary.kind] || WEATHER_ICONS.cloud;
+      const observed = formatUpdatedDateTime(data.observedAt);
+      updated.textContent = (observed || '更新时间未知') + (stale ? ' · 当前显示缓存' : ' 更新');
+      status.textContent = stale ? '天气接口暂时不可用，当前显示上次成功结果' : '每小时由云端自动更新';
+
+      const metricItems = [];
+      const humidity = weatherNumber(current.humidity);
+      if (feelsLike != null) metricItems.push(['体感温度', feelsLike + '°']);
+      if (humidity != null) metricItems.push(['相对湿度', humidity + '%']);
+      const wind = [current.windDirection, current.windLevel].filter(Boolean).join(' ');
+      if (wind) metricItems.push(['风向风力', wind]);
+      const precipitation = current.precipitation == null ? NaN : Number(current.precipitation);
+      if (Number.isFinite(precipitation)) metricItems.push(['近一小时降水', precipitation + ' mm']);
+      const visibility = current.visibility == null ? NaN : Number(current.visibility);
+      if (Number.isFinite(visibility)) metricItems.push(['能见度', (visibility >= 1000 ? Math.round(visibility / 100) / 10 + ' km' : Math.round(visibility) + ' m')]);
+      const aqi = weatherNumber(current.airQualityIndex);
+      if (aqi != null) metricItems.push(['空气质量指数', String(aqi)]);
+      metrics.innerHTML = metricItems.slice(0, 6).map(function (item) { return weatherMetricHtml(item[0], item[1]); }).join('');
+
+      const weatherNow = new Date();
+      const visibleHours = visibleWeatherHours(data.hourly, weatherNow);
+      hourly.innerHTML = visibleHours.length ? visibleHours.map(function (item, index) {
+        const itemCondition = String(item.condition || '天气未知');
+        const itemTemperature = weatherNumber(item.temperature);
+        const probability = weatherNumber(item.precipitationProbability);
+        const rain = item.precipitation == null ? NaN : Number(item.precipitation);
+        const detail = probability != null ? '降水 ' + probability + '%' : (Number.isFinite(rain) && rain > 0 ? '降水 ' + rain + 'mm' : itemCondition);
+        const isNow = weatherHourLabel(item.time, index, weatherNow) === '现在';
+        return '<article class="hourly-item' + (isNow ? ' is-now' : '') + '"><time datetime="' + esc(item.time) + '">' + esc(weatherHourLabel(item.time, index, weatherNow)) + '</time>' + weatherIconMarkup(itemCondition, '') + '<strong>' + (itemTemperature == null ? '--°' : itemTemperature + '°') + '</strong><small>' + esc(detail) + '</small></article>';
+      }).join('') : '<p class="weather-empty">百度暂未返回逐小时预报，当前天气仍可正常查看。</p>';
+
+      const dailyItems = Array.isArray(data.daily) ? data.daily.slice(0, 7) : [];
+      daily.innerHTML = dailyItems.length ? dailyItems.map(function (item) {
+        const dayCondition = String(item.conditionDay || item.conditionNight || '天气未知');
+        const nightCondition = String(item.conditionNight || '');
+        const conditionText = nightCondition && nightCondition !== dayCondition ? dayCondition + '转' + nightCondition : dayCondition;
+        const itemHigh = weatherNumber(item.high);
+        const itemLow = weatherNumber(item.low);
+        const dateMatch = String(item.date || '').match(/^\d{4}-(\d{2})-(\d{2})$/);
+        const shortDate = dateMatch ? Number(dateMatch[1]) + '/' + Number(dateMatch[2]) : '';
+        return '<article class="daily-row"><time class="daily-day" datetime="' + esc(item.date) + '"><strong>' + esc(weatherDayLabel(item.date, new Date())) + '</strong><small>' + esc(shortDate) + '</small></time><div class="daily-condition">' + weatherIconMarkup(dayCondition, '') + '<span>' + esc(conditionText) + '</span></div><div class="daily-temperatures"><strong>' + (itemHigh == null ? '--°' : itemHigh + '°') + '</strong><span>' + (itemLow == null ? '--°' : itemLow + '°') + '</span></div></article>';
+      }).join('') : '<p class="weather-empty">未来天气暂不可用。</p>';
     }
 
     function readWeatherCache() {
@@ -2870,31 +3063,44 @@
       const secondary = document.getElementById('weatherSecondary');
       if (!chip || !icon || !primary || !secondary) return;
       if (!data) {
+        state.weatherData = null;
         chip.className = 'weather-chip is-error';
         chip.setAttribute('aria-busy', 'false');
-        primary.textContent = '天气暂不可用';
-        secondary.textContent = '点击重试';
+        primary.textContent = '--°';
+        secondary.textContent = '天气暂不可用';
+        icon.className = 'weather-icon weather-symbol is-cloud';
         icon.innerHTML = WEATHER_ICONS.cloud;
-        chip.title = '天气接口暂时不可用，点击重新尝试';
+        chip.title = '天气接口暂时不可用，点击查看并重试';
+        renderWeatherDialog(null);
         return;
       }
+      state.weatherData = data;
       const summary = weatherSummary(data);
       const stale = Boolean(settings.stale || data.stale);
       chip.className = 'weather-chip' + (stale ? ' is-stale' : '');
       chip.setAttribute('aria-busy', 'false');
-      primary.textContent = summary.primary;
-      secondary.textContent = summary.secondary + (stale ? ' · 缓存' : '');
+      primary.textContent = summary.temperature;
+      secondary.textContent = summary.condition + (stale ? ' · 缓存' : '');
+      icon.className = 'weather-icon weather-symbol is-' + summary.kind;
       icon.innerHTML = WEATHER_ICONS[summary.kind] || WEATHER_ICONS.cloud;
       const observed = formatUpdatedAt(data.observedAt);
-      chip.title = (data.source || '天气数据') + (observed ? ' · ' + observed + '更新' : '') + (stale ? ' · 当前显示缓存，点击刷新' : ' · 点击刷新');
+      chip.title = summary.primary + (observed ? ' · ' + observed + '更新' : '') + (stale ? ' · 当前显示缓存，点击查看' : ' · 点击查看逐小时天气');
+      renderWeatherDialog(data);
     }
 
     function setWeatherBusy(busy) {
       const chip = document.getElementById('weatherChip');
+      const refresh = document.getElementById('refreshWeather');
+      const status = document.getElementById('weatherDialogStatus');
       if (!chip) return;
       chip.setAttribute('aria-busy', busy ? 'true' : 'false');
       if (busy) chip.classList.add('is-loading');
       else chip.classList.remove('is-loading');
+      if (refresh) {
+        refresh.disabled = Boolean(busy);
+        refresh.setAttribute('aria-busy', busy ? 'true' : 'false');
+      }
+      if (busy && status) status.textContent = '正在读取云端天气…';
     }
 
     async function loadWeather(options) {
@@ -2922,6 +3128,37 @@
         state.weatherBusy = false;
         setWeatherBusy(false);
       }
+    }
+
+    function closeWeatherDialog() {
+      const dialog = document.getElementById('weatherDialog');
+      if (dialog && dialog.open) dialog.close();
+    }
+
+    function openWeatherDialog() {
+      const dialog = document.getElementById('weatherDialog');
+      if (!dialog) return;
+      renderWeatherDialog(state.weatherData);
+      if (!dialog.open) dialog.showModal();
+      loadWeather();
+    }
+
+    function setupWeatherDialog() {
+      const dialog = document.getElementById('weatherDialog');
+      const chip = document.getElementById('weatherChip');
+      const closeButton = document.getElementById('closeWeather');
+      const refreshButton = document.getElementById('refreshWeather');
+      if (!dialog || !chip || !closeButton || !refreshButton) return;
+      chip.addEventListener('click', openWeatherDialog);
+      closeButton.addEventListener('click', closeWeatherDialog);
+      refreshButton.addEventListener('click', function () { loadWeather({ force: true }); });
+      dialog.addEventListener('cancel', function (event) {
+        event.preventDefault();
+        closeWeatherDialog();
+      });
+      dialog.addEventListener('click', function (event) {
+        if (event.target === dialog) closeWeatherDialog();
+      });
     }
 
     async function verifyAdminSecret(secret) {
@@ -3658,14 +3895,12 @@
         calendarHint.textContent = calendarCard.open ? '收起' : '展开查看';
       });
       setupMobileMoreMenu();
+      setupWeatherDialog();
 
       tick();
       window.setInterval(tick, 1000);
       loadCloudSchedule();
       loadWeather({ force: true });
-      document.getElementById('weatherChip').addEventListener('click', function () {
-        loadWeather({ force: true });
-      });
       window.setInterval(function () { loadCloudSchedule(); }, SYNC_INTERVAL_MS);
       window.setInterval(function () {
         if (!document.hidden) loadWeather();

@@ -21,7 +21,8 @@ const exposedNames = [
   'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput',
   'stageCourseUpsert', 'stageCourseDelete',
   'cloudSaveButtonView',
-  'weatherKind', 'weatherSummary', 'readWeatherCache', 'loadWeather',
+  'weatherKind', 'weatherNumber', 'weatherSummary', 'visibleWeatherHours', 'weatherHourLabel', 'weatherDayLabel',
+  'renderWeatherDialog', 'readWeatherCache', 'loadWeather', 'setupWeatherDialog', 'openWeatherDialog', 'closeWeatherDialog',
   'setupMobileMoreMenu', 'formatUpdatedAt', 'formatUpdatedDateTime', 'latestModifiedAt',
   'getRememberedSecret', 'setRememberedSecret', 'clearRememberedSecret'
 ];
@@ -55,7 +56,10 @@ test('required interactive ids exist exactly once', () => {
     'clock', 'dateLine', 'statusCard', 'todayList', 'weekList', 'weekMatrix', 'dayTabs',
     'prevWeek', 'nextWeek', 'weekCurrent', 'openManager', 'openManagerTop', 'openManagerMobile', 'managerDialog',
     'managerCourseList', 'managerSearch', 'courseForm', 'saveCloud', 'syncPill',
-    'weatherChip', 'weatherIcon', 'weatherPrimary', 'weatherSecondary'
+    'weatherChip', 'weatherIcon', 'weatherPrimary', 'weatherSecondary',
+    'weatherDialog', 'weatherShell', 'weatherDialogTitle', 'weatherDialogUpdated', 'refreshWeather', 'closeWeather',
+    'weatherDialogTemperature', 'weatherDialogCondition', 'weatherDialogRange', 'weatherDialogIcon', 'weatherMetrics',
+    'hourlyWeatherTitle', 'hourlyWeather', 'dailyWeatherTitle', 'dailyWeather', 'weatherDialogStatus'
   ];
   for (const id of ids) {
     const count = (html.match(new RegExp(`id=["']${id}["']`, 'g')) || []).length;
@@ -330,17 +334,43 @@ test('weather is readable, cached locally and refreshed automatically or on dema
   assert.equal(api.weatherKind('雷阵雨'), 'storm');
   assert.equal(api.weatherKind('小雨'), 'rain');
   assert.equal(api.weatherKind('雾'), 'fog');
+  assert.equal(api.weatherNumber(null), null);
+  assert.equal(api.weatherNumber(''), null);
 
   const cachedData = {
     source: '百度地图天气',
     location: '呈贡区',
     observedAt: '2026-08-30T22:25:00+08:00',
-    current: { condition: '多云', temperature: 17, feelsLike: 16 },
-    today: { high: 22, low: 14 }
+    current: {
+      condition: '多云', temperature: 17, feelsLike: 16, humidity: 73,
+      windDirection: '东南风', windLevel: '2级', precipitation: 0, visibility: 18000, airQualityIndex: 35
+    },
+    today: { high: 22, low: 14 },
+    hourly: [
+      { time: '2026-08-30T22:00:00+08:00', condition: '多云', temperature: 16 },
+      { time: '2026-08-30T23:00:00+08:00', condition: '多云', temperature: 17, precipitationProbability: 10 },
+      { time: '2026-08-31T00:00:00+08:00', condition: '小雨', temperature: 16, precipitationProbability: 55 }
+    ],
+    daily: [
+      { date: '2026-08-30', high: 22, low: 14, conditionDay: '多云', conditionNight: '小雨' },
+      { date: '2026-08-31', high: 21, low: 13, conditionDay: '小雨', conditionNight: '小雨' }
+    ]
   };
   const summary = api.weatherSummary(cachedData);
   assert.equal(summary.primary, '呈贡 17° · 多云');
   assert.equal(summary.secondary, '体感 16° · 今日 14—22°');
+  assert.equal(summary.temperature, '17°');
+  assert.equal(summary.condition, '多云');
+
+  const weatherNow = new Date('2026-08-30T23:30:00+08:00');
+  const visibleHours = api.visibleWeatherHours(cachedData.hourly, weatherNow);
+  assert.equal(visibleHours.length, 2);
+  assert.equal(visibleHours[0].time, '2026-08-30T23:00:00+08:00');
+  assert.equal(api.weatherHourLabel(visibleHours[0].time, 0, weatherNow), '现在');
+  assert.equal(api.weatherHourLabel(visibleHours[1].time, 1, weatherNow), '00:00');
+  assert.equal(api.weatherHourLabel('2026-08-31T01:00:00+08:00', 0, weatherNow), '01:00');
+  assert.equal(api.weatherDayLabel('2026-08-30', weatherNow), '今天');
+  assert.equal(api.weatherDayLabel('2026-08-31', weatherNow), '明天');
 
   class WeatherElement {
     constructor() {
@@ -348,16 +378,28 @@ test('weather is readable, cached locally and refreshed automatically or on dema
       this.attributes = {};
       this.textContent = '';
       this.innerHTML = '';
+      this.listeners = {};
+      this.open = false;
+      this.disabled = false;
       this.classList = {
         add: (name) => { if (!this.className.includes(name)) this.className += ' ' + name; },
         remove: (name) => { this.className = this.className.replace(name, '').trim(); }
       };
     }
     setAttribute(name, value) { this.attributes[name] = value; }
+    addEventListener(type, handler) { (this.listeners[type] ||= []).push(handler); }
+    emit(type, event = {}) {
+      for (const handler of this.listeners[type] || []) handler({ target: this, preventDefault() {}, ...event });
+    }
+    showModal() { this.open = true; }
+    close() { this.open = false; }
   }
 
   const elements = Object.fromEntries([
-    'weatherChip', 'weatherIcon', 'weatherPrimary', 'weatherSecondary'
+    'weatherChip', 'weatherIcon', 'weatherPrimary', 'weatherSecondary',
+    'weatherDialog', 'weatherShell', 'weatherDialogUpdated', 'refreshWeather', 'closeWeather',
+    'weatherDialogTemperature', 'weatherDialogCondition', 'weatherDialogRange', 'weatherDialogIcon',
+    'weatherMetrics', 'hourlyWeather', 'dailyWeather', 'weatherDialogStatus'
   ].map((id) => [id, new WeatherElement()]));
   const storage = new Map();
   storage.set('kust-lab-weather-cache-v1', JSON.stringify({
@@ -390,17 +432,40 @@ test('weather is readable, cached locally and refreshed automatically or on dema
 
   assert.equal(await api.loadWeather(), true);
   assert.equal(fetchCalls, 0, 'fresh local cache should render without another request');
-  assert.equal(elements.weatherPrimary.textContent, '呈贡 17° · 多云');
+  assert.equal(elements.weatherPrimary.textContent, '17°');
+  assert.equal(elements.weatherSecondary.textContent, '多云');
+  assert.equal(elements.weatherDialogTemperature.textContent, '17°');
+  assert.match(elements.weatherMetrics.innerHTML, /相对湿度/);
 
   assert.equal(await api.loadWeather({ force: true }), true);
   assert.equal(fetchCalls, 1, 'click-to-refresh should bypass the fresh-cache shortcut');
-  assert.equal(elements.weatherPrimary.textContent, '呈贡 19° · 晴');
+  assert.equal(elements.weatherPrimary.textContent, '19°');
+  assert.equal(elements.weatherSecondary.textContent, '晴');
   assert.match(storage.get('kust-lab-weather-cache-v1'), /\"temperature\":19/);
 
-  assert.match(html, /loadWeather\(\{ force: true \}\);[\s\S]*?weatherChip'\)\.addEventListener\('click',[\s\S]*?loadWeather\(\{ force: true \}\)/);
+  api.state.weatherBusy = true;
+  api.setupWeatherDialog();
+  elements.weatherChip.emit('click');
+  assert.equal(elements.weatherDialog.open, true, 'weather chip should open the detail dialog');
+  assert.match(elements.hourlyWeather.innerHTML, /hourly-item/);
+  assert.match(elements.dailyWeather.innerHTML, /daily-row/);
+  elements.closeWeather.emit('click');
+  assert.equal(elements.weatherDialog.open, false, 'close button should close the weather dialog');
+  elements.weatherDialog.showModal();
+  elements.weatherDialog.emit('cancel');
+  assert.equal(elements.weatherDialog.open, false, 'Escape/cancel should close the weather dialog');
+  api.state.weatherBusy = false;
+
+  assert.match(html, /class="clock-weather-row"[\s\S]*?id="clock"[\s\S]*?id="weatherChip"/);
+  assert.match(html, /function setupWeatherDialog\(\)/);
+  assert.match(html, /chip\.addEventListener\('click', openWeatherDialog\)/);
+  assert.match(html, /refreshButton\.addEventListener\('click',[\s\S]*?loadWeather\(\{ force: true \}\)/);
   assert.match(html, /window\.setInterval\(function \(\) \{\s*if \(!document\.hidden\) loadWeather\(\);\s*\}, WEATHER_REFRESH_MS\)/);
   assert.match(html, /visibilitychange[\s\S]*?if \(!document\.hidden\)[\s\S]*?loadWeather\(\)/);
-  assert.match(html, /天气数据 · 百度地图/);
+  assert.match(html, /数据来源：百度地图天气/);
+  assert.match(css, /@keyframes weather-(?:sun-spin|cloud-float|rain-fall|storm-flash|fog-drift)/);
+  assert.match(css, /@media \(max-width: 600px\)[\s\S]*?\.weather-dialog \{ width: 100vw; height: 100vh; height: 100dvh/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.weather-symbol svg[\s\S]*?animation: none !important/);
 });
 
 test('foldable and phone breakpoints avoid narrow side columns', () => {
@@ -505,7 +570,7 @@ test('manager password is numeric, hidden by default and optionally remembered',
 });
 
 test('modification sync status uses the latest page or schedule change in China time', () => {
-  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T22:49:23\+08:00'/);
+  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T\d{2}:\d{2}:\d{2}\+08:00'/);
   assert.match(html, /function latestModifiedAt\(scheduleUpdatedAt\)/);
   assert.match(html, /getUTC(?:Month|Date|Hours|Minutes)/);
   assert.match(html, /修改同步时间/);
