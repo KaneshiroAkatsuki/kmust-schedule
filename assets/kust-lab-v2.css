@@ -224,6 +224,21 @@ body {
 
 .mobile-dock { display: none; }
 
+@media (min-width: 980px) {
+  .footer-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: clamp(24px, 4vw, 72px);
+  }
+}
+
+@media (min-width: 641px) and (max-width: 979px) {
+  .footer-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(28px, 7vw, 64px);
+    row-gap: 30px;
+  }
+}
+
 .manager-dialog {
   width: min(1240px, calc(100vw - 30px));
   max-height: min(900px, calc(100dvh - 30px));

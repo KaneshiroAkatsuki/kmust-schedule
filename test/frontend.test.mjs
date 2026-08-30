@@ -169,6 +169,14 @@ test('course management uses one unified entry on desktop and mobile', () => {
   assert.match(html, /id="addCourse"[^>]*>新增课程</);
 });
 
+test('footer expands to four columns and collapses responsively', () => {
+  assert.equal((html.match(/class="footer-group"/g) || []).length, 4);
+  assert.match(html, /<summary>数据与管理<\/summary>/);
+  assert.match(html, /<summary>学校链接<\/summary>/);
+  assert.match(css, /@media \(min-width: 980px\)[\s\S]*?grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(min-width: 641px\) and \(max-width: 979px\)[\s\S]*?grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+});
+
 test('admin secret is session-only and revision conflicts have a visible recovery path', () => {
   assert.match(html, /sessionStorage\.setItem\(SECRET_KEY/);
   assert.doesNotMatch(html, /localStorage\.setItem\(SECRET_KEY/);
