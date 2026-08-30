@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const css = fs.readFileSync(path.join(root, 'assets', 'kust-lab-v2.css'), 'utf8');
 const scriptMatch = html.match(/<script>\s*([\s\S]*?)<\/script>\s*<\/body>/);
 
 assert.ok(scriptMatch, 'inline application script should exist');
@@ -14,7 +15,7 @@ assert.ok(scriptMatch, 'inline application script should exist');
 const exposedNames = [
   'RAW_DATA', 'FALLBACK_DATA', 'DAYS_FULL', 'SLOT_TIMES', 'state', 'COURSES',
   'teachingWeek', 'academicPhase', 'dateForWeekDay', 'dayIndex', 'isActive',
-  'isMentorCourse', 'activeInfo', 'currentStatus', 'validateCoursesInput'
+  'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput'
 ];
 
 const testSource = scriptMatch[1].replace(/\s*init\(\);\s*$/, '') +
@@ -27,24 +28,25 @@ function localDate(year, month, day, hour = 12, minute = 0) {
   return new Date(year, month - 1, day, hour, minute, 0, 0);
 }
 
-test('single-file page keeps its required identity and no external runtime dependency', () => {
+test('page keeps its identity, local assets and responsive layout system', () => {
   assert.match(html, /<title>KUST·Lab<\/title>/);
   assert.doesNotMatch(html, /<script\b[^>]*\bsrc=/i);
-  assert.doesNotMatch(html, /<link\b[^>]*rel=["']stylesheet/i);
+  assert.match(html, /assets\/kust-lab-v2\.css/);
   assert.match(html, /昆明理工大学官方校标/);
   assert.match(html, /https:\/\/www\.kmust\.edu\.cn\/info\/1020\/20442\.htm/);
-  assert.match(html, /@media \(max-width: 360px\)/);
-  assert.match(html, /@media \(max-width: 900px\)/);
-  assert.match(html, /@media \(min-width: 980px\)/);
-  assert.match(html, /@media \(min-width: 1280px\)/);
-  assert.match(html, /--page: 1720px/);
+  assert.match(css, /@media \(max-width: 360px\)/);
+  assert.match(css, /@media \(max-width: 800px\)/);
+  assert.match(css, /@media \(min-width: 900px\) and \(max-width: 1159px\)/);
+  assert.match(css, /@media \(min-width: 1160px\)/);
+  assert.match(css, /--workspace: 1880px/);
+  assert.match(css, /grid-template-columns: 92px repeat\(7/);
 });
 
 test('required interactive ids exist exactly once', () => {
   const ids = [
-    'clock', 'dateLine', 'statusCard', 'todayList', 'weekList', 'dayTabs',
-    'prevWeek', 'nextWeek', 'weekCurrent', 'openManager', 'openManagerTop', 'managerDialog',
-    'managerCourseList', 'courseForm', 'saveCloud', 'syncPill'
+    'clock', 'dateLine', 'statusCard', 'todayList', 'weekList', 'weekMatrix', 'dayTabs',
+    'prevWeek', 'nextWeek', 'weekCurrent', 'openManager', 'openManagerTop', 'openAddTop', 'openAddMobile', 'managerDialog',
+    'managerCourseList', 'managerSearch', 'courseForm', 'saveCloud', 'syncPill'
   ];
   for (const id of ids) {
     const count = (html.match(new RegExp(`id=["']${id}["']`, 'g')) || []).length;
@@ -133,6 +135,19 @@ test('mentor class is specially marked only during mentor teaching weeks', () =>
   assert.match(html, /导师课 · 不可缺席/);
 });
 
+test('desktop matrix renders all seven days, six time bands and mentor warning', () => {
+  const matrix = { innerHTML: '' };
+  context.document = { getElementById: (id) => id === 'weekMatrix' ? matrix : null };
+  api.state.viewWeek = 5;
+  api.renderWeekMatrix(localDate(2026, 9, 25, 16, 30));
+  assert.equal((matrix.innerHTML.match(/class="matrix-head/g) || []).length, 7);
+  assert.equal((matrix.innerHTML.match(/class="matrix-slot/g) || []).length, 6);
+  assert.equal((matrix.innerHTML.match(/class="matrix-cell/g) || []).length, 42);
+  assert.match(matrix.innerHTML, /设施农业与装备（专硕）/);
+  assert.match(matrix.innerHTML, /导师课 · 不可缺席/);
+  assert.match(matrix.innerHTML, /16:10—17:45/);
+});
+
 test('course editor validation matches the cloud contract', () => {
   const good = [{
     '星期': '星期一', '节次': '第1-2节', '时间': '08:00-09:35', '课程': '新增测试课',
@@ -151,4 +166,7 @@ test('admin secret is session-only and revision conflicts have a visible recover
   assert.match(html, /id="reloadCloud"/);
   assert.match(html, /function setupFooterDisclosure\(\)/);
   assert.match(html, /window\.setInterval\(function \(\) \{ loadCloudSchedule\(\); \}, SYNC_INTERVAL_MS\)/);
+  assert.match(html, /function renderWeekMatrix\(now\)/);
+  assert.match(html, /state\.workingData\.splice\(index, 1\)/);
+  assert.match(html, /openManagerDialog\('add'\)/);
 });

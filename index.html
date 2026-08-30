@@ -1606,6 +1606,7 @@
       .course-form { padding: 13px; }
     }
   </style>
+  <link rel="stylesheet" href="assets/kust-lab-v2.css">
 </head>
 <body>
   <a class="skip-link" href="#mainContent">跳到课表内容</a>
@@ -1617,7 +1618,11 @@
         <span class="product-name">KUST·Lab</span>
       </a>
       <div class="nav-actions">
-        <button class="nav-manage" id="openManagerTop" type="button" aria-label="管理课表，新增或修改课程">
+        <button class="nav-add" id="openAddTop" type="button" aria-label="添加一门新课程">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+          <span>添加课程</span>
+        </button>
+        <button class="nav-manage" id="openManagerTop" type="button" aria-label="管理课表，新增、修改或删除课程">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
           <span>管理课表</span>
         </button>
@@ -1680,7 +1685,18 @@
         </div>
         <div class="day-tabs" id="dayTabs" role="tablist" aria-label="选择星期"></div>
         <div class="week-summary" id="weekSummary"></div>
-        <div class="week-list" id="weekList" role="tabpanel"></div>
+        <div class="week-matrix-wrap" aria-label="整周课程总览">
+          <div class="week-matrix" id="weekMatrix"></div>
+        </div>
+        <div class="mobile-week-flow">
+          <div class="week-list" id="weekList" role="tabpanel"></div>
+        </div>
+        <div class="matrix-legend" aria-label="课表标记说明">
+          <span><i class="legend-live"></i>正在上课</span>
+          <span><i class="legend-active"></i>本周上课</span>
+          <span><i class="legend-mentor">★</i>导师课 · 不可缺席</span>
+          <span><i class="legend-off"></i>本周不上</span>
+        </div>
       </div>
 
       <details class="calendar-card">
@@ -1747,6 +1763,25 @@
     </div>
   </footer>
 
+  <nav class="mobile-dock" aria-label="手机快捷导航">
+    <a href="#mainContent" class="dock-item is-primary" aria-label="查看现在">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+      <span>现在</span>
+    </a>
+    <a href="#weekSection" class="dock-item" aria-label="查看本周课表">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"/><path d="M7.5 3.5v4m9-4v4M3.5 10h17"/></svg>
+      <span>本周</span>
+    </a>
+    <button class="dock-item dock-add" id="openAddMobile" type="button" aria-label="添加一门新课程">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/></svg>
+      <span>添加</span>
+    </button>
+    <button class="dock-item" id="openCalendarMobile" type="button" aria-label="查看校历">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M5 4.5h11.5a2 2 0 0 1 2 2V20H7a2 2 0 0 1-2-2V4.5Z"/><path d="M7 20a2 2 0 0 1 2-2h9.5M8.5 8h6M8.5 11h6"/></svg>
+      <span>校历</span>
+    </button>
+  </nav>
+
   <dialog class="manager-dialog" id="managerDialog" aria-labelledby="managerTitle">
     <div class="manager-shell">
       <header class="manager-head" aria-label="课表管理标题">
@@ -1779,6 +1814,10 @@
         <section class="manager-editor" id="managerEditor" hidden>
           <div class="manager-toolbar">
             <button class="primary-button" id="addCourse" type="button">新增课程</button>
+            <label class="manager-search" aria-label="搜索课程">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+              <input id="managerSearch" type="search" placeholder="搜索课程、教师或教室" autocomplete="off">
+            </label>
             <button class="secondary-button" id="importCourses" type="button">导入 JSON</button>
             <button class="secondary-button" id="exportCourses" type="button">导出 JSON</button>
             <input class="file-input" id="importFile" type="file" accept="application/json,.json">
@@ -1966,6 +2005,7 @@
       dataSource: 'fallback',
       syncBusy: false,
       managerDirty: false,
+      managerIntent: 'manage',
       editingIndex: -1,
       workingData: [],
       conflictData: null
@@ -2294,6 +2334,53 @@
       return sameDate(dateForWeekDay(state.viewWeek, state.selectedDay), now) && isActive(course, state.viewWeek) && nowMinuteFloat(now) >= course.startMin && nowMinuteFloat(now) < course.endMin;
     }
 
+    function renderWeekMatrix(now) {
+      const container = document.getElementById('weekMatrix');
+      if (!container) return;
+
+      let html = '<div class="matrix-corner"><strong>节次 / 时间</strong></div>';
+      DAYS_SHORT.forEach(function (label, day) {
+        const date = dateForWeekDay(state.viewWeek, day);
+        html += '<div class="matrix-head' + (sameDate(date, now) ? ' is-today' : '') + '"><strong>周' + label + '</strong><span>' + shortDate(date) + '</span></div>';
+      });
+
+      SLOT_TIMES.forEach(function (time, rawSlot) {
+        const displaySlot = rawSlot.replace(/第(\d+)-(\d+)节/, '第$1–$2节');
+        html += '<div class="matrix-slot"><strong>' + esc(displaySlot) + '</strong><span>' + esc(time.replace('-', '—')) + '</span></div>';
+
+        DAYS_FULL.forEach(function (_, day) {
+          const courses = COURSES.filter(function (course) {
+            return course.day === day && course.start + '-' + course.end === time;
+          });
+          if (!courses.length) {
+            html += '<div class="matrix-cell"><span class="matrix-empty">—</span></div>';
+            return;
+          }
+
+          const cards = courses.map(function (course) {
+            const on = isActive(course, state.viewWeek);
+            const active = activeInfo(course, state.viewWeek);
+            const date = dateForWeekDay(state.viewWeek, day);
+            const live = sameDate(date, now) && on && nowMinuteFloat(now) >= course.startMin && nowMinuteFloat(now) < course.endMin;
+            const mentor = on && isMentorCourse(course, state.viewWeek);
+            const mentorPlan = mentorSchedule(course);
+            let badge = '';
+            if (mentor) badge = '<span class="matrix-badge">★ 导师课 · 不可缺席</span>';
+            else if (live) badge = '<span class="matrix-badge">正在上课</span>';
+            else if (!on) badge = '<span class="matrix-badge">' + esc(mentorPlan || '本周不上') + '</span>';
+            const details = on
+              ? active.teachers + ' · ' + active.rooms
+              : course.rooms.join(' / ') + ' · ' + allSegments(course);
+            const className = 'matrix-card' + (on ? '' : ' is-off') + (mentor ? ' is-mentor' : '') + (live ? ' is-live' : '');
+            return '<article class="' + className + '" title="' + esc(course.name + '｜' + details) + '">' + badge + '<div class="matrix-name">' + esc(course.name) + '</div><div class="matrix-meta">' + esc(details) + '</div></article>';
+          }).join('');
+          html += '<div class="matrix-cell">' + cards + '</div>';
+        });
+      });
+
+      container.innerHTML = html;
+    }
+
     function renderWeek(now) {
       const currentWeek = teachingWeek(now);
       const currentButton = document.getElementById('weekCurrent');
@@ -2307,6 +2394,7 @@
       document.getElementById('prevWeek').disabled = state.viewWeek <= 1;
       document.getElementById('nextWeek').disabled = state.viewWeek >= MAX_WEEK;
       renderDayTabs(now);
+      renderWeekMatrix(now);
 
       const list = COURSES.filter(function (course) { return course.day === state.selectedDay; });
       const activeCount = list.filter(function (course) { return isActive(course, state.viewWeek); }).length;
@@ -2545,12 +2633,24 @@
     function renderManagerList() {
       const list = document.getElementById('managerCourseList');
       const count = document.getElementById('managerCourseCount');
-      count.textContent = state.workingData.length + ' 门次';
+      const search = document.getElementById('managerSearch');
+      const query = (search ? search.value : '').trim().toLowerCase();
       if (!state.workingData.length) {
+        count.textContent = '0 门次';
         list.innerHTML = '<div class="editor-empty"><strong>还没有课程</strong><span>点击“新增课程”开始添加</span></div>';
         return;
       }
-      const rows = state.workingData.map(function (course, index) { return { course: course, index: index }; });
+      const rows = state.workingData.map(function (course, index) { return { course: course, index: index }; }).filter(function (entry) {
+        if (!query) return true;
+        const course = entry.course;
+        const text = [course['课程'], course['星期'], course['节次'], course['教室'].join(' '), course['授课分段'].map(function (part) { return part['周次'] + ' ' + part['教师']; }).join(' ')].join(' ').toLowerCase();
+        return text.indexOf(query) !== -1;
+      });
+      count.textContent = query ? rows.length + ' / ' + state.workingData.length + ' 门次' : state.workingData.length + ' 门次';
+      if (!rows.length) {
+        list.innerHTML = '<div class="editor-empty"><strong>没有匹配课程</strong><span>换个课程名、教师或教室试试</span></div>';
+        return;
+      }
       rows.sort(function (left, right) {
         const dayDiff = DAYS_FULL.indexOf(left.course['星期']) - DAYS_FULL.indexOf(right.course['星期']);
         if (dayDiff) return dayDiff;
@@ -2651,9 +2751,14 @@
       renderManagerList();
       resetCourseEditor();
       setManagerStatus(isSyncConfigured() ? '已载入当前课表，修改完成后点击“保存全部修改到云端”。' : '云端服务尚未部署；可以先编辑和导出，部署后再保存到云端。', isSyncConfigured() ? '' : 'warning');
+      if (state.managerIntent === 'add') {
+        state.managerIntent = 'manage';
+        window.setTimeout(function () { openCourseEditor(-1); }, 0);
+      }
     }
 
-    function openManagerDialog() {
+    function openManagerDialog(intent) {
+      state.managerIntent = intent === 'add' ? 'add' : 'manage';
       const dialog = document.getElementById('managerDialog');
       if (!dialog.open) dialog.showModal();
       if (getSessionSecret()) showManagerEditor();
@@ -2766,8 +2871,10 @@
         return '<option value="' + entry[0] + '">' + entry[0] + ' · ' + entry[1].replace('-', '—') + '</option>';
       }).join('');
 
-      document.getElementById('openManager').addEventListener('click', openManagerDialog);
-      document.getElementById('openManagerTop').addEventListener('click', openManagerDialog);
+      document.getElementById('openManager').addEventListener('click', function () { openManagerDialog('manage'); });
+      document.getElementById('openManagerTop').addEventListener('click', function () { openManagerDialog('manage'); });
+      document.getElementById('openAddTop').addEventListener('click', function () { openManagerDialog('add'); });
+      document.getElementById('openAddMobile').addEventListener('click', function () { openManagerDialog('add'); });
       document.getElementById('closeManager').addEventListener('click', closeManagerDialog);
       document.getElementById('managerDialog').addEventListener('cancel', function (event) { event.preventDefault(); closeManagerDialog(); });
       document.getElementById('unlockManager').addEventListener('click', function () {
@@ -2786,6 +2893,7 @@
         showManagerAuth('已退出管理。');
       });
       document.getElementById('addCourse').addEventListener('click', function () { openCourseEditor(-1); });
+      document.getElementById('managerSearch').addEventListener('input', renderManagerList);
       document.getElementById('cancelCourseEdit').addEventListener('click', resetCourseEditor);
       document.getElementById('courseSlot').addEventListener('change', updateCourseTimePreview);
       document.getElementById('addSegment').addEventListener('click', function () { addSegmentRow(); });
@@ -2803,7 +2911,9 @@
         if (!remove) return;
         const index = Number(remove.dataset.delete);
         const course = state.workingData[index];
-        if (!course || !window.confirm('确定删除“' + course['课程'] + '”这门次吗？')) return;
+        if (!course) return;
+        const warning = rawCourseHasMentor(course) ? '这是导师课，标记为“不可缺席”。\n\n' : '';
+        if (!window.confirm(warning + '确定删除“' + course['课程'] + '”这门次吗？删除后还需要点击“保存全部修改到云端”才会生效。')) return;
         state.workingData.splice(index, 1);
         state.managerDirty = true;
         renderManagerList();
@@ -2898,6 +3008,10 @@
       const calendarHint = calendarCard.querySelector('summary span');
       calendarCard.addEventListener('toggle', function () {
         calendarHint.textContent = calendarCard.open ? '收起' : '展开查看';
+      });
+      document.getElementById('openCalendarMobile').addEventListener('click', function () {
+        calendarCard.open = true;
+        calendarCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
 
       tick();
