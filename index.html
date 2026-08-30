@@ -1633,7 +1633,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=20260830-2317">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=20260830-2327">
 </head>
 <body>
   <a class="skip-link" href="#mainContent">跳到课表内容</a>
@@ -1805,7 +1805,7 @@
 
       <div class="footer-bottom">
         <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">1.2</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">1.3</span></span>
       </div>
     </div>
   </footer>
@@ -2061,8 +2061,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '1.2';
-    const SITE_UPDATED_AT = '2026-08-30T23:17:59+08:00';
+    const SITE_VERSION = '1.3';
+    const SITE_UPDATED_AT = '2026-08-30T23:27:30+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -2790,6 +2790,12 @@
       return parts ? parts.year + '年' + parts.month + '月' + parts.day + '日 ' + pad(parts.hour) + ':' + pad(parts.minute) : '';
     }
 
+    function chinaHourStart(value) {
+      const parts = chinaTimeParts(value);
+      if (!parts) return NaN;
+      return Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour) - 8 * 60 * 60 * 1000;
+    }
+
     function latestModifiedAt(scheduleUpdatedAt) {
       const siteTime = new Date(SITE_UPDATED_AT).getTime();
       const scheduleTime = new Date(scheduleUpdatedAt || '').getTime();
@@ -2909,37 +2915,59 @@
       return '<span class="weather-symbol is-' + kind + (className ? ' ' + className : '') + '" aria-hidden="true">' + (WEATHER_ICONS[kind] || WEATHER_ICONS.cloud) + '</span>';
     }
 
+    function weatherReferenceDate(value) {
+      const timestamp = value && typeof value.getTime === 'function' ? Number(value.getTime()) : NaN;
+      return Number.isFinite(timestamp) ? new Date(timestamp) : new Date();
+    }
+
     function visibleWeatherHours(hourly, now) {
-      const current = now instanceof Date ? now : new Date();
-      const currentHour = new Date(current.getTime());
-      currentHour.setMinutes(0, 0, 0);
-      const cutoff = currentHour.getTime();
-      return (Array.isArray(hourly) ? hourly : []).filter(function (item) {
-        const time = new Date(item && item.time).getTime();
-        return Number.isFinite(time) && time >= cutoff;
-      }).slice(0, 24);
+      const current = weatherReferenceDate(now);
+      const cutoff = chinaHourStart(current);
+      const seen = new Set();
+      return (Array.isArray(hourly) ? hourly : []).map(function (item) {
+        return { item: item, time: new Date(item && item.time).getTime() };
+      }).filter(function (entry) {
+        return Number.isFinite(entry.time) && Number.isFinite(cutoff) && entry.time >= cutoff;
+      }).sort(function (left, right) {
+        return left.time - right.time;
+      }).filter(function (entry) {
+        if (seen.has(entry.time)) return false;
+        seen.add(entry.time);
+        return true;
+      }).slice(0, 24).map(function (entry) { return entry.item; });
     }
 
     function weatherHourLabel(value, index, now) {
-      const date = new Date(value);
-      if (Number.isNaN(date.getTime())) return '--:--';
-      const current = now instanceof Date ? now : new Date();
-      if (index === 0 && date.getFullYear() === current.getFullYear() && date.getMonth() === current.getMonth() && date.getDate() === current.getDate() && date.getHours() === current.getHours()) return '现在';
-      return pad(date.getHours()) + ':00';
+      const parts = chinaTimeParts(value);
+      if (!parts) return '--:--';
+      const current = weatherReferenceDate(now);
+      const currentParts = chinaTimeParts(current);
+      const sameHour = currentParts && parts.year === currentParts.year && parts.month === currentParts.month && parts.day === currentParts.day && parts.hour === currentParts.hour;
+      if (index === 0 && sameHour) return '现在';
+      const time = pad(parts.hour) + ':00';
+      if (!currentParts) return time;
+      const targetDay = Date.UTC(parts.year, parts.month - 1, parts.day);
+      const currentDay = Date.UTC(currentParts.year, currentParts.month - 1, currentParts.day);
+      const difference = Math.round((targetDay - currentDay) / 86400000);
+      if (difference === 1) return '明天 ' + time;
+      if (difference !== 0) return parts.month + '/' + parts.day + ' ' + time;
+      return time;
     }
 
     function weatherDayLabel(value, now) {
       const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
       if (!match) return '未来';
-      const current = now instanceof Date ? now : new Date();
+      const current = weatherReferenceDate(now);
+      const currentParts = chinaTimeParts(current);
+      if (!currentParts) return '未来';
       const targetDay = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-      const currentDay = Date.UTC(current.getFullYear(), current.getMonth(), current.getDate());
+      const currentDay = Date.UTC(currentParts.year, currentParts.month - 1, currentParts.day);
       const difference = Math.round((targetDay - currentDay) / 86400000);
       if (difference === 0) return '今天';
       if (difference === 1) return '明天';
       if (difference === 2) return '后天';
-      const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-      return '周' + DAYS_SHORT[dayIndex(date)];
+      const mondayIndex = (new Date(targetDay).getUTCDay() + 6) % 7;
+      return '周' + DAYS_SHORT[mondayIndex];
     }
 
     function weatherMetricHtml(label, value) {
@@ -3016,8 +3044,8 @@
         const probability = weatherNumber(item.precipitationProbability);
         const rain = item.precipitation == null ? NaN : Number(item.precipitation);
         const detail = probability != null ? '降水 ' + probability + '%' : (Number.isFinite(rain) && rain > 0 ? '降水 ' + rain + 'mm' : itemCondition);
-        const isNow = weatherHourLabel(item.time, index, weatherNow) === '现在';
-        return '<article class="hourly-item' + (isNow ? ' is-now' : '') + '"><time datetime="' + esc(item.time) + '">' + esc(weatherHourLabel(item.time, index, weatherNow)) + '</time>' + weatherIconMarkup(itemCondition, '') + '<strong>' + (itemTemperature == null ? '--°' : itemTemperature + '°') + '</strong><small>' + esc(detail) + '</small></article>';
+        const hourLabel = weatherHourLabel(item.time, index, weatherNow);
+        return '<article class="hourly-item' + (hourLabel === '现在' ? ' is-now' : '') + '"><time datetime="' + esc(item.time) + '">' + esc(hourLabel) + '</time>' + weatherIconMarkup(itemCondition, '') + '<strong>' + (itemTemperature == null ? '--°' : itemTemperature + '°') + '</strong><small>' + esc(detail) + '</small></article>';
       }).join('') : '<p class="weather-empty">百度暂未返回逐小时预报，当前天气仍可正常查看。</p>';
 
       const dailyItems = Array.isArray(data.daily) ? data.daily.slice(0, 7) : [];
@@ -3029,7 +3057,7 @@
         const itemLow = weatherNumber(item.low);
         const dateMatch = String(item.date || '').match(/^\d{4}-(\d{2})-(\d{2})$/);
         const shortDate = dateMatch ? Number(dateMatch[1]) + '/' + Number(dateMatch[2]) : '';
-        return '<article class="daily-row"><time class="daily-day" datetime="' + esc(item.date) + '"><strong>' + esc(weatherDayLabel(item.date, new Date())) + '</strong><small>' + esc(shortDate) + '</small></time><div class="daily-condition">' + weatherIconMarkup(dayCondition, '') + '<span>' + esc(conditionText) + '</span></div><div class="daily-temperatures"><strong>' + (itemHigh == null ? '--°' : itemHigh + '°') + '</strong><span>' + (itemLow == null ? '--°' : itemLow + '°') + '</span></div></article>';
+        return '<article class="daily-row"><time class="daily-day" datetime="' + esc(item.date) + '"><strong>' + esc(weatherDayLabel(item.date, weatherNow)) + '</strong><small>' + esc(shortDate) + '</small></time><div class="daily-condition">' + weatherIconMarkup(dayCondition, '') + '<span>' + esc(conditionText) + '</span></div><div class="daily-temperatures"><strong>' + (itemHigh == null ? '--°' : itemHigh + '°') + '</strong><span>' + (itemLow == null ? '--°' : itemLow + '°') + '</span></div></article>';
       }).join('') : '<p class="weather-empty">未来天气暂不可用。</p>';
     }
 

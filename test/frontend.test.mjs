@@ -23,7 +23,7 @@ const exposedNames = [
   'cloudSaveButtonView',
   'weatherKind', 'weatherNumber', 'weatherSummary', 'visibleWeatherHours', 'weatherHourLabel', 'weatherDayLabel',
   'renderWeatherDialog', 'readWeatherCache', 'loadWeather', 'setupWeatherDialog', 'openWeatherDialog', 'closeWeatherDialog',
-  'setupMobileMoreMenu', 'formatUpdatedAt', 'formatUpdatedDateTime', 'latestModifiedAt',
+  'setupMobileMoreMenu', 'chinaTimeParts', 'chinaHourStart', 'formatUpdatedAt', 'formatUpdatedDateTime', 'latestModifiedAt',
   'getRememberedSecret', 'setRememberedSecret', 'clearRememberedSecret'
 ];
 
@@ -347,9 +347,10 @@ test('weather is readable, cached locally and refreshed automatically or on dema
     },
     today: { high: 22, low: 14 },
     hourly: [
+      { time: '2026-08-31T00:00:00+08:00', condition: '小雨', temperature: 16, precipitationProbability: 55 },
       { time: '2026-08-30T22:00:00+08:00', condition: '多云', temperature: 16 },
       { time: '2026-08-30T23:00:00+08:00', condition: '多云', temperature: 17, precipitationProbability: 10 },
-      { time: '2026-08-31T00:00:00+08:00', condition: '小雨', temperature: 16, precipitationProbability: 55 }
+      { time: '2026-08-30T23:00:00+08:00', condition: '重复数据', temperature: 99 }
     ],
     daily: [
       { date: '2026-08-30', high: 22, low: 14, conditionDay: '多云', conditionNight: '小雨' },
@@ -366,9 +367,17 @@ test('weather is readable, cached locally and refreshed automatically or on dema
   const visibleHours = api.visibleWeatherHours(cachedData.hourly, weatherNow);
   assert.equal(visibleHours.length, 2);
   assert.equal(visibleHours[0].time, '2026-08-30T23:00:00+08:00');
+  assert.equal(visibleHours[0].condition, '多云', 'duplicate hours should keep the first chronologically sorted result');
   assert.equal(api.weatherHourLabel(visibleHours[0].time, 0, weatherNow), '现在');
-  assert.equal(api.weatherHourLabel(visibleHours[1].time, 1, weatherNow), '00:00');
-  assert.equal(api.weatherHourLabel('2026-08-31T01:00:00+08:00', 0, weatherNow), '01:00');
+  assert.equal(api.weatherHourLabel(visibleHours[1].time, 1, weatherNow), '明天 00:00');
+  assert.equal(api.weatherHourLabel('2026-08-31T01:00:00+08:00', 0, weatherNow), '明天 01:00');
+  assert.equal(api.chinaHourStart('2026-08-30T23:30:00+08:00'), Date.parse('2026-08-30T15:00:00Z'));
+  assert.equal(api.chinaTimeParts('2026-08-30T15:30:00Z').hour, 23, 'weather labels should use China time even for a UTC timestamp');
+  const afterMidnight = new Date('2026-08-31T00:05:00+08:00');
+  const midnightHours = api.visibleWeatherHours(cachedData.hourly, afterMidnight);
+  assert.equal(midnightHours.length, 1, 'the previous day 23:00 must disappear after midnight');
+  assert.equal(midnightHours[0].time, '2026-08-31T00:00:00+08:00');
+  assert.equal(api.weatherHourLabel(midnightHours[0].time, 0, afterMidnight), '现在');
   assert.equal(api.weatherDayLabel('2026-08-30', weatherNow), '今天');
   assert.equal(api.weatherDayLabel('2026-08-31', weatherNow), '明天');
 
@@ -465,6 +474,8 @@ test('weather is readable, cached locally and refreshed automatically or on dema
   assert.match(html, /数据来源：百度地图天气/);
   assert.match(css, /@keyframes weather-(?:sun-spin|cloud-float|rain-fall|storm-flash|fog-drift)/);
   assert.match(css, /@media \(max-width: 600px\)[\s\S]*?\.weather-dialog \{ width: 100vw; height: 100vh; height: 100dvh/);
+  assert.match(css, /@media \(max-width: 420px\)[\s\S]*?\.weather-current \{ display: block;[\s\S]*?\.weather-current-symbol \{ position: absolute/);
+  assert.match(css, /@media \(max-width: 360px\)[\s\S]*?\.weather-copy small \{ display: none; \}/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.weather-symbol svg[\s\S]*?animation: none !important/);
 });
 

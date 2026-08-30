@@ -361,7 +361,7 @@ body {
 .hourly-item { display: grid; min-height: 154px; padding: 14px 9px; justify-items: center; align-content: space-between; gap: 7px; border-right: 1px solid #ece7df; scroll-snap-align: start; }
 .hourly-item:last-child { border-right: 0; }
 .hourly-item.is-now { color: #fff; background: var(--kust-red); }
-.hourly-item time { font-size: 10px; font-weight: 800; }
+.hourly-item time { font-size: 10px; font-weight: 800; white-space: nowrap; }
 .hourly-item .weather-symbol { display: grid; width: 34px; height: 34px; place-items: center; color: var(--weather-accent); }
 .hourly-item.is-now .weather-symbol { color: #fff; }
 .hourly-item .weather-symbol svg { width: 30px; height: 30px; }
@@ -1118,6 +1118,33 @@ body {
   .daily-temperatures { min-width: 58px; gap: 5px; }
 }
 
+@media (max-width: 420px) {
+  .weather-dialog-head { min-height: 76px; padding-right: max(12px, env(safe-area-inset-right)); padding-left: max(13px, env(safe-area-inset-left)); gap: 10px; }
+  .weather-dialog-location { font-size: 8px; }
+  .weather-dialog-head h2 { font-size: 20px; }
+  .weather-dialog-updated { max-width: 190px; font-size: 9px; }
+  .weather-dialog-actions { flex: 0 0 auto; }
+  .weather-dialog-button { width: 36px; height: 36px; }
+  .weather-dialog-body { padding-top: 10px; }
+  .weather-current { display: block; min-height: 174px; padding: 19px 17px; }
+  .weather-current-copy { padding-right: 58px; }
+  .weather-current-temperature { font-size: clamp(64px, 21vw, 78px); }
+  .weather-current-symbol { position: absolute; z-index: 0; top: 50%; right: 7px; width: 112px; height: 112px; opacity: .16; transform: translateY(-50%); }
+  .weather-current-condition { font-size: 16px; }
+  .weather-current-range { max-width: 220px; line-height: 1.4; }
+  .weather-metrics { margin-top: 8px; }
+  .weather-metric { min-height: 58px; padding: 10px 11px; }
+  .weather-metric strong { font-size: 13px; }
+  .weather-forecast-section { margin-top: 16px; }
+  .hourly-weather { grid-auto-columns: 76px; }
+  .hourly-item { min-height: 136px; padding: 12px 7px; }
+  .daily-row { grid-template-columns: 68px minmax(0,1fr) 58px; min-height: 58px; padding: 8px 9px; gap: 6px; }
+  .daily-day strong { font-size: 11px; }
+  .daily-condition .weather-symbol { flex-basis: 25px; width: 25px; height: 25px; }
+  .daily-condition svg { width: 23px; height: 23px; }
+  .weather-dialog-footer { margin-top: 14px; }
+}
+
 @media (max-width: 360px) {
   .nav-inner { padding-inline: 10px; }
   .site-brand .brand-logo { width: 120px; flex-basis: 120px; }
@@ -1126,10 +1153,10 @@ body {
   .hero-content { padding-inline: 13px; }
   .clock-weather-row { gap: 5px; }
   .clock-weather-row .clock { gap: 5px; font-size: 47px; }
-  .weather-chip { width: 92px; min-height: 50px; }
+  .weather-chip { width: 82px; min-height: 48px; }
   .weather-icon { flex-basis: 27px; width: 27px; height: 27px; }
   .weather-copy strong { font-size: 15px; }
-  .weather-copy small { font-size: 8px; }
+  .weather-copy small { display: none; }
   .status-grid { grid-template-columns: 1fr; }
   .countdown { display: flex; align-items: baseline; justify-content: flex-start; gap: 5px; }
   .day-tab { padding-inline: 2px; }
@@ -1137,12 +1164,12 @@ body {
   .segment-row { grid-template-columns: minmax(0,1fr) 34px; }
   .segment-week-range { gap: 5px; }
 
-  .weather-dialog-location { font-size: 8px; }
-  .weather-dialog-head h2 { font-size: 20px; }
-  .weather-dialog-updated { font-size: 9px; }
-  .weather-current { grid-template-columns: minmax(0,1fr) 76px; min-height: 170px; padding: 18px 14px; }
+  .weather-dialog-location { display: none; }
+  .weather-dialog-updated { max-width: 150px; }
+  .weather-current { min-height: 164px; padding: 17px 14px; }
+  .weather-current-copy { padding-right: 48px; }
   .weather-current-temperature { font-size: 59px; }
-  .weather-current-symbol { width: 74px; height: 74px; }
+  .weather-current-symbol { right: 1px; width: 98px; height: 98px; }
   .weather-current-condition { font-size: 16px; }
   .weather-current-range { font-size: 10px; }
   .weather-metrics { gap: 6px; }
