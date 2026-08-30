@@ -974,7 +974,7 @@
       --radius-lg: 30px;
       --radius-md: 18px;
       --shadow: 0 22px 70px rgba(55, 45, 31, .09);
-      --page: 1320px;
+      --page: 1720px;
       --gutter: clamp(16px, 4vw, 46px);
       --display-font: "Songti SC", "STSong", "SimSun", serif;
       --body-font: "MiSans", "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -1089,6 +1089,26 @@
     }
 
     .nav-actions { display: flex; align-items: center; gap: 10px; }
+
+    .nav-manage {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 34px;
+      padding: 6px 11px;
+      border: 1px solid rgba(158,27,50,.22);
+      border-radius: 999px;
+      color: var(--mentor);
+      background: var(--mentor-soft);
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .nav-manage:hover { border-color: rgba(158,27,50,.45); background: #f8e1e6; }
+    .nav-manage svg { width: 14px; height: 14px; }
 
     .sync-pill {
       display: inline-flex;
@@ -1352,7 +1372,7 @@
     .section:nth-of-type(3) { animation-delay: .14s; }
 
     @media (min-width: 980px) {
-      .app { grid-template-columns: minmax(310px, .72fr) minmax(560px, 1.28fr); grid-template-areas: "hero hero" "today week"; align-items: start; }
+      .app { grid-template-columns: minmax(360px, .82fr) minmax(560px, 1.18fr); grid-template-areas: "hero hero" "today week"; align-items: start; }
       .hero { grid-area: hero; }
       #todaySection { grid-area: today; }
       #weekSection { grid-area: week; }
@@ -1360,6 +1380,41 @@
       .timeline::before { left: 92px; }
       .timeline-item { grid-template-columns: 70px 18px minmax(0,1fr); gap: 8px; }
       .timeline-time { font-size: 12px; }
+    }
+
+    @media (min-width: 1280px) {
+      .app {
+        grid-template-columns: minmax(470px, .78fr) minmax(680px, 1.22fr);
+        grid-template-areas: "hero week" "today week";
+      }
+
+      .hero {
+        min-height: 0;
+        grid-template-columns: minmax(0,1fr);
+        grid-template-rows: 220px auto;
+      }
+
+      .hero::before {
+        inset: 0 0 auto;
+        width: 100%;
+        height: 252px;
+        background-position: center 59%;
+      }
+
+      .hero::after {
+        inset: 142px 0 auto;
+        width: 100%;
+        height: 120px;
+        background: linear-gradient(to bottom, rgba(255,255,255,0), #fff 82%);
+      }
+
+      .photo-caption { grid-column: 1; grid-row: 1; margin: 0 0 20px 20px; }
+      .hero-content { grid-column: 1; grid-row: 2; padding: 22px clamp(24px, 2.3vw, 38px) clamp(26px, 2.5vw, 42px); }
+      .hero-kicker { margin-bottom: 15px; font-size: 10px; }
+      .clock { font-size: clamp(72px, 5.6vw, 94px); }
+      .date-line { margin-top: 18px; }
+      .status-card { margin-top: 22px; }
+      #weekSection { align-self: stretch; }
     }
 
     @media (max-width: 900px) {
@@ -1381,8 +1436,11 @@
       .product-name { font-size: 15px; }
       .term { max-width: 88px; padding: 5px 7px; font-size: 9px; text-align: center; line-height: 1.25; }
       .nav-actions { gap: 6px; }
+      .nav-manage { width: 32px; min-width: 32px; min-height: 32px; padding: 0; }
+      .nav-manage span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
       .sync-pill { width: 28px; min-width: 28px; padding: 0; justify-content: center; border: 0; background: transparent; }
       .sync-pill span:last-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+      .term { display: none; }
       .app { gap: 16px; }
       .hero { grid-template-rows: 190px auto; border-radius: 22px; }
       .hero::before { height: 216px; }
@@ -1414,7 +1472,6 @@
     @media (max-width: 360px) {
       .site-brand .brand-logo { width: 132px; flex-basis: 132px; }
       .product-name { font-size: 13px; }
-      .term { display: none; }
       .hero { grid-template-rows: 172px auto; }
       .hero::before { height: 198px; }
       .hero::after { top: 108px; }
@@ -1560,6 +1617,10 @@
         <span class="product-name">KUST·Lab</span>
       </a>
       <div class="nav-actions">
+        <button class="nav-manage" id="openManagerTop" type="button" aria-label="管理课表，新增或修改课程">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>管理课表</span>
+        </button>
         <div class="sync-pill" id="syncPill" role="status" aria-live="polite">
           <span class="sync-dot" aria-hidden="true"></span>
           <span id="syncText">内置课表</span>
@@ -2706,6 +2767,7 @@
       }).join('');
 
       document.getElementById('openManager').addEventListener('click', openManagerDialog);
+      document.getElementById('openManagerTop').addEventListener('click', openManagerDialog);
       document.getElementById('closeManager').addEventListener('click', closeManagerDialog);
       document.getElementById('managerDialog').addEventListener('cancel', function (event) { event.preventDefault(); closeManagerDialog(); });
       document.getElementById('unlockManager').addEventListener('click', function () {
@@ -2778,6 +2840,16 @@
       });
     }
 
+    function setupFooterDisclosure() {
+      const media = window.matchMedia('(min-width: 641px)');
+      const apply = function (event) {
+        document.querySelectorAll('.footer-group').forEach(function (group) { group.open = event.matches; });
+      };
+      apply(media);
+      if (media.addEventListener) media.addEventListener('change', apply);
+      else media.addListener(apply);
+    }
+
     function tick() {
       const now = new Date();
       const previousCurrentWeek = state.currentWeek;
@@ -2803,6 +2875,7 @@
       state.viewWeek = Math.max(1, Math.min(MAX_WEEK, state.currentWeek));
       state.selectedDay = dayIndex(now);
       setupManager();
+      setupFooterDisclosure();
       hydrateFromCache();
 
       document.getElementById('prevWeek').addEventListener('click', function () {

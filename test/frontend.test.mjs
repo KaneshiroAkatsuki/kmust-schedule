@@ -36,12 +36,14 @@ test('single-file page keeps its required identity and no external runtime depen
   assert.match(html, /@media \(max-width: 360px\)/);
   assert.match(html, /@media \(max-width: 900px\)/);
   assert.match(html, /@media \(min-width: 980px\)/);
+  assert.match(html, /@media \(min-width: 1280px\)/);
+  assert.match(html, /--page: 1720px/);
 });
 
 test('required interactive ids exist exactly once', () => {
   const ids = [
     'clock', 'dateLine', 'statusCard', 'todayList', 'weekList', 'dayTabs',
-    'prevWeek', 'nextWeek', 'weekCurrent', 'openManager', 'managerDialog',
+    'prevWeek', 'nextWeek', 'weekCurrent', 'openManager', 'openManagerTop', 'managerDialog',
     'managerCourseList', 'courseForm', 'saveCloud', 'syncPill'
   ];
   for (const id of ids) {
@@ -147,5 +149,6 @@ test('admin secret is session-only and revision conflicts have a visible recover
   assert.match(html, /baseRevision: state\.revision/);
   assert.match(html, /response\.status === 409/);
   assert.match(html, /id="reloadCloud"/);
+  assert.match(html, /function setupFooterDisclosure\(\)/);
   assert.match(html, /window\.setInterval\(function \(\) \{ loadCloudSchedule\(\); \}, SYNC_INTERVAL_MS\)/);
 });
