@@ -8,6 +8,13 @@
   "vars": {
     "ALLOWED_ORIGIN": "https://kaneshiroakatsuki.github.io"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "kmust-schedule-db",
+      "database_id": "16384225-c3d4-4a9a-8d56-6f4c70daa25b"
+    }
+  ],
   "observability": {
     "enabled": true
   }
