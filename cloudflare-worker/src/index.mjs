@@ -53,6 +53,41 @@ function cleanWeekRange(value) {
   return start === end ? String(start) : `${start}-${end}`;
 }
 
+function weekRange(value) {
+  const numbers = String(value).match(/\d+/g)?.map(Number) || [0];
+  return [numbers[0], numbers[1] ?? numbers[0]];
+}
+
+function assertNoCourseConflicts(courses) {
+  for (let leftIndex = 0; leftIndex < courses.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < courses.length; rightIndex += 1) {
+      const left = courses[leftIndex];
+      const right = courses[rightIndex];
+      if (left.星期 !== right.星期 || left.节次 !== right.节次) continue;
+
+      let overlap = null;
+      left.授课分段.some((leftPart) => {
+        const leftWeeks = weekRange(leftPart.周次);
+        return right.授课分段.some((rightPart) => {
+          const rightWeeks = weekRange(rightPart.周次);
+          const start = Math.max(leftWeeks[0], rightWeeks[0]);
+          const end = Math.min(leftWeeks[1], rightWeeks[1]);
+          if (start > end) return false;
+          overlap = start === end ? String(start) : `${start}-${end}`;
+          return true;
+        });
+      });
+      if (!overlap) continue;
+
+      const where = `${left.星期} ${left.时间}（${left.节次}）第${overlap}周`;
+      if (left.课程.toLowerCase() === right.课程.toLowerCase()) {
+        throw new ValidationError(`重复课程：“${left.课程}”在${where}已经存在`);
+      }
+      throw new ValidationError(`课程时间冲突：“${left.课程}”和“${right.课程}”在${where}同时上课`);
+    }
+  }
+}
+
 function cleanCourse(course, index) {
   if (!course || typeof course !== 'object' || Array.isArray(course)) {
     throw new ValidationError(`第${index + 1}门课程格式无效`);
@@ -95,9 +130,11 @@ function cleanPayload(payload) {
   if (!Array.isArray(payload.courses) || payload.courses.length > MAX_COURSES) {
     throw new ValidationError(`课程数量不能超过 ${MAX_COURSES}`);
   }
+  const courses = payload.courses.map(cleanCourse);
+  assertNoCourseConflicts(courses);
   return {
     baseRevision: payload.baseRevision,
-    courses: payload.courses.map(cleanCourse)
+    courses
   };
 }
 

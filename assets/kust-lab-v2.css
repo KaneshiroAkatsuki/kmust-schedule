@@ -59,7 +59,6 @@ body {
 
 .nav-actions { gap: 8px; }
 
-.nav-add,
 .nav-manage {
   display: inline-flex;
   align-items: center;
@@ -75,21 +74,14 @@ body {
   transition: border-color .18s ease, background .18s ease, transform .18s ease;
 }
 
-.nav-add {
-  border: 1px solid transparent;
-  color: var(--graphite-soft);
-  background: transparent;
-}
-
 .nav-manage {
   border: 1px solid var(--kust-red);
   color: var(--kust-red);
   background: #fff;
 }
 
-.nav-add:hover,
 .nav-manage:hover { border-color: var(--kust-red); background: var(--kust-red-soft); transform: translateY(-1px); }
-.nav-add svg, .nav-manage svg { width: 16px; height: 16px; }
+.nav-manage svg { width: 16px; height: 16px; }
 
 .sync-pill { min-height: 36px; border-radius: 10px; }
 .term { min-height: 36px; display: inline-flex; align-items: center; border-radius: 10px; }
@@ -464,8 +456,8 @@ body {
   .brand-divider { display: none; }
   .product-name { display: none; }
   .nav-actions { margin-left: auto; }
-  .nav-add, .nav-manage { width: 36px; min-width: 36px; min-height: 36px; padding: 0; border-radius: 9px; }
-  .nav-add span, .nav-manage span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+  .nav-manage { width: 36px; min-width: 36px; min-height: 36px; padding: 0; border-radius: 9px; }
+  .nav-manage span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
   .sync-pill { min-height: 34px; }
   .term { display: none; }
 
@@ -512,8 +504,8 @@ body {
   }
 
   .dock-item svg { width: 23px; height: 23px; }
-  .dock-item.is-primary, .dock-item.dock-add { color: var(--kust-red); }
-  .dock-item.dock-add { background: var(--kust-red-soft); }
+  .dock-item.is-primary, .dock-item.dock-manage { color: var(--kust-red); }
+  .dock-item.dock-manage { background: var(--kust-red-soft); }
 
   .site-footer { margin-bottom: 0; }
   .manager-dialog { width: 100vw; max-height: none; border-radius: 0; }
@@ -545,7 +537,7 @@ body {
   .nav-inner { padding-inline: 10px; }
   .site-brand .brand-logo { width: 120px; flex-basis: 120px; }
   .nav-actions { gap: 3px; }
-  .nav-add, .nav-manage { width: 33px; min-width: 33px; }
+  .nav-manage { width: 33px; min-width: 33px; }
   .hero-content { padding-inline: 13px; }
   .status-grid { grid-template-columns: 1fr; }
   .countdown { display: flex; align-items: baseline; justify-content: flex-start; gap: 5px; }
@@ -560,5 +552,5 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nav-add, .nav-manage { transition: none; }
+  .nav-manage { transition: none; }
 }

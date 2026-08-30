@@ -1618,12 +1618,8 @@
         <span class="product-name">KUST·Lab</span>
       </a>
       <div class="nav-actions">
-        <button class="nav-add" id="openAddTop" type="button" aria-label="添加一门新课程">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
-          <span>添加课程</span>
-        </button>
         <button class="nav-manage" id="openManagerTop" type="button" aria-label="管理课表，新增、修改或删除课程">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16M6.5 16.5l.8-4.1L16 3.7a1.4 1.4 0 0 1 2 0l2.3 2.3a1.4 1.4 0 0 1 0 2l-8.7 8.7-4.1.8Z"/><path d="m14.8 4.9 4.3 4.3"/></svg>
           <span>管理课表</span>
         </button>
         <div class="sync-pill" id="syncPill" role="status" aria-live="polite">
@@ -1772,9 +1768,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"/><path d="M7.5 3.5v4m9-4v4M3.5 10h17"/></svg>
       <span>本周</span>
     </a>
-    <button class="dock-item dock-add" id="openAddMobile" type="button" aria-label="添加一门新课程">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M8 12h8"/></svg>
-      <span>添加</span>
+    <button class="dock-item dock-manage" id="openManagerMobile" type="button" aria-label="管理课表，新增、修改或删除课程">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19h14M7 16l.7-3.5 7.7-7.7a1.5 1.5 0 0 1 2.1 0l1.7 1.7a1.5 1.5 0 0 1 0 2.1l-7.7 7.7L8 17Z"/></svg>
+      <span>管理</span>
     </button>
     <button class="dock-item" id="openCalendarMobile" type="button" aria-label="查看校历">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M5 4.5h11.5a2 2 0 0 1 2 2V20H7a2 2 0 0 1-2-2V4.5Z"/><path d="M7 20a2 2 0 0 1 2-2h9.5M8.5 8h6M8.5 11h6"/></svg>
@@ -2005,7 +2001,6 @@
       dataSource: 'fallback',
       syncBusy: false,
       managerDirty: false,
-      managerIntent: 'manage',
       editingIndex: -1,
       workingData: [],
       conflictData: null
@@ -2450,7 +2445,7 @@
     function validateCoursesInput(input) {
       if (!Array.isArray(input)) throw new Error('课表必须是课程数组');
       if (input.length > 200) throw new Error('课程数量不能超过 200');
-      return input.map(function (course, index) {
+      const clean = input.map(function (course, index) {
         if (!course || typeof course !== 'object' || Array.isArray(course)) throw new Error('第' + (index + 1) + '门课程格式无效');
         const day = cleanText(course['星期'], '星期', 4);
         const slot = cleanText(course['节次'], '节次', 10);
@@ -2480,6 +2475,33 @@
           '教室': rooms
         };
       });
+
+      for (let leftIndex = 0; leftIndex < clean.length; leftIndex += 1) {
+        for (let rightIndex = leftIndex + 1; rightIndex < clean.length; rightIndex += 1) {
+          const left = clean[leftIndex];
+          const right = clean[rightIndex];
+          if (left['星期'] !== right['星期'] || left['节次'] !== right['节次']) continue;
+          let overlap = null;
+          left['授课分段'].some(function (leftPart) {
+            const leftRange = parseRange(leftPart['周次']);
+            return right['授课分段'].some(function (rightPart) {
+              const rightRange = parseRange(rightPart['周次']);
+              const start = Math.max(leftRange[0], rightRange[0]);
+              const end = Math.min(leftRange[1], rightRange[1]);
+              if (start > end) return false;
+              overlap = start === end ? String(start) : start + '-' + end;
+              return true;
+            });
+          });
+          if (!overlap) continue;
+          const where = left['星期'] + ' ' + left['时间'] + '（' + left['节次'] + '）第' + overlap + '周';
+          if (left['课程'].toLocaleLowerCase('zh-CN') === right['课程'].toLocaleLowerCase('zh-CN')) {
+            throw new Error('重复课程：“' + left['课程'] + '”在' + where + '已经存在');
+          }
+          throw new Error('课程时间冲突：“' + left['课程'] + '”和“' + right['课程'] + '”在' + where + '同时上课');
+        }
+      }
+      return clean;
     }
 
     function formatUpdatedAt(value) {
@@ -2751,14 +2773,9 @@
       renderManagerList();
       resetCourseEditor();
       setManagerStatus(isSyncConfigured() ? '已载入当前课表，修改完成后点击“保存全部修改到云端”。' : '云端服务尚未部署；可以先编辑和导出，部署后再保存到云端。', isSyncConfigured() ? '' : 'warning');
-      if (state.managerIntent === 'add') {
-        state.managerIntent = 'manage';
-        window.setTimeout(function () { openCourseEditor(-1); }, 0);
-      }
     }
 
-    function openManagerDialog(intent) {
-      state.managerIntent = intent === 'add' ? 'add' : 'manage';
+    function openManagerDialog() {
       const dialog = document.getElementById('managerDialog');
       if (!dialog.open) dialog.showModal();
       if (getSessionSecret()) showManagerEditor();
@@ -2871,10 +2888,9 @@
         return '<option value="' + entry[0] + '">' + entry[0] + ' · ' + entry[1].replace('-', '—') + '</option>';
       }).join('');
 
-      document.getElementById('openManager').addEventListener('click', function () { openManagerDialog('manage'); });
-      document.getElementById('openManagerTop').addEventListener('click', function () { openManagerDialog('manage'); });
-      document.getElementById('openAddTop').addEventListener('click', function () { openManagerDialog('add'); });
-      document.getElementById('openAddMobile').addEventListener('click', function () { openManagerDialog('add'); });
+      document.getElementById('openManager').addEventListener('click', openManagerDialog);
+      document.getElementById('openManagerTop').addEventListener('click', openManagerDialog);
+      document.getElementById('openManagerMobile').addEventListener('click', openManagerDialog);
       document.getElementById('closeManager').addEventListener('click', closeManagerDialog);
       document.getElementById('managerDialog').addEventListener('cancel', function (event) { event.preventDefault(); closeManagerDialog(); });
       document.getElementById('unlockManager').addEventListener('click', function () {
@@ -2924,8 +2940,10 @@
         event.preventDefault();
         try {
           const course = readCourseForm();
-          if (state.editingIndex >= 0) state.workingData[state.editingIndex] = course;
-          else state.workingData.push(course);
+          const nextData = cloneData(state.workingData);
+          if (state.editingIndex >= 0) nextData[state.editingIndex] = course;
+          else nextData.push(course);
+          state.workingData = validateCoursesInput(nextData);
           state.managerDirty = true;
           renderManagerList();
           resetCourseEditor();

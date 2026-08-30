@@ -139,6 +139,34 @@ test('invalid and oversized schedules are rejected', async () => {
   assert.equal(oversized.status, 413);
 });
 
+test('duplicate and overlapping course meetings are rejected', async () => {
+  const duplicate = await makeApp().fetch(request('/api/schedule', {
+    method: 'PUT',
+    headers: adminHeaders(),
+    body: JSON.stringify({ baseRevision: 0, courses: [sampleCourse(), sampleCourse({ 教室: ['公教楼102'] })] })
+  }));
+  assert.equal(duplicate.status, 422);
+  assert.match((await duplicate.json()).error.message, /重复课程/);
+
+  const conflict = await makeApp().fetch(request('/api/schedule', {
+    method: 'PUT',
+    headers: adminHeaders(),
+    body: JSON.stringify({ baseRevision: 0, courses: [sampleCourse(), sampleCourse({ 课程: '另一门课程' })] })
+  }));
+  assert.equal(conflict.status, 422);
+  assert.match((await conflict.json()).error.message, /课程时间冲突/);
+
+  const separated = await makeApp().fetch(request('/api/schedule', {
+    method: 'PUT',
+    headers: adminHeaders(),
+    body: JSON.stringify({
+      baseRevision: 0,
+      courses: [sampleCourse(), sampleCourse({ 授课分段: [{ 周次: '5-6', 教师: '测试教师' }] })]
+    })
+  }));
+  assert.equal(separated.status, 200);
+});
+
 test('preflight allows only the configured site origin', async () => {
   const response = await makeApp().fetch(request('/api/schedule', {
     method: 'OPTIONS',

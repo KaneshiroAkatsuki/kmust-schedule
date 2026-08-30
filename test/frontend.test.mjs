@@ -45,7 +45,7 @@ test('page keeps its identity, local assets and responsive layout system', () =>
 test('required interactive ids exist exactly once', () => {
   const ids = [
     'clock', 'dateLine', 'statusCard', 'todayList', 'weekList', 'weekMatrix', 'dayTabs',
-    'prevWeek', 'nextWeek', 'weekCurrent', 'openManager', 'openManagerTop', 'openAddTop', 'openAddMobile', 'managerDialog',
+    'prevWeek', 'nextWeek', 'weekCurrent', 'openManager', 'openManagerTop', 'openManagerMobile', 'managerDialog',
     'managerCourseList', 'managerSearch', 'courseForm', 'saveCloud', 'syncPill'
   ];
   for (const id of ids) {
@@ -156,6 +156,17 @@ test('course editor validation matches the cloud contract', () => {
   assert.equal(api.validateCoursesInput(good)[0]['课程'], '新增测试课');
   assert.throws(() => api.validateCoursesInput([{ ...good[0], '时间': '08:01-09:35' }]), /节次与时间不匹配/);
   assert.throws(() => api.validateCoursesInput([{ ...good[0], '授课分段': [{ '周次': '8-2', '教师': '测试教师' }] }]), /周次范围无效/);
+  assert.throws(() => api.validateCoursesInput([good[0], { ...good[0], '教室': ['公教楼102'] }]), /重复课程/);
+  assert.throws(() => api.validateCoursesInput([good[0], { ...good[0], '课程': '另一门课程' }]), /课程时间冲突/);
+  const separated = api.validateCoursesInput([good[0], { ...good[0], '授课分段': [{ '周次': '5-6', '教师': '测试教师' }] }]);
+  assert.equal(separated.length, 2, 'same course in non-overlapping weeks remains valid');
+});
+
+test('course management uses one unified entry on desktop and mobile', () => {
+  assert.doesNotMatch(html, /id=["']openAdd/i);
+  assert.match(html, /id="openManagerTop"/);
+  assert.match(html, /id="openManagerMobile"/);
+  assert.match(html, /id="addCourse"[^>]*>新增课程</);
 });
 
 test('admin secret is session-only and revision conflicts have a visible recovery path', () => {
@@ -168,5 +179,5 @@ test('admin secret is session-only and revision conflicts have a visible recover
   assert.match(html, /window\.setInterval\(function \(\) \{ loadCloudSchedule\(\); \}, SYNC_INTERVAL_MS\)/);
   assert.match(html, /function renderWeekMatrix\(now\)/);
   assert.match(html, /state\.workingData\.splice\(index, 1\)/);
-  assert.match(html, /openManagerDialog\('add'\)/);
+  assert.match(html, /state\.workingData = validateCoursesInput\(nextData\)/);
 });
