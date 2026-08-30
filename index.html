@@ -1606,7 +1606,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=20260830-2031">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=20260830-2038">
 </head>
 <body>
   <a class="skip-link" href="#mainContent">跳到课表内容</a>
@@ -1666,7 +1666,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4m8-4v4M3 10h18m5 4-4 4-2-2"/></svg>
           一周课表
         </h2>
-        <span class="section-note">第一学期课程 · 灰色为本周不上</span>
+        <span class="section-note">第一学期课程 · 红色实线为本周上课 · 灰色虚线为本周不上</span>
       </div>
 
       <div class="mentor-reminder">喻黎明老师课程已重点标记：导师课 · 不可缺席</div>
@@ -1955,7 +1955,7 @@
     const CACHE_KEY = 'kust-lab-schedule-cache-v1';
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
-    const SITE_UPDATED_AT = '2026-08-30T20:31:02+08:00';
+    const SITE_UPDATED_AT = '2026-08-30T20:38:25+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
     const SLOT_TIMES = new Map([
@@ -2005,6 +2005,12 @@
     function toMinutes(value) {
       const pieces = value.split(':').map(Number);
       return pieces[0] * 60 + pieces[1];
+    }
+
+    function dayPartForMinutes(minutes) {
+      if (minutes < 13 * 60) return { key: 'morning', label: '上午', range: '08:00—12:15' };
+      if (minutes < 19 * 60) return { key: 'afternoon', label: '下午', range: '13:30—18:35' };
+      return { key: 'evening', label: '晚上', range: '19:30—21:05' };
     }
 
     function deepFreeze(value) {
@@ -2349,9 +2355,11 @@
         const status = courseState(course, now);
         const info = activeInfo(course, week);
         const mentor = isMentorCourse(course, week);
+        const part = dayPartForMinutes(course.startMin);
         const stateLabel = status === 'current' ? '<span class="state-label">进行中</span>' : (status === 'next' ? '<span class="state-label">下一节</span>' : '');
         const mentorLabel = mentor ? '<span class="mentor-label">导师课 · 不可缺席</span>' : '';
-        return '<article class="timeline-item ' + status + (mentor ? ' mentor-course' : '') + '"><div class="timeline-time"><span>' + course.start + '</span><span class="time-end">' + course.end + '</span></div><span class="timeline-dot" aria-hidden="true"></span><div class="timeline-body"><div><span class="slot-label">' + esc(course.slot) + '</span>' + stateLabel + mentorLabel + '</div><div class="timeline-name">' + esc(course.name) + '</div><div class="row-meta">' + ICONS.user + '<span>' + esc(info.teachers) + '</span><span>·</span>' + ICONS.pin + '<span>' + esc(info.rooms) + '</span></div></div></article>';
+        const partLabel = '<span class="daypart-label part-' + part.key + '">' + part.label + '</span>';
+        return '<article class="timeline-item ' + status + ' part-' + part.key + (mentor ? ' mentor-course' : '') + '"><div class="timeline-time"><span>' + course.start + '</span><span class="time-end">' + course.end + '</span></div><span class="timeline-dot" aria-hidden="true"></span><div class="timeline-body"><div>' + partLabel + '<span class="slot-label">' + esc(course.slot) + '</span>' + stateLabel + mentorLabel + '</div><div class="timeline-name">' + esc(course.name) + '</div><div class="row-meta">' + ICONS.user + '<span>' + esc(info.teachers) + '</span><span>·</span>' + ICONS.pin + '<span>' + esc(info.rooms) + '</span></div></div></article>';
       }).join('');
     }
 
@@ -2398,14 +2406,15 @@
 
       SLOT_TIMES.forEach(function (time, rawSlot) {
         const displaySlot = rawSlot.replace(/第(\d+)-(\d+)节/, '第$1–$2节');
-        html += '<div class="matrix-slot"><strong>' + esc(displaySlot) + '</strong><span>' + esc(time.replace('-', '—')) + '</span></div>';
+        const part = dayPartForMinutes(toMinutes(time.split('-')[0]));
+        html += '<div class="matrix-slot part-' + part.key + '"><em>' + part.label + '</em><strong>' + esc(displaySlot) + '</strong><span>' + esc(time.replace('-', '—')) + '</span></div>';
 
         DAYS_FULL.forEach(function (_, day) {
           const courses = COURSES.filter(function (course) {
             return course.day === day && course.start + '-' + course.end === time;
           });
           if (!courses.length) {
-            html += '<div class="matrix-cell"><span class="matrix-empty">—</span></div>';
+            html += '<div class="matrix-cell part-' + part.key + '"><span class="matrix-empty">—</span></div>';
             return;
           }
 
@@ -2419,14 +2428,15 @@
             let badge = '';
             if (mentor) badge = '<span class="matrix-badge">★ 导师课 · 不可缺席</span>';
             else if (live) badge = '<span class="matrix-badge">正在上课</span>';
-            else if (!on) badge = '<span class="matrix-badge">' + esc(mentorPlan || '本周不上') + '</span>';
+            else if (!on) badge = '<span class="matrix-badge is-off-status">本周不上' + (mentorPlan ? ' · ' + esc(mentorPlan) : '') + '</span>';
+            else badge = '<span class="matrix-badge is-on-status">本周上课</span>';
             const details = on
               ? active.teachers + ' · ' + active.rooms
               : course.rooms.join(' / ') + ' · ' + allSegments(course);
             const className = 'matrix-card' + (on ? '' : ' is-off') + (mentor ? ' is-mentor' : '') + (live ? ' is-live' : '');
             return '<article class="' + className + '" title="' + esc(course.name + '｜' + details) + '">' + badge + '<div class="matrix-name">' + esc(course.name) + '</div><div class="matrix-meta">' + esc(details) + '</div></article>';
           }).join('');
-          html += '<div class="matrix-cell">' + cards + '</div>';
+          html += '<div class="matrix-cell part-' + part.key + '">' + cards + '</div>';
         });
       });
 
@@ -2465,16 +2475,19 @@
         const live = isLiveCourse(course, now);
         const mentor = on && isMentorCourse(course, state.viewWeek);
         const mentorPlan = mentorSchedule(course);
+        const part = dayPartForMinutes(course.startMin);
         const labels = [];
+        labels.push('<span class="daypart-badge part-' + part.key + '">' + part.label + '</span>');
         if (mentor) labels.push('<span class="mentor-label">导师课 · 不可缺席</span>');
         else if (mentorPlan) labels.push('<span class="mentor-schedule-label">' + esc(mentorPlan) + '</span>');
+        if (on) labels.push('<span class="on-label">本周上课</span>');
         if (live) labels.push('<span class="live-label">上课中</span>');
         if (!on) labels.push('<span class="off-label">本周不上</span>');
         const label = labels.length ? '<div class="week-badges">' + labels.join('') + '</div>' : '';
         const details = on
           ? '<span>' + esc(active.teachers) + ' · ' + esc(active.rooms) + '</span>'
           : '<span>' + esc(course.rooms.join(' / ')) + '</span><span class="segments">' + esc(allSegments(course)) + '</span>';
-        return '<article class="week-row' + (on ? '' : ' off') + (mentor ? ' mentor-course' : '') + '"><div class="week-time">' + course.start + '–<br>' + course.end + '<span class="period">' + esc(course.slot) + '</span></div><div class="week-main"><div class="week-name-row"><div class="week-name">' + esc(course.name) + '</div>' + label + '</div><div class="week-detail">' + details + '</div></div></article>';
+        return '<article class="week-row part-' + part.key + (on ? '' : ' off') + (mentor ? ' mentor-course' : '') + '"><div class="week-time">' + course.start + '–<br>' + course.end + '<span class="period">' + esc(course.slot) + '</span></div><div class="week-main"><div class="week-name-row"><div class="week-name">' + esc(course.name) + '</div>' + label + '</div><div class="week-detail">' + details + '</div></div></article>';
       }).join('');
     }
 

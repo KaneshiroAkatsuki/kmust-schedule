@@ -14,6 +14,7 @@ assert.ok(scriptMatch, 'inline application script should exist');
 
 const exposedNames = [
   'RAW_DATA', 'FALLBACK_DATA', 'DAYS_FULL', 'SLOT_TIMES', 'state', 'COURSES',
+  'dayPartForMinutes',
   'teachingWeek', 'academicPhase', 'dateForWeekDay', 'dayIndex', 'isActive',
   'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput',
   'stageCourseUpsert', 'stageCourseDelete',
@@ -122,6 +123,14 @@ test('live status reports current class, next class and remaining time', () => {
   assert.equal(next.countdownLabel, '还有');
 });
 
+test('day parts follow the published class times', () => {
+  assert.equal(api.dayPartForMinutes(8 * 60).label, '上午');
+  assert.equal(api.dayPartForMinutes(12 * 60 + 15).label, '上午');
+  assert.equal(api.dayPartForMinutes(13 * 60 + 30).label, '下午');
+  assert.equal(api.dayPartForMinutes(17 * 60 + 50).label, '下午');
+  assert.equal(api.dayPartForMinutes(19 * 60 + 30).label, '晚上');
+});
+
 test('mentor class is specially marked only during mentor teaching weeks', () => {
   const mentorMeeting = api.COURSES.find((course) => course.name === '设施农业与装备（专硕）' && course.dayLabel === '星期五');
   assert.ok(mentorMeeting);
@@ -148,6 +157,11 @@ test('desktop matrix renders all seven days, six time bands and mentor warning',
   assert.equal((matrix.innerHTML.match(/class="matrix-cell/g) || []).length, 42);
   assert.match(matrix.innerHTML, /设施农业与装备（专硕）/);
   assert.match(matrix.innerHTML, /导师课 · 不可缺席/);
+  assert.match(matrix.innerHTML, /本周上课/);
+  assert.match(matrix.innerHTML, /本周不上/);
+  assert.match(matrix.innerHTML, />上午</);
+  assert.match(matrix.innerHTML, />下午</);
+  assert.match(matrix.innerHTML, />晚上</);
   assert.match(matrix.innerHTML, /16:10—17:45/);
 });
 
@@ -212,6 +226,12 @@ test('foldable and phone breakpoints avoid narrow side columns', () => {
   assert.match(css, /@media \(max-width: 520px\)[\s\S]*?\.week-row \{ grid-template-columns: minmax\(0,1fr\)/);
   assert.match(css, /\.week-time br \{ display: none; \}/);
   assert.doesNotMatch(css, /\.dock-item\.dock-manage \{[^}]*background: var\(--kust-red-soft\)/);
+  assert.match(css, /\.week-list > \.week-row\.off[\s\S]*?border: 1px dashed/);
+  assert.match(css, /\.on-label[\s\S]*?background: var\(--kust-red-soft\)/);
+  assert.match(html, /if \(on\) labels\.push\('<span class="on-label">本周上课<\/span>'\)/);
+  assert.match(css, /\.week-list \{[\s\S]*?grid-auto-rows: 1fr/);
+  assert.match(css, /\.matrix-cell \{[\s\S]*?grid-auto-rows: 1fr/);
+  assert.match(css, /\.timeline \{ display: grid; grid-auto-rows: 1fr; \}/);
 });
 
 test('desktop left rail keeps today directly below the current status', () => {
@@ -302,7 +322,7 @@ test('manager password is numeric, hidden by default and optionally remembered',
 });
 
 test('modification sync status uses the latest page or schedule change in China time', () => {
-  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T20:31:02\+08:00'/);
+  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T20:38:25\+08:00'/);
   assert.match(html, /function latestModifiedAt\(scheduleUpdatedAt\)/);
   assert.match(html, /getUTC(?:Month|Date|Hours|Minutes)/);
   assert.match(html, /修改同步时间/);
@@ -312,7 +332,7 @@ test('modification sync status uses the latest page or schedule change in China 
 test('China time formatting and remembered-secret storage behave deterministically', () => {
   assert.equal(api.formatUpdatedAt('2026-08-30T08:00:00.000Z'), '16:00');
   assert.equal(api.formatUpdatedDateTime('2026-08-30T08:00:00.000Z'), '2026年8月30日 16:00');
-  assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), '20:31');
+  assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), '20:38');
   assert.equal(api.latestModifiedAt('2026-08-31T00:00:00.000Z'), '2026-08-31T00:00:00.000Z');
 
   const remembered = new Map();
