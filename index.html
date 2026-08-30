@@ -1632,7 +1632,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=20260830-2104">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=20260830-2124">
 </head>
 <body>
   <a class="skip-link" href="#mainContent">跳到课表内容</a>
@@ -1647,6 +1647,11 @@
         <button class="nav-manage" id="openManagerTop" type="button" aria-label="管理课表，新增、修改或删除课程">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16M6.5 16.5l.8-4.1L16 3.7a1.4 1.4 0 0 1 2 0l2.3 2.3a1.4 1.4 0 0 1 0 2l-8.7 8.7-4.1.8Z"/><path d="m14.8 4.9 4.3 4.3"/></svg>
           <span>管理课表</span>
+        </button>
+        <button class="nav-cloud-save" id="saveCloud" type="button" disabled aria-label="当前没有待上传修改">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18.5H5.8A3.8 3.8 0 0 1 5.3 11 6.7 6.7 0 0 1 18 9.2a4.7 4.7 0 0 1 .2 9.3H17"/><path d="M12 20V11m-3 3 3-3 3 3"/></svg>
+          <span id="saveCloudText">暂无待上传</span>
+          <i class="cloud-save-alert" aria-hidden="true"></i>
         </button>
         <div class="sync-pill" id="syncPill" role="status" aria-live="polite">
           <span class="sync-dot" aria-hidden="true"></span>
@@ -1746,7 +1751,7 @@
       <div class="footer-lead">
         <div>
           <p class="footer-mark">KUST·Lab</p>
-          <p class="footer-tagline">为昆明理工大学呈贡校区研究生日常使用整理的智能课表。抬眼看时间，低头看安排，把注意力留给真正重要的事。</p>
+          <p class="footer-tagline">昆明理工大学呈贡校区研究生课表，集中查看当前课程、每周安排和校历节点，并支持多设备同步。</p>
         </div>
         <div class="footer-school">KUNMING · CHENGGONG</div>
       </div>
@@ -1858,7 +1863,7 @@
       <header class="manager-head" aria-label="课表管理标题">
         <div>
           <h2 class="manager-title" id="managerTitle">管理课表</h2>
-          <p class="manager-subtitle">修改后保存到云端，电脑与手机会读取同一份数据</p>
+          <p class="manager-subtitle">在这里增删改课程，完成后回到主页上传到云端</p>
         </div>
         <button class="icon-button" id="closeManager" type="button" aria-label="关闭管理课表">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
@@ -1954,16 +1959,13 @@
                 </div>
                 <div class="form-actions">
                   <button class="secondary-button" id="cancelCourseEdit" type="button">取消</button>
-                  <button class="primary-button" type="submit">保存到待同步列表</button>
+                  <button class="primary-button" type="submit">保存到待上传列表</button>
                 </div>
               </form>
             </section>
           </div>
 
-          <div class="form-actions">
-            <button class="primary-button" id="saveCloud" type="button" disabled>没有待保存修改</button>
-          </div>
-          <p class="manager-footnote">为避免覆盖另一台设备的新内容，保存时会核对云端修订号；若发现冲突，请先重新载入云端再修改。</p>
+          <p class="manager-footnote">完成增删改后请关闭管理页，再点击主页顶部的“立即上传云端”。上传时会核对云端修订号，避免覆盖另一台设备的新内容。</p>
         </section>
       </div>
     </div>
@@ -1988,7 +1990,7 @@
     const CACHE_KEY = 'kust-lab-schedule-cache-v1';
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
-    const SITE_UPDATED_AT = '2026-08-30T21:04:23+08:00';
+    const SITE_UPDATED_AT = '2026-08-30T21:24:36+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
     const SLOT_TIMES = new Map([
@@ -2095,11 +2097,13 @@
       updatedAt: null,
       dataSource: 'fallback',
       syncBusy: false,
+      cloudSaveBusy: false,
       managerDirty: false,
       formDirty: false,
       editingIndex: -1,
       workingData: [],
-      conflictData: null
+      conflictData: null,
+      uploadAfterAuth: false
     };
 
     function esc(value) {
@@ -2816,7 +2820,7 @@
             setSyncStatus('error', '发现新版本', '云端已有新修订，当前未保存修改未被覆盖');
           } else {
             const unchangedTime = formatUpdatedAt(cloud.updatedAt);
-            setSyncStatus('synced', '云端无变化', '当前修改尚未保存 · 云端修订 ' + state.revision + (unchangedTime ? ' · ' + unchangedTime : ''));
+            setSyncStatus('pending', '有修改待上传', '主页顶部可立即上传 · 云端修订 ' + state.revision + (unchangedTime ? ' · ' + unchangedTime : ''));
           }
           return false;
         }
@@ -2871,16 +2875,29 @@
       status.textContent = message;
     }
 
+    function cloudSaveButtonView(managerDirty, cloudSaveBusy) {
+      if (cloudSaveBusy) return { disabled: true, pending: true, label: '正在上传…', ariaLabel: '正在上传课表修改到云端' };
+      if (managerDirty) return { disabled: false, pending: true, label: '立即上传云端', ariaLabel: '立即上传课表修改到云端' };
+      return { disabled: true, pending: false, label: '暂无待上传', ariaLabel: '当前没有待上传修改' };
+    }
+
     function updateSaveButton() {
       const button = document.getElementById('saveCloud');
       if (!button) return;
-      button.disabled = !state.managerDirty;
-      button.textContent = state.managerDirty ? '保存全部修改到云端' : '没有待保存修改';
+      const view = cloudSaveButtonView(state.managerDirty, state.cloudSaveBusy);
+      const label = document.getElementById('saveCloudText');
+      button.disabled = view.disabled;
+      button.classList.toggle('has-pending', view.pending);
+      button.setAttribute('aria-label', view.ariaLabel);
+      button.setAttribute('aria-busy', state.cloudSaveBusy ? 'true' : 'false');
+      button.title = view.ariaLabel;
+      if (label) label.textContent = view.label;
     }
 
     function setManagerDirty(value) {
       state.managerDirty = Boolean(value);
       updateSaveButton();
+      if (state.managerDirty) setSyncStatus('pending', '有修改待上传', '课程修改已保留，点击主页顶部“立即上传云端”后同步到其他设备');
     }
 
     function rawCourseHasMentor(course) {
@@ -2895,7 +2912,7 @@
     }
 
     function cancelCourseEditor() {
-      if (state.formDirty && !window.confirm('课程编辑器中还有未加入待同步列表的内容，确定放弃吗？')) return;
+      if (state.formDirty && !window.confirm('课程编辑器中还有未加入待上传列表的内容，确定放弃吗？')) return;
       resetCourseEditor();
     }
 
@@ -2990,7 +3007,7 @@
     }
 
     function openCourseEditor(index) {
-      if (state.formDirty && !window.confirm('当前课程还没有保存到待同步列表，确定放弃并切换吗？')) return;
+      if (state.formDirty && !window.confirm('当前课程还没有保存到待上传列表，确定放弃并切换吗？')) return;
       state.editingIndex = Number.isInteger(index) ? index : -1;
       const course = state.editingIndex >= 0 ? state.workingData[state.editingIndex] : {
         '星期': DAYS_FULL[0],
@@ -3067,53 +3084,77 @@
       renderManagerList();
       resetCourseEditor();
       if (preserveWorking) {
-        setManagerStatus('验证成功，之前尚未保存的修改仍然保留。', 'warning');
+        setManagerStatus('待上传的课程修改仍然保留，可以继续编辑或关闭管理页。', 'warning');
       } else {
-        setManagerStatus(isSyncConfigured() ? '已载入当前课表，修改完成后点击“保存全部修改到云端”。' : '云端服务尚未部署；可以先编辑和导出，部署后再保存到云端。', isSyncConfigured() ? '' : 'warning');
+        setManagerStatus(isSyncConfigured() ? '已载入当前课表。修改完成后关闭管理页，再从主页上传到云端。' : '云端服务尚未部署；可以先编辑和导出，部署后再上传到云端。', isSyncConfigured() ? '' : 'warning');
       }
     }
 
-    function openManagerDialog() {
+    function openManagerDialog(options) {
+      const settings = options && typeof options === 'object' ? options : {};
+      state.uploadAfterAuth = Boolean(settings.uploadAfterAuth);
       const dialog = document.getElementById('managerDialog');
       if (!dialog.open) dialog.showModal();
-      if (getSessionSecret()) showManagerEditor();
-      else showManagerAuth('');
+      if (getSessionSecret()) showManagerEditor({ preserveWorking: state.managerDirty });
+      else showManagerAuth(settings.authMessage || (state.managerDirty ? '已有课程修改等待上传，请验证管理员密码。' : ''));
     }
 
     function closeManagerDialog() {
-      if ((state.managerDirty || state.formDirty) && !window.confirm('还有未保存的课程内容，确定关闭并放弃吗？')) return;
-      setManagerDirty(false);
-      state.formDirty = false;
+      if (state.formDirty) {
+        setManagerStatus('当前课程还在编辑中，请先保存到待上传列表或点击取消。', 'error');
+        document.getElementById('managerStatus').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+      }
+      state.uploadAfterAuth = false;
       document.getElementById('managerDialog').close();
+      if (state.managerDirty) setSyncStatus('pending', '有修改待上传', '课程修改已保留，点击主页顶部“立即上传云端”后同步到其他设备');
+    }
+
+    async function requestCloudSaveFromHome() {
+      if (!state.managerDirty || state.cloudSaveBusy) {
+        updateSaveButton();
+        return false;
+      }
+      if (state.formDirty) {
+        openManagerDialog();
+        setManagerStatus('当前课程还在编辑中，请先保存到待上传列表或点击取消。', 'error');
+        return false;
+      }
+      if (!getSessionSecret()) {
+        openManagerDialog({ uploadAfterAuth: true, authMessage: '上传前请验证管理员密码；验证成功后会立即上传。' });
+        return false;
+      }
+      return saveWorkingDataToCloud();
     }
 
     async function saveWorkingDataToCloud() {
       if (!isSyncConfigured()) {
-        setManagerStatus('云同步服务尚未部署。你可以先导出 JSON 备份，部署完成后再保存。', 'warning');
-        return;
+        setManagerStatus('云同步服务尚未部署。你可以先导出 JSON 备份，部署完成后再上传。', 'warning');
+        setSyncStatus('error', '暂时无法上传', '云同步服务尚未部署');
+        return false;
       }
       const secret = getSessionSecret();
       if (!secret) {
-        showManagerAuth('会话已过期，请重新输入管理密码。');
-        return;
+        openManagerDialog({ uploadAfterAuth: true, authMessage: '会话已过期，请重新输入管理员密码；验证成功后会继续上传。' });
+        return false;
       }
       if (state.formDirty) {
-        setManagerStatus('课程编辑器中还有内容未加入待同步列表，请先点击“保存到待同步列表”或取消编辑。', 'error');
-        return;
+        setManagerStatus('课程编辑器中还有内容未加入待上传列表，请先点击“保存到待上传列表”或取消编辑。', 'error');
+        return false;
       }
       if (!state.managerDirty) {
         setManagerStatus('当前没有需要保存的修改。', '');
         updateSaveButton();
-        return;
+        return false;
       }
       let clean;
       try { clean = validateCoursesInput(state.workingData); }
-      catch (error) { setManagerStatus(error.message, 'error'); return; }
+      catch (error) { setManagerStatus(error.message, 'error'); return false; }
 
-      const button = document.getElementById('saveCloud');
-      button.disabled = true;
-      button.textContent = '正在保存…';
+      state.cloudSaveBusy = true;
+      updateSaveButton();
       setManagerStatus('正在核对修订号并保存…', '');
+      setSyncStatus('loading', '正在上传修改', '正在核对云端修订号并上传课表…');
       try {
         const response = await fetchWithTimeout(SYNC_ENDPOINT + '/api/schedule', {
           method: 'PUT',
@@ -3124,13 +3165,14 @@
         if (response.status === 401) {
           clearSessionSecret();
           clearRememberedSecret();
-          showManagerAuth('管理密码不正确，请重新输入。');
-          return;
+          openManagerDialog({ uploadAfterAuth: true, authMessage: '管理员密码已失效，请重新输入；验证成功后会继续上传。' });
+          return false;
         }
         if (response.status === 409 && payload && payload.data) {
           state.conflictData = payload.data;
           setManagerStatus('保存被阻止：另一台设备已经更新课表。请点击“重新载入云端”，再进行修改。', 'warning');
-          return;
+          setSyncStatus('error', '上传发生冲突', '另一台设备已有新修改，请进入管理页重新载入云端');
+          return false;
         }
         if (!response.ok || !payload || !payload.ok || !payload.data) throw new Error(payload && payload.error ? payload.error.message : '保存失败');
         applyRuntimeData(payload.data.courses, { revision: Number(payload.data.revision), updatedAt: payload.data.updatedAt, source: 'cloud' });
@@ -3142,9 +3184,13 @@
         resetCourseEditor();
         setManagerStatus('已保存到云端。电脑和手机重新打开或回到页面时会自动同步。', 'success');
         setModifiedSyncStatus(state.updatedAt, state.revision, '云端课表');
+        return true;
       } catch (error) {
         setManagerStatus('保存失败：' + (error.name === 'AbortError' ? '连接超时，请检查网络后重试' : error.message), 'error');
+        setSyncStatus('error', '上传失败', error.name === 'AbortError' ? '连接超时，请检查网络后重试' : error.message);
+        return false;
       } finally {
+        state.cloudSaveBusy = false;
         updateSaveButton();
       }
     }
@@ -3164,7 +3210,7 @@
 
     function exportWorkingData() {
       if (state.formDirty) {
-        setManagerStatus('课程编辑器中还有内容未加入待同步列表，请先保存或取消编辑后再导出。', 'error');
+        setManagerStatus('课程编辑器中还有内容未加入待上传列表，请先保存或取消编辑后再导出。', 'error');
         return;
       }
       const content = JSON.stringify({ schemaVersion: 1, exportedAt: new Date().toISOString(), courses: state.workingData }, null, 2);
@@ -3176,11 +3222,11 @@
       anchor.click();
       anchor.remove();
       window.setTimeout(function () { URL.revokeObjectURL(url); }, 0);
-      setManagerStatus('已导出当前待同步课表。', 'success');
+      setManagerStatus('已导出当前待上传课表。', 'success');
     }
 
     async function importWorkingData(file) {
-      if ((state.managerDirty || state.formDirty) && !window.confirm('导入 JSON 会替换当前待同步列表和编辑器内容，是否继续？')) return;
+      if ((state.managerDirty || state.formDirty) && !window.confirm('导入 JSON 会替换当前待上传列表和编辑器内容，是否继续？')) return;
       try {
         const parsed = JSON.parse(await file.text());
         const clean = validateCoursesInput(Array.isArray(parsed) ? parsed : parsed.courses);
@@ -3188,7 +3234,7 @@
         setManagerDirty(true);
         renderManagerList();
         resetCourseEditor();
-        setManagerStatus('已导入 ' + clean.length + ' 门次课程，尚未保存到云端。', 'warning');
+        setManagerStatus('已导入 ' + clean.length + ' 门次课程，正在等待主页上传。', 'warning');
       } catch (error) {
         setManagerStatus('导入失败：' + error.message, 'error');
       }
@@ -3238,7 +3284,13 @@
           setSessionSecret(secret);
           if (document.getElementById('rememberAdminPassword').checked) setRememberedSecret(secret);
           else clearRememberedSecret();
+          const uploadAfterAuth = state.uploadAfterAuth;
+          state.uploadAfterAuth = false;
           showManagerEditor({ preserveWorking: state.managerDirty });
+          if (uploadAfterAuth) {
+            document.getElementById('managerDialog').close();
+            await saveWorkingDataToCloud();
+          }
         } catch (error) {
           clearSessionSecret();
           message.textContent = error.name === 'AbortError'
@@ -3261,11 +3313,13 @@
         if (event.key === 'Enter') { event.preventDefault(); document.getElementById('unlockManager').click(); }
       });
       document.getElementById('lockManager').addEventListener('click', function () {
-        if ((state.managerDirty || state.formDirty) && !window.confirm('退出管理会放弃当前未保存修改，是否继续？')) return;
-        setManagerDirty(false);
-        state.formDirty = false;
+        if (state.formDirty) {
+          setManagerStatus('当前课程还在编辑中，请先保存到待上传列表或点击取消。', 'error');
+          return;
+        }
+        state.uploadAfterAuth = false;
         clearSessionSecret();
-        showManagerAuth('已退出管理。');
+        showManagerAuth(state.managerDirty ? '已退出管理，待上传的课程修改仍然保留。' : '已退出管理。');
       });
       document.getElementById('addCourse').addEventListener('click', function () { openCourseEditor(-1); });
       document.getElementById('managerSearch').addEventListener('input', renderManagerList);
@@ -3274,12 +3328,12 @@
       document.getElementById('courseForm').addEventListener('input', function () {
         if (document.getElementById('courseForm').hidden) return;
         state.formDirty = true;
-        setManagerStatus('课程编辑器内容尚未加入待同步列表。填写完成后请先保存本门课程。', 'warning');
+        setManagerStatus('课程编辑器内容尚未加入待上传列表。填写完成后请先保存本门课程。', 'warning');
       });
       document.getElementById('courseForm').addEventListener('change', function () {
         if (document.getElementById('courseForm').hidden) return;
         state.formDirty = true;
-        setManagerStatus('课程编辑器内容尚未加入待同步列表。填写完成后请先保存本门课程。', 'warning');
+        setManagerStatus('课程编辑器内容尚未加入待上传列表。填写完成后请先保存本门课程。', 'warning');
       });
       document.getElementById('addSegment').addEventListener('click', function () {
         addSegmentRow();
@@ -3298,7 +3352,7 @@
         if (rows.length <= 1) { setManagerStatus('每门课程至少需要一组上课周次与教师。', 'error'); return; }
         button.closest('.segment-row').remove();
         state.formDirty = true;
-        setManagerStatus('这组上课周次与教师已移除，保存本门课程后才会加入待同步列表。', 'warning');
+        setManagerStatus('这组上课周次与教师已移除，保存本门课程后才会加入待上传列表。', 'warning');
       });
       document.getElementById('managerCourseList').addEventListener('click', function (event) {
         const edit = event.target.closest('[data-edit]');
@@ -3310,13 +3364,13 @@
         const course = state.workingData[index];
         if (!course) return;
         const warning = rawCourseHasMentor(course) ? '这是导师课，标记为“不可缺席”。\n\n' : '';
-        if (!window.confirm(warning + '确定删除“' + course['课程'] + '”这门次吗？删除后还需要点击“保存全部修改到云端”才会生效。')) return;
+        if (!window.confirm(warning + '确定删除“' + course['课程'] + '”这门次吗？删除后还需要回到主页点击“立即上传云端”才会生效。')) return;
         try { state.workingData = stageCourseDelete(state.workingData, index); }
         catch (error) { setManagerStatus(error.message, 'error'); return; }
         setManagerDirty(true);
         renderManagerList();
         resetCourseEditor();
-        setManagerStatus('课程“' + course['课程'] + '”已从待同步列表删除，保存全部修改后将在所有设备生效。', 'warning');
+        setManagerStatus('课程“' + course['课程'] + '”已从待上传列表删除。关闭管理页后，请在主页上传到云端。', 'warning');
       });
       document.getElementById('courseForm').addEventListener('submit', function (event) {
         event.preventDefault();
@@ -3327,7 +3381,7 @@
           setManagerDirty(true);
           renderManagerList();
           resetCourseEditor();
-          setManagerStatus(editingCourse ? '课程修改已暂存：“' + course['课程'] + '”。保存全部修改后同步到其他设备。' : '课程已新增：“' + course['课程'] + '”。保存全部修改后同步到其他设备。', 'warning');
+          setManagerStatus(editingCourse ? '课程修改已暂存：“' + course['课程'] + '”。关闭管理页后，请在主页上传到云端。' : '课程已新增：“' + course['课程'] + '”。关闭管理页后，请在主页上传到云端。', 'warning');
         } catch (error) {
           setManagerStatus(error.message, 'error');
         }
@@ -3340,7 +3394,7 @@
       });
       document.getElementById('exportCourses').addEventListener('click', exportWorkingData);
       document.getElementById('reloadCloud').addEventListener('click', reloadManagerFromCloud);
-      document.getElementById('saveCloud').addEventListener('click', saveWorkingDataToCloud);
+      document.getElementById('saveCloud').addEventListener('click', requestCloudSaveFromHome);
       window.addEventListener('beforeunload', function (event) {
         if (!state.managerDirty && !state.formDirty) return;
         event.preventDefault();

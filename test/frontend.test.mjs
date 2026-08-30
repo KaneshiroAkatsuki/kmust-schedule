@@ -20,6 +20,7 @@ const exposedNames = [
   'normalizeWeekRange', 'weekDateRangeLabel', 'segmentDateHint', 'weekRangeValue', 'weekOptions',
   'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput',
   'stageCourseUpsert', 'stageCourseDelete',
+  'cloudSaveButtonView',
   'setupMobileMoreMenu', 'formatUpdatedAt', 'formatUpdatedDateTime', 'latestModifiedAt',
   'getRememberedSecret', 'setRememberedSecret', 'clearRememberedSecret'
 ];
@@ -242,6 +243,43 @@ test('course management uses one unified entry on desktop and mobile', () => {
   assert.match(html, /nameInput\.focus\(\{ preventScroll: true \}\)/);
 });
 
+test('homepage owns the immediate cloud upload action and preserves staged edits when manager closes', () => {
+  const saveButtonIndex = html.indexOf('id="saveCloud"');
+  const mainIndex = html.indexOf('<main class="app"');
+  const managerIndex = html.indexOf('<dialog class="manager-dialog"');
+  assert.ok(saveButtonIndex > 0 && saveButtonIndex < mainIndex, 'cloud upload control should live in the homepage header');
+  assert.ok(managerIndex > mainIndex);
+  assert.equal((html.match(/id="saveCloud"/g) || []).length, 1);
+  assert.match(html, /id="saveCloudText">暂无待上传</);
+  assert.match(html, /document\.getElementById\('saveCloud'\)\.addEventListener\('click', requestCloudSaveFromHome\)/);
+  assert.match(html, /openManagerDialog\(\{ uploadAfterAuth: true, authMessage:/);
+  assert.match(html, /if \(uploadAfterAuth\)[\s\S]*?await saveWorkingDataToCloud\(\)/);
+
+  const closeManagerSource = html.match(/function closeManagerDialog\(\) \{([\s\S]*?)\n    \}/)?.[1] || '';
+  assert.match(closeManagerSource, /if \(state\.formDirty\)/);
+  assert.match(closeManagerSource, /document\.getElementById\('managerDialog'\)\.close\(\)/);
+  assert.doesNotMatch(closeManagerSource, /setManagerDirty\(false\)/);
+
+  const clean = api.cloudSaveButtonView(false, false);
+  const pending = api.cloudSaveButtonView(true, false);
+  const busy = api.cloudSaveButtonView(true, true);
+  assert.equal(clean.disabled, true);
+  assert.equal(clean.label, '暂无待上传');
+  assert.equal(pending.disabled, false);
+  assert.equal(pending.label, '立即上传云端');
+  assert.equal(busy.disabled, true);
+  assert.equal(busy.label, '正在上传…');
+
+  assert.match(css, /\.nav-cloud-save\.has-pending:not\(:disabled\)/);
+  assert.match(css, /@media \(max-width: 800px\)[\s\S]*?\.nav-manage, \.nav-cloud-save \{ width: 36px/);
+  assert.match(css, /@media \(max-width: 360px\)[\s\S]*?\.nav-manage, \.nav-cloud-save \{ width: 33px/);
+});
+
+test('footer description is direct and functional rather than promotional', () => {
+  assert.match(html, /昆明理工大学呈贡校区研究生课表，集中查看当前课程、每周安排和校历节点，并支持多设备同步。/);
+  assert.doesNotMatch(html, /抬眼看时间|真正重要的事/);
+});
+
 test('course editor groups class periods and explains week-and-teacher ranges clearly', () => {
   assert.match(html, />上课周次与教师</);
   assert.match(html, /一行表示哪些周由哪位教师上课；如果整门课都是同一位教师，只填一行。/);
@@ -369,7 +407,7 @@ test('manager password is numeric, hidden by default and optionally remembered',
 });
 
 test('modification sync status uses the latest page or schedule change in China time', () => {
-  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T21:04:23\+08:00'/);
+  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T21:24:36\+08:00'/);
   assert.match(html, /function latestModifiedAt\(scheduleUpdatedAt\)/);
   assert.match(html, /getUTC(?:Month|Date|Hours|Minutes)/);
   assert.match(html, /修改同步时间/);
@@ -379,7 +417,7 @@ test('modification sync status uses the latest page or schedule change in China 
 test('China time formatting and remembered-secret storage behave deterministically', () => {
   assert.equal(api.formatUpdatedAt('2026-08-30T08:00:00.000Z'), '16:00');
   assert.equal(api.formatUpdatedDateTime('2026-08-30T08:00:00.000Z'), '2026年8月30日 16:00');
-  assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), '21:04');
+  assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), '21:24');
   assert.equal(api.latestModifiedAt('2026-08-31T00:00:00.000Z'), '2026-08-31T00:00:00.000Z');
 
   const remembered = new Map();
@@ -412,8 +450,8 @@ test('admin secret persistence is explicit and revision conflicts remain recover
   assert.match(html, /state\.workingData = stageCourseDelete\(state\.workingData, index\)/);
   assert.match(html, /state\.workingData = stageCourseUpsert\(state\.workingData, course, state\.editingIndex\)/);
   assert.match(html, /if \(!state\.managerDirty && !state\.formDirty\) return/);
-  assert.match(html, /没有待保存修改/);
+  assert.match(html, /暂无待上传/);
   assert.match(html, /重新载入会放弃当前未保存的修改/);
-  assert.match(html, /课程“' \+ course\['课程'\] \+ '”已从待同步列表删除/);
+  assert.match(html, /课程“' \+ course\['课程'\] \+ '”已从待上传列表删除/);
   assert.match(html, /editingCourse \? '课程修改已暂存/);
 });
