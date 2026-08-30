@@ -1088,6 +1088,35 @@
       letter-spacing: .02em;
     }
 
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+
+    .sync-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 30px;
+      padding: 5px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255,255,255,.6);
+      font-size: 10px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .sync-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #918b82;
+      box-shadow: 0 0 0 3px rgba(145,139,130,.11);
+    }
+
+    .sync-pill.loading .sync-dot { background: #aa741c; box-shadow: 0 0 0 3px rgba(170,116,28,.12); animation: sync-pulse 1.1s ease-in-out infinite; }
+    .sync-pill.synced .sync-dot { background: #34745e; box-shadow: 0 0 0 3px rgba(52,116,94,.12); }
+    .sync-pill.error .sync-dot { background: var(--mentor); box-shadow: 0 0 0 3px rgba(158,27,50,.1); }
+
     .app {
       width: min(100%, var(--page));
       margin: 0 auto;
@@ -1299,11 +1328,25 @@
     .footer-links { display: grid; gap: 10px; margin-top: 14px; }
     .footer-links a, .footer-links span { width: fit-content; color: #615d57; font-size: 12px; line-height: 1.55; text-decoration: none; }
     .footer-links a:hover { color: var(--mentor); text-decoration: underline; text-underline-offset: 3px; }
+
+    .footer-action {
+      width: fit-content;
+      padding: 0;
+      border: 0;
+      color: var(--mentor);
+      background: transparent;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .footer-action:hover { text-decoration: underline; text-underline-offset: 3px; }
     .footer-bottom { display: flex; align-items: flex-start; justify-content: space-between; gap: 22px; padding-top: 22px; border-top: 1px solid #d3cdc4; color: #6f6a63; font-size: 11px; line-height: 1.7; }
     .footer-bottom p { max-width: 760px; margin: 0; }
     .footer-bottom strong { color: #3f3c37; }
 
     @keyframes campus-reveal { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes sync-pulse { 50% { opacity: .42; transform: scale(.82); } }
     .hero, .section { animation: campus-reveal .62s cubic-bezier(.2,.75,.25,1) both; }
     .section:nth-of-type(2) { animation-delay: .08s; }
     .section:nth-of-type(3) { animation-delay: .14s; }
@@ -1337,6 +1380,9 @@
       .brand-divider { height: 23px; }
       .product-name { font-size: 15px; }
       .term { max-width: 88px; padding: 5px 7px; font-size: 9px; text-align: center; line-height: 1.25; }
+      .nav-actions { gap: 6px; }
+      .sync-pill { width: 28px; min-width: 28px; padding: 0; justify-content: center; border: 0; background: transparent; }
+      .sync-pill span:last-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
       .app { gap: 16px; }
       .hero { grid-template-rows: 190px auto; border-radius: 22px; }
       .hero::before { height: 216px; }
@@ -1379,18 +1425,147 @@
     }
 
     @media (prefers-reduced-motion: reduce) { .hero, .section { animation: none; } }
+
+    .manager-dialog {
+      width: min(1080px, calc(100vw - 28px));
+      max-width: none;
+      max-height: min(880px, calc(100dvh - 28px));
+      margin: auto;
+      padding: 0;
+      overflow: hidden;
+      border: 1px solid var(--line-strong);
+      border-radius: 26px;
+      color: var(--ink);
+      background: var(--surface-strong);
+      box-shadow: 0 28px 100px rgba(25,20,15,.26);
+    }
+
+    .manager-dialog::backdrop { background: rgba(31,27,23,.56); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+    .manager-dialog[open] { animation: manager-in .22s ease-out both; }
+    @keyframes manager-in { from { opacity: 0; transform: translateY(12px) scale(.985); } }
+
+    .manager-shell { display: flex; max-height: inherit; min-height: min(720px, calc(100dvh - 28px)); flex-direction: column; }
+    .manager-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 74px; padding: 15px 22px; border-bottom: 1px solid var(--line); background: #faf7f2; }
+    .manager-title { margin: 0; font-family: var(--display-font); font-size: 23px; }
+    .manager-subtitle { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+    .icon-button { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: #fff; cursor: pointer; }
+    .icon-button svg { width: 18px; height: 18px; }
+    .manager-body { min-height: 0; flex: 1; overflow: auto; overscroll-behavior: contain; }
+
+    .manager-auth { width: min(470px, 100%); margin: 0 auto; padding: clamp(38px, 8vw, 88px) 22px; }
+    .auth-mark { display: grid; width: 58px; height: 58px; margin-bottom: 24px; place-items: center; border-radius: 18px; color: #fff; background: var(--mentor); }
+    .auth-mark svg { width: 25px; height: 25px; }
+    .manager-auth h3 { margin: 0; font-family: var(--display-font); font-size: 29px; }
+    .manager-auth p { margin: 10px 0 24px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+
+    .field { display: grid; gap: 7px; min-width: 0; }
+    .field > span, .field-label { color: #47443f; font-size: 12px; font-weight: 800; }
+    .text-input, .select-input {
+      width: 100%;
+      min-height: 46px;
+      padding: 10px 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: 11px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+      font-size: 14px;
+    }
+    .text-input:focus, .select-input:focus { border-color: rgba(158,27,50,.55); outline: 3px solid rgba(158,27,50,.09); }
+
+    .primary-button, .secondary-button, .danger-button {
+      min-height: 42px;
+      padding: 9px 15px;
+      border: 1px solid transparent;
+      border-radius: 11px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .primary-button { color: #fff; background: var(--mentor); }
+    .primary-button:hover { background: #85162a; }
+    .primary-button:disabled { opacity: .45; cursor: wait; }
+    .secondary-button { border-color: var(--line-strong); background: #fff; }
+    .secondary-button:hover { border-color: rgba(158,27,50,.35); }
+    .danger-button { color: #8a2134; border-color: rgba(158,27,50,.18); background: var(--mentor-soft); }
+    .auth-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+
+    .manager-editor { padding: 18px; }
+    .manager-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-bottom: 14px; }
+    .manager-toolbar .spacer { flex: 1; }
+    .sync-banner { min-height: 42px; margin-bottom: 14px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 11px; color: var(--muted); background: #faf7f2; font-size: 12px; line-height: 1.5; }
+    .sync-banner.success { color: #2f6955; border-color: rgba(47,105,85,.18); background: #edf5f1; }
+    .sync-banner.error { color: #8a2134; border-color: rgba(158,27,50,.18); background: var(--mentor-soft); }
+    .sync-banner.warning { color: #7a5318; border-color: rgba(143,92,18,.18); background: var(--amber-soft); }
+
+    .manager-grid { display: grid; grid-template-columns: minmax(310px, .82fr) minmax(420px, 1.18fr); gap: 16px; min-height: 520px; }
+    .manager-pane { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 17px; background: #fbf9f5; }
+    .pane-head { display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+    .pane-head strong { font-size: 13px; }
+    .pane-head span { color: var(--muted); font-size: 11px; }
+    .manager-list { max-height: 540px; overflow: auto; padding: 7px; }
+    .manager-course { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 9px; padding: 12px 10px; border-bottom: 1px solid var(--line); }
+    .manager-course:last-child { border-bottom: 0; }
+    .manager-course.is-mentor { border-left: 3px solid var(--mentor); background: var(--mentor-soft); }
+    .manager-course-name { font-size: 13px; font-weight: 800; line-height: 1.45; }
+    .manager-course-meta { margin-top: 4px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+    .mini-actions { display: flex; gap: 5px; }
+    .mini-button { align-self: start; padding: 5px 7px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink-soft); background: #fff; font-size: 11px; font-weight: 750; cursor: pointer; }
+    .mini-button.delete { color: var(--mentor); }
+
+    .editor-empty { display: grid; min-height: 100%; padding: 28px; place-content: center; text-align: center; color: var(--muted); }
+    .editor-empty strong { color: var(--ink); font-family: var(--display-font); font-size: 22px; }
+    .editor-empty span { margin-top: 6px; font-size: 12px; }
+    .course-form { padding: 17px; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+    .field.full { grid-column: 1 / -1; }
+    .time-preview { display: flex; align-items: center; min-height: 46px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 11px; color: var(--muted); background: #f3efe8; font-size: 13px; font-variant-numeric: tabular-nums; }
+    .segment-list { display: grid; gap: 8px; margin-top: 8px; }
+    .segment-row { display: grid; grid-template-columns: 110px minmax(0,1fr) auto; gap: 7px; align-items: center; }
+    .segment-row .text-input { min-height: 42px; }
+    .remove-segment { width: 38px; height: 38px; border: 1px solid rgba(158,27,50,.17); border-radius: 9px; color: var(--mentor); background: var(--mentor-soft); cursor: pointer; }
+    .add-segment { width: fit-content; margin-top: 9px; }
+    .form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--line); }
+    .manager-footnote { margin: 14px 2px 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .file-input { display: none; }
+
+    @media (max-width: 800px) {
+      .manager-dialog { width: 100vw; height: 100dvh; max-height: none; margin: 0; border: 0; border-radius: 0; }
+      .manager-shell { min-height: 100dvh; max-height: 100dvh; }
+      .manager-head { min-height: 66px; padding: max(10px, env(safe-area-inset-top)) 15px 10px; }
+      .manager-editor { padding: 12px; }
+      .manager-grid { grid-template-columns: 1fr; min-height: 0; }
+      .manager-list { max-height: 360px; }
+      .manager-pane.editor-pane { min-height: 440px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: auto; }
+    }
+
+    @media (max-width: 420px) {
+      .manager-toolbar .spacer { display: none; }
+      .manager-toolbar { align-items: stretch; }
+      .manager-toolbar button { flex: 1 1 calc(50% - 5px); }
+      .segment-row { grid-template-columns: 92px minmax(0,1fr) 36px; }
+      .course-form { padding: 13px; }
+    }
   </style>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">跳到课表内容</a>
-  <header class="site-header">
+  <header class="site-header" aria-label="站点标题">
     <div class="nav-inner">
       <a class="site-brand" href="#mainContent" aria-label="KUST·Lab 课表首页">
         <span class="brand-logo" role="img" aria-label="昆明理工大学官方校标"></span>
         <span class="brand-divider" aria-hidden="true"></span>
         <span class="product-name">KUST·Lab</span>
       </a>
-      <div class="term">2026—2027学年</div>
+      <div class="nav-actions">
+        <div class="sync-pill" id="syncPill" role="status" aria-live="polite">
+          <span class="sync-dot" aria-hidden="true"></span>
+          <span id="syncText">内置课表</span>
+        </div>
+        <div class="term">2026—2027学年</div>
+      </div>
     </div>
   </header>
 
@@ -1495,7 +1670,9 @@
         <details class="footer-group">
           <summary>来源与说明</summary>
           <div class="footer-links">
-            <span>第一学期 37 门次课程</span>
+            <span id="footerCourseCount">第一学期 37 门次课程</span>
+            <span id="footerSyncText">当前使用内置课表</span>
+            <button class="footer-action" id="openManager" type="button">管理课表</button>
             <a href="https://www.kmust.edu.cn/info/1020/20442.htm" target="_blank" rel="noopener noreferrer">校园图片 · 昆明理工大学官网</a>
             <a href="https://www.kmust.edu.cn/" target="_blank" rel="noopener noreferrer">昆明理工大学官网</a>
           </div>
@@ -1509,10 +1686,113 @@
     </div>
   </footer>
 
+  <dialog class="manager-dialog" id="managerDialog" aria-labelledby="managerTitle">
+    <div class="manager-shell">
+      <header class="manager-head" aria-label="课表管理标题">
+        <div>
+          <h2 class="manager-title" id="managerTitle">管理课表</h2>
+          <p class="manager-subtitle">修改后保存到云端，电脑与手机会读取同一份数据</p>
+        </div>
+        <button class="icon-button" id="closeManager" type="button" aria-label="关闭管理课表">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+
+      <div class="manager-body">
+        <section class="manager-auth" id="managerAuth">
+          <div class="auth-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v2"/></svg>
+          </div>
+          <h3>管理员验证</h3>
+          <p>公开查看不需要密码。只有新增、修改、删除并保存课表时才需要管理密码；密码只保存在当前浏览器会话，不会写进网页。</p>
+          <label class="field">
+            <span>管理密码</span>
+            <input class="text-input" id="adminPassword" type="password" autocomplete="current-password" placeholder="输入 Cloudflare 管理密码">
+          </label>
+          <div class="auth-actions">
+            <button class="primary-button" id="unlockManager" type="button">进入管理</button>
+            <span class="manager-subtitle" id="authMessage" role="status"></span>
+          </div>
+        </section>
+
+        <section class="manager-editor" id="managerEditor" hidden>
+          <div class="manager-toolbar">
+            <button class="primary-button" id="addCourse" type="button">新增课程</button>
+            <button class="secondary-button" id="importCourses" type="button">导入 JSON</button>
+            <button class="secondary-button" id="exportCourses" type="button">导出 JSON</button>
+            <input class="file-input" id="importFile" type="file" accept="application/json,.json">
+            <span class="spacer"></span>
+            <button class="secondary-button" id="reloadCloud" type="button">重新载入云端</button>
+            <button class="danger-button" id="lockManager" type="button">退出管理</button>
+          </div>
+
+          <div class="sync-banner" id="managerStatus" role="status" aria-live="polite">尚未修改。</div>
+
+          <div class="manager-grid">
+            <section class="manager-pane" aria-labelledby="courseListTitle">
+              <div class="pane-head"><strong id="courseListTitle">课程列表</strong><span id="managerCourseCount">0 门次</span></div>
+              <div class="manager-list" id="managerCourseList"></div>
+            </section>
+
+            <section class="manager-pane editor-pane" aria-labelledby="courseEditorTitle">
+              <div class="pane-head"><strong id="courseEditorTitle">课程编辑器</strong><span>上课钟点自动匹配</span></div>
+              <div class="editor-empty" id="courseEditorEmpty">
+                <strong>选择一门课程</strong>
+                <span>也可以点击“新增课程”开始填写</span>
+              </div>
+
+              <form class="course-form" id="courseForm" hidden novalidate>
+                <div class="form-grid">
+                  <label class="field full">
+                    <span>课程名称</span>
+                    <input class="text-input" id="courseName" type="text" maxlength="80" required>
+                  </label>
+                  <label class="field">
+                    <span>星期</span>
+                    <select class="select-input" id="courseDay" required></select>
+                  </label>
+                  <label class="field">
+                    <span>节次</span>
+                    <select class="select-input" id="courseSlot" required></select>
+                  </label>
+                  <div class="field full">
+                    <span class="field-label">上课钟点</span>
+                    <div class="time-preview" id="courseTime">08:00—09:35</div>
+                  </div>
+                  <label class="field full">
+                    <span>教室（多个用中文或英文逗号分隔）</span>
+                    <input class="text-input" id="courseRooms" type="text" maxlength="260" placeholder="例如：公教楼247">
+                  </label>
+                  <div class="field full">
+                    <span class="field-label">授课分段（周次 / 教师）</span>
+                    <div class="segment-list" id="segmentList"></div>
+                    <button class="secondary-button add-segment" id="addSegment" type="button">＋ 添加授课分段</button>
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button class="secondary-button" id="cancelCourseEdit" type="button">取消</button>
+                  <button class="primary-button" type="submit">保存到待同步列表</button>
+                </div>
+              </form>
+            </section>
+          </div>
+
+          <div class="form-actions">
+            <button class="primary-button" id="saveCloud" type="button">保存全部修改到云端</button>
+          </div>
+          <p class="manager-footnote">为避免覆盖另一台设备的新内容，保存时会核对云端修订号；若发现冲突，请先重新载入云端再修改。</p>
+        </section>
+      </div>
+    </div>
+  </dialog>
+
   <script>
     'use strict';
 
     const RAW_DATA = [{"星期":"星期一","节次":"第1-2节","时间":"08:00-09:35","课程":"农业与生物系统工程专论","授课分段":[{"周次":"2-7","教师":"张兆国"}],"教室":["公教楼129"]},{"星期":"星期二","节次":"第1-2节","时间":"08:00-09:35","课程":"专业外语（农水专硕）","授课分段":[{"周次":"2-5","教师":"陶文梅"},{"周次":"6-9","教师":"唐振亚"},{"周次":"10-13","教师":"王德金"}],"教室":["公教楼450"]},{"星期":"星期五","节次":"第1-2节","时间":"08:00-09:35","课程":"土壤微生物学","授课分段":[{"周次":"2-13","教师":"唐振亚"}],"教室":["公教楼247"]},{"星期":"星期一","节次":"第3-5节","时间":"09:50-12:15","课程":"SPAC系统水分运转与调控","授课分段":[{"周次":"2-5","教师":"王卫华"},{"周次":"6-9","教师":"郭金金"}],"教室":["公教楼448"]},{"星期":"星期一","节次":"第3-5节","时间":"09:50-12:15","课程":"设施农业与装备（专硕）","授课分段":[{"周次":"11-16","教师":"周伟"}],"教室":["公教楼249"]},{"星期":"星期二","节次":"第3-5节","时间":"09:50-12:15","课程":"农业生态与环境工程","授课分段":[{"周次":"8-13","教师":"王海东"}],"教室":["公教楼138"]},{"星期":"星期二","节次":"第3-5节","时间":"09:50-12:15","课程":"土壤微生物学","授课分段":[{"周次":"14-17","教师":"彭小瑜"}],"教室":["公教楼247"]},{"星期":"星期三","节次":"第3-5节","时间":"09:50-12:15","课程":"数值分析","授课分段":[{"周次":"2-19","教师":"杨超"}],"教室":["公教楼246"]},{"星期":"星期四","节次":"第3-5节","时间":"09:50-12:15","课程":"硕士研究生思政课程（一）","授课分段":[{"周次":"2-19","教师":"杜永梅"}],"教室":["公教楼446"]},{"星期":"星期五","节次":"第3-5节","时间":"09:50-12:15","课程":"试验设计与数据处理（农水）","授课分段":[{"周次":"2-7","教师":"郭金金"},{"周次":"8-9","教师":"刘艳伟"},{"周次":"10-11","教师":"周立峰"},{"周次":"12-13","教师":"袁勇"}],"教室":["公教楼132"]},{"星期":"星期六","节次":"第3-5节","时间":"09:50-12:15","课程":"现代灌排理论与新技术（专硕）","授课分段":[{"周次":"7-7","教师":"徐丹"}],"教室":["公教楼346"]},{"星期":"星期日","节次":"第3-5节","时间":"09:50-12:15","课程":"农业面源污染控制工程（农生方向）","授课分段":[{"周次":"8-9","教师":"彭红波"},{"周次":"2-7","教师":"袁勇"}],"教室":["公教楼345"]},{"星期":"星期一","节次":"第6-8节","时间":"13:30-15:55","课程":"农业生态与环境工程","授课分段":[{"周次":"2-7","教师":"程铭慧"}],"教室":["公教楼552"]},{"星期":"星期一","节次":"第6-8节","时间":"13:30-15:55","课程":"生态水文原理及应用（专硕）","授课分段":[{"周次":"9-11","教师":"彭小瑜"},{"周次":"12-14","教师":"刘艳伟"}],"教室":["公教楼454","公教楼346"]},{"星期":"星期二","节次":"第6-8节","时间":"13:30-15:55","课程":"现代灌排理论与新技术（专硕）","授课分段":[{"周次":"2-3","教师":"刘小刚"},{"周次":"4-6","教师":"董建华"},{"周次":"8-8","教师":"董建华"}],"教室":["公教楼250","公教楼352"]},{"星期":"星期二","节次":"第6-8节","时间":"13:30-15:55","课程":"SPAC系统水分运转与调控","授课分段":[{"周次":"10-13","教师":"李悦"}],"教室":["公教楼446"]},{"星期":"星期三","节次":"第6-8节","时间":"13:30-15:55","课程":"现代灌排理论与新技术（专硕）","授课分段":[{"周次":"9-13","教师":"韩焕豪"}],"教室":["公教楼137"]},{"星期":"星期四","节次":"第6-8节","时间":"13:30-15:55","课程":"生态水文原理及应用（专硕）","授课分段":[{"周次":"6-8","教师":"袁勇"}],"教室":["公教楼448"]},{"星期":"星期四","节次":"第6-8节","时间":"13:30-15:55","课程":"农业面源污染控制工程（农水方向）","授课分段":[{"周次":"2-5","教师":"韩焕豪"}],"教室":["公教楼132"]},{"星期":"星期五","节次":"第6-8节","时间":"13:30-15:55","课程":"地理信息系统","授课分段":[{"周次":"11-12","教师":"刘艳伟"}],"教室":["公教楼247"]},{"星期":"星期五","节次":"第6-8节","时间":"13:30-15:55","课程":"农业生物环境控制工程","授课分段":[{"周次":"2-10","教师":"陶文梅"}],"教室":["公教楼247"]},{"星期":"星期六","节次":"第6-8节","时间":"13:30-15:55","课程":"生态水文原理及应用（专硕）","授课分段":[{"周次":"5-5","教师":"王德金"}],"教室":["公教楼448"]},{"星期":"星期六","节次":"第6-8节","时间":"13:30-15:55","课程":"农业面源污染控制工程（农水方向）","授课分段":[{"周次":"6-13","教师":"韩焕豪"}],"教室":["公教楼132"]},{"星期":"星期一","节次":"第9-10节","时间":"16:10-17:45","课程":"土壤水分溶质动力学","授课分段":[{"周次":"2-5","教师":"谭帅"},{"周次":"6-9","教师":"陈绍民"},{"周次":"10-13","教师":"李娜"}],"教室":["公教楼248"]},{"星期":"星期二","节次":"第9-10节","时间":"16:10-17:45","课程":"农林废弃物处理工程","授课分段":[{"周次":"5-7","教师":"温磊"}],"教室":["公教楼448"]},{"星期":"星期二","节次":"第9-10节","时间":"16:10-17:45","课程":"农业与生物系统工程专论","授课分段":[{"周次":"8-9","教师":"李加念"},{"周次":"10-11","教师":"梁嘉平"},{"周次":"12-13","教师":"范旭东"},{"周次":"14-17","教师":"王法安"},{"周次":"18-21","教师":"武占东"}],"教室":["公教楼246"]},{"星期":"星期二","节次":"第9-10节","时间":"16:10-17:45","课程":"生态水文原理及应用（专硕）","授课分段":[{"周次":"3-4","教师":"王德金"}],"教室":["公教楼448"]},{"星期":"星期三","节次":"第9-10节","时间":"16:10-17:45","课程":"学科前沿讲座","授课分段":[{"周次":"2-2","教师":"张兆国"},{"周次":"3-3","教师":"张付杰"},{"周次":"4-4","教师":"朱惠斌"},{"周次":"5-5","教师":"苏有勇"},{"周次":"6-6","教师":"杨启良"},{"周次":"7-7","教师":"刘小刚"},{"周次":"8-8","教师":"李加念"},{"周次":"9-9","教师":"王卫华"},{"周次":"10-10","教师":"彭红波"}],"教室":["公教楼246"]},{"星期":"星期三","节次":"第9-10节","时间":"16:10-17:45","课程":"农业生物环境控制工程","授课分段":[{"周次":"11-13","教师":"陶文梅"}],"教室":["公教楼247"]},{"星期":"星期四","节次":"第9-10节","时间":"16:10-17:45","课程":"土壤农化分析","授课分段":[{"周次":"2-5","教师":"唐振亚"},{"周次":"6-9","教师":"彭小瑜"},{"周次":"10-13","教师":"王海东"}],"教室":["公教楼247"]},{"星期":"星期五","节次":"第9-10节","时间":"16:10-17:45","课程":"农林废弃物处理工程","授课分段":[{"周次":"2-4","教师":"温磊"}],"教室":["公教楼132"]},{"星期":"星期五","节次":"第9-10节","时间":"16:10-17:45","课程":"设施农业与装备（专硕）","授课分段":[{"周次":"5-10","教师":"喻黎明"}],"教室":["公教楼247"]},{"星期":"星期六","节次":"第9-10节","时间":"16:10-17:45","课程":"农林废弃物处理工程","授课分段":[{"周次":"8-13","教师":"范旭东"}],"教室":["公教楼132"]},{"星期":"星期一","节次":"第11节","时间":"17:50-18:35","课程":"农业生物环境控制工程","授课分段":[{"周次":"11-13","教师":"陶文梅"}],"教室":["公教楼247"]},{"星期":"星期一","节次":"第12-13节","时间":"19:30-21:05","课程":"地理信息系统","授课分段":[{"周次":"3-9","教师":"王德金"},{"周次":"10-10","教师":"王德金"}],"教室":["公教楼247"]},{"星期":"星期二","节次":"第12-13节","时间":"19:30-21:05","课程":"农业面源污染控制工程（农生方向）","授课分段":[{"周次":"10-15","教师":"温磊"}],"教室":["公教楼345"]},{"星期":"星期四","节次":"第12-13节","时间":"19:30-21:05","课程":"地理信息系统","授课分段":[{"周次":"3-9","教师":"王德金"}],"教室":["公教楼247"]}];
+
+    deepFreeze(RAW_DATA);
+    const FALLBACK_DATA = RAW_DATA;
 
     const DAYS_FULL = ['星期一','星期二','星期三','星期四','星期五','星期六','星期日'];
     const DAYS_SHORT = ['一','二','三','四','五','六','日'];
@@ -1521,6 +1801,19 @@
     const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
     const MAX_WEEK = 21;
     const MENTOR_NAME = '喻黎明';
+    const SYNC_ENDPOINT = '__KUST_SYNC_ENDPOINT__';
+    const CACHE_KEY = 'kust-lab-schedule-cache-v1';
+    const SECRET_KEY = 'kust-lab-admin-secret';
+    const SYNC_INTERVAL_MS = 5 * 60 * 1000;
+    const FETCH_TIMEOUT_MS = 8000;
+    const SLOT_TIMES = new Map([
+      ['第1-2节', '08:00-09:35'],
+      ['第3-5节', '09:50-12:15'],
+      ['第6-8节', '13:30-15:55'],
+      ['第9-10节', '16:10-17:45'],
+      ['第11节', '17:50-18:35'],
+      ['第12-13节', '19:30-21:05']
+    ]);
 
     const CALENDAR = {
       firstRegistrationStart: new Date(2026, 7, 22, 12, 0, 0, 0),
@@ -1562,25 +1855,38 @@
       return pieces[0] * 60 + pieces[1];
     }
 
-    const COURSES = RAW_DATA.map(function (item, index) {
-      const timeParts = item['时间'].split('-');
-      return {
-        id: index,
-        dayLabel: item['星期'],
-        day: DAYS_FULL.indexOf(item['星期']),
-        slot: item['节次'].replace(/第(\d+)-(\d+)节/, '第$1–$2节'),
-        start: timeParts[0],
-        end: timeParts[1],
-        startMin: toMinutes(timeParts[0]),
-        endMin: toMinutes(timeParts[1]),
-        name: item['课程'],
-        rooms: item['教室'],
-        parts: item['授课分段'].map(function (part) {
-          const range = parseRange(part['周次']);
-          return { start: range[0], end: range[1], teacher: part['教师'], raw: part['周次'] };
-        })
-      };
-    }).sort(function (a, b) { return a.day - b.day || a.startMin - b.startMin || a.id - b.id; });
+    function deepFreeze(value) {
+      if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
+      Object.getOwnPropertyNames(value).forEach(function (key) { deepFreeze(value[key]); });
+      return Object.freeze(value);
+    }
+
+    function cloneData(value) { return JSON.parse(JSON.stringify(value)); }
+
+    function buildCourses(data) {
+      return data.map(function (item, index) {
+        const timeParts = item['时间'].split('-');
+        return {
+          id: index,
+          dayLabel: item['星期'],
+          day: DAYS_FULL.indexOf(item['星期']),
+          slot: item['节次'].replace(/第(\d+)-(\d+)节/, '第$1–$2节'),
+          start: timeParts[0],
+          end: timeParts[1],
+          startMin: toMinutes(timeParts[0]),
+          endMin: toMinutes(timeParts[1]),
+          name: item['课程'],
+          rooms: item['教室'],
+          parts: item['授课分段'].map(function (part) {
+            const range = parseRange(part['周次']);
+            return { start: range[0], end: range[1], teacher: part['教师'], raw: part['周次'] };
+          })
+        };
+      }).sort(function (a, b) { return a.day - b.day || a.startMin - b.startMin || a.id - b.id; });
+    }
+
+    let runtimeData = cloneData(FALLBACK_DATA);
+    let COURSES = buildCourses(runtimeData);
 
     const ICONS = {
       clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
@@ -1593,7 +1899,15 @@
       viewWeek: 1,
       selectedDay: 0,
       lastMinuteKey: '',
-      lastSpokenKey: ''
+      lastSpokenKey: '',
+      revision: 0,
+      updatedAt: null,
+      dataSource: 'fallback',
+      syncBusy: false,
+      managerDirty: false,
+      editingIndex: -1,
+      workingData: [],
+      conflictData: null
     };
 
     function esc(value) {
@@ -1963,6 +2277,507 @@
       }).join('');
     }
 
+    function isSyncConfigured() {
+      return /^https:\/\/[a-z0-9.-]+(?:\.workers\.dev)?(?:\/.*)?$/i.test(SYNC_ENDPOINT) && SYNC_ENDPOINT.indexOf('__') === -1;
+    }
+
+    function cleanText(value, label, maxLength) {
+      if (typeof value !== 'string') throw new Error(label + '必须是文本');
+      const text = value.trim();
+      if (!text || text.length > maxLength) throw new Error(label + '长度无效');
+      return text;
+    }
+
+    function cleanWeekRange(value) {
+      const text = cleanText(value, '周次', 12);
+      const match = text.match(/^(\d{1,2})(?:-(\d{1,2}))?$/);
+      if (!match) throw new Error('周次格式应为 2-5 或 8');
+      const start = Number(match[1]);
+      const end = Number(match[2] || match[1]);
+      if (start < 1 || end > 60 || start > end) throw new Error('周次范围无效');
+      return start === end ? String(start) : start + '-' + end;
+    }
+
+    function validateCoursesInput(input) {
+      if (!Array.isArray(input)) throw new Error('课表必须是课程数组');
+      if (input.length > 200) throw new Error('课程数量不能超过 200');
+      return input.map(function (course, index) {
+        if (!course || typeof course !== 'object' || Array.isArray(course)) throw new Error('第' + (index + 1) + '门课程格式无效');
+        const day = cleanText(course['星期'], '星期', 4);
+        const slot = cleanText(course['节次'], '节次', 10);
+        const time = cleanText(course['时间'], '时间', 20);
+        if (DAYS_FULL.indexOf(day) === -1) throw new Error('第' + (index + 1) + '门课程的星期无效');
+        if (!SLOT_TIMES.has(slot) || SLOT_TIMES.get(slot) !== time) throw new Error('第' + (index + 1) + '门课程的节次与时间不匹配');
+        if (!Array.isArray(course['授课分段']) || course['授课分段'].length < 1 || course['授课分段'].length > 20) {
+          throw new Error('第' + (index + 1) + '门课程需要 1 至 20 个授课分段');
+        }
+        const segments = course['授课分段'].map(function (part) {
+          if (!part || typeof part !== 'object' || Array.isArray(part)) throw new Error('授课分段格式无效');
+          return {
+            '周次': cleanWeekRange(part['周次']),
+            '教师': cleanText(part['教师'], '教师', 40)
+          };
+        });
+        if (!Array.isArray(course['教室']) || course['教室'].length < 1 || course['教室'].length > 8) {
+          throw new Error('第' + (index + 1) + '门课程需要 1 至 8 个教室');
+        }
+        const rooms = Array.from(new Set(course['教室'].map(function (room) { return cleanText(room, '教室', 50); })));
+        return {
+          '星期': day,
+          '节次': slot,
+          '时间': time,
+          '课程': cleanText(course['课程'], '课程名称', 80),
+          '授课分段': segments,
+          '教室': rooms
+        };
+      });
+    }
+
+    function formatUpdatedAt(value) {
+      if (!value) return '';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '';
+      return pad(date.getHours()) + ':' + pad(date.getMinutes());
+    }
+
+    function setSyncStatus(kind, shortText, detailText) {
+      const pill = document.getElementById('syncPill');
+      const short = document.getElementById('syncText');
+      const footer = document.getElementById('footerSyncText');
+      if (pill) pill.className = 'sync-pill ' + (kind || '');
+      if (short) short.textContent = shortText;
+      if (footer) footer.textContent = detailText || shortText;
+    }
+
+    function applyRuntimeData(courses, metadata) {
+      const clean = validateCoursesInput(courses);
+      runtimeData = cloneData(clean);
+      COURSES = buildCourses(runtimeData);
+      state.revision = Number(metadata && metadata.revision || 0);
+      state.updatedAt = metadata && metadata.updatedAt || null;
+      state.dataSource = metadata && metadata.source || 'fallback';
+      state.lastMinuteKey = '';
+      const count = document.getElementById('footerCourseCount');
+      if (count) count.textContent = '第一学期 ' + runtimeData.length + ' 门次课程';
+      if (document.getElementById('todayList')) {
+        const now = new Date();
+        renderToday(now);
+        renderWeek(now);
+      }
+    }
+
+    function saveCache() {
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          schemaVersion: 1,
+          revision: state.revision,
+          updatedAt: state.updatedAt,
+          courses: runtimeData
+        }));
+      } catch (_) {}
+    }
+
+    function hydrateFromCache() {
+      try {
+        const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+        if (!cached || cached.schemaVersion !== 1 || !Number.isInteger(cached.revision)) return false;
+        applyRuntimeData(cached.courses, { revision: cached.revision, updatedAt: cached.updatedAt, source: 'cache' });
+        const time = formatUpdatedAt(cached.updatedAt);
+        setSyncStatus('synced', '本机缓存', '当前使用最近一次同步缓存' + (time ? ' · ' + time : ''));
+        return true;
+      } catch (_) {
+        try { localStorage.removeItem(CACHE_KEY); } catch (_) {}
+        return false;
+      }
+    }
+
+    async function fetchWithTimeout(url, options) {
+      const controller = new AbortController();
+      const timer = window.setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS);
+      try {
+        return await fetch(url, Object.assign({}, options || {}, { signal: controller.signal }));
+      } finally {
+        window.clearTimeout(timer);
+      }
+    }
+
+    async function loadCloudSchedule(options) {
+      const settings = options || {};
+      if (!isSyncConfigured()) {
+        setSyncStatus('error', '云同步待启用', '云端服务尚未部署，当前使用' + (state.dataSource === 'cache' ? '本机缓存' : '内置课表'));
+        return false;
+      }
+      if (state.syncBusy) return false;
+      state.syncBusy = true;
+      setSyncStatus('loading', '正在同步', '正在从云端读取最新课表…');
+      try {
+        const response = await fetchWithTimeout(SYNC_ENDPOINT + '/api/schedule', { method: 'GET', cache: 'no-store' });
+        const payload = await response.json().catch(function () { return null; });
+        if (!response.ok || !payload || !payload.ok || !payload.data) throw new Error(payload && payload.error ? payload.error.message : '云端响应无效');
+        const cloud = payload.data;
+        if (!cloud.initialized) {
+          setSyncStatus('error', '云端待初始化', '云端暂无课表；首次进入管理后保存即可初始化');
+          return false;
+        }
+        const clean = validateCoursesInput(cloud.courses);
+        if (state.managerDirty && !settings.force) {
+          if (Number(cloud.revision) !== state.revision) {
+            state.conflictData = cloud;
+            setManagerStatus('另一台设备已有更新。当前未保存修改未被覆盖，请重新载入云端后再编辑。', 'warning');
+            setSyncStatus('error', '发现新版本', '云端已有新修订，当前未保存修改未被覆盖');
+          } else {
+            const unchangedTime = formatUpdatedAt(cloud.updatedAt);
+            setSyncStatus('synced', '云端无变化', '当前修改尚未保存 · 云端修订 ' + state.revision + (unchangedTime ? ' · ' + unchangedTime : ''));
+          }
+          return false;
+        }
+        applyRuntimeData(clean, { revision: Number(cloud.revision), updatedAt: cloud.updatedAt, source: 'cloud' });
+        saveCache();
+        const managerEditor = document.getElementById('managerEditor');
+        if (managerEditor && !managerEditor.hidden && !state.managerDirty) {
+          state.workingData = cloneData(runtimeData);
+          renderManagerList();
+          resetCourseEditor();
+        }
+        const time = formatUpdatedAt(cloud.updatedAt);
+        setSyncStatus('synced', '已同步' + (time ? ' ' + time : ''), '云端课表已同步 · 修订 ' + state.revision + (time ? ' · ' + time : ''));
+        return true;
+      } catch (error) {
+        const source = state.dataSource === 'cache' ? '本机缓存' : '内置课表';
+        setSyncStatus('error', '离线可用', '云端暂时不可达，继续使用' + source);
+        if (settings.fromManager) setManagerStatus('云端读取失败：' + (error.name === 'AbortError' ? '连接超时' : error.message), 'error');
+        return false;
+      } finally {
+        state.syncBusy = false;
+      }
+    }
+
+    function getSessionSecret() {
+      try { return sessionStorage.getItem(SECRET_KEY) || ''; } catch (_) { return ''; }
+    }
+
+    function setSessionSecret(value) {
+      try { sessionStorage.setItem(SECRET_KEY, value); } catch (_) {}
+    }
+
+    function clearSessionSecret() {
+      try { sessionStorage.removeItem(SECRET_KEY); } catch (_) {}
+    }
+
+    function setManagerStatus(message, kind) {
+      const status = document.getElementById('managerStatus');
+      if (!status) return;
+      status.className = 'sync-banner' + (kind ? ' ' + kind : '');
+      status.textContent = message;
+    }
+
+    function rawCourseHasMentor(course) {
+      return course['授课分段'].some(function (part) { return part['教师'] === MENTOR_NAME; });
+    }
+
+    function resetCourseEditor() {
+      state.editingIndex = -1;
+      document.getElementById('courseForm').hidden = true;
+      document.getElementById('courseEditorEmpty').hidden = false;
+    }
+
+    function renderManagerList() {
+      const list = document.getElementById('managerCourseList');
+      const count = document.getElementById('managerCourseCount');
+      count.textContent = state.workingData.length + ' 门次';
+      if (!state.workingData.length) {
+        list.innerHTML = '<div class="editor-empty"><strong>还没有课程</strong><span>点击“新增课程”开始添加</span></div>';
+        return;
+      }
+      const rows = state.workingData.map(function (course, index) { return { course: course, index: index }; });
+      rows.sort(function (left, right) {
+        const dayDiff = DAYS_FULL.indexOf(left.course['星期']) - DAYS_FULL.indexOf(right.course['星期']);
+        if (dayDiff) return dayDiff;
+        return toMinutes(left.course['时间'].split('-')[0]) - toMinutes(right.course['时间'].split('-')[0]);
+      });
+      list.innerHTML = rows.map(function (entry) {
+        const course = entry.course;
+        const segments = course['授课分段'].map(function (part) { return part['周次'] + '周 ' + part['教师']; }).join(' · ');
+        return '<article class="manager-course' + (rawCourseHasMentor(course) ? ' is-mentor' : '') + '">' +
+          '<div><div class="manager-course-name">' + esc(course['课程']) + '</div>' +
+          '<div class="manager-course-meta">' + esc(course['星期'] + ' · ' + course['时间'] + ' · ' + course['节次']) + '<br>' + esc(segments) + '<br>' + esc(course['教室'].join(' / ')) + '</div></div>' +
+          '<div class="mini-actions"><button class="mini-button" type="button" data-edit="' + entry.index + '">编辑</button>' +
+          '<button class="mini-button delete" type="button" data-delete="' + entry.index + '">删除</button></div></article>';
+      }).join('');
+    }
+
+    function renderSegments(parts) {
+      const container = document.getElementById('segmentList');
+      container.innerHTML = parts.map(function (part, index) {
+        return '<div class="segment-row" data-segment="' + index + '">' +
+          '<input class="text-input" data-week type="text" maxlength="12" aria-label="周次" placeholder="2-5" value="' + esc(part['周次']) + '">' +
+          '<input class="text-input" data-teacher type="text" maxlength="40" aria-label="教师" placeholder="教师姓名" value="' + esc(part['教师']) + '">' +
+          '<button class="remove-segment" type="button" data-remove-segment aria-label="删除这个授课分段">×</button></div>';
+      }).join('');
+    }
+
+    function addSegmentRow(part) {
+      const current = Array.from(document.querySelectorAll('#segmentList .segment-row')).map(function (row) {
+        return { '周次': row.querySelector('[data-week]').value, '教师': row.querySelector('[data-teacher]').value };
+      });
+      current.push(part || { '周次': '', '教师': '' });
+      renderSegments(current);
+      const rows = document.querySelectorAll('#segmentList .segment-row');
+      const last = rows[rows.length - 1];
+      if (last) last.querySelector('[data-week]').focus();
+    }
+
+    function updateCourseTimePreview() {
+      const slot = document.getElementById('courseSlot').value;
+      document.getElementById('courseTime').textContent = (SLOT_TIMES.get(slot) || '').replace('-', '—');
+    }
+
+    function openCourseEditor(index) {
+      state.editingIndex = Number.isInteger(index) ? index : -1;
+      const course = state.editingIndex >= 0 ? state.workingData[state.editingIndex] : {
+        '星期': DAYS_FULL[0],
+        '节次': '第1-2节',
+        '时间': SLOT_TIMES.get('第1-2节'),
+        '课程': '',
+        '授课分段': [{ '周次': '2-2', '教师': '' }],
+        '教室': ['']
+      };
+      if (!course) return;
+      document.getElementById('courseEditorEmpty').hidden = true;
+      document.getElementById('courseForm').hidden = false;
+      document.getElementById('courseName').value = course['课程'];
+      document.getElementById('courseDay').value = course['星期'];
+      document.getElementById('courseSlot').value = course['节次'];
+      document.getElementById('courseRooms').value = course['教室'].join('，');
+      renderSegments(course['授课分段']);
+      updateCourseTimePreview();
+      document.getElementById('courseName').focus();
+    }
+
+    function readCourseForm() {
+      const slot = document.getElementById('courseSlot').value;
+      const rooms = document.getElementById('courseRooms').value.split(/[,，]/).map(function (room) { return room.trim(); }).filter(Boolean);
+      const segments = Array.from(document.querySelectorAll('#segmentList .segment-row')).map(function (row) {
+        return {
+          '周次': row.querySelector('[data-week]').value.trim(),
+          '教师': row.querySelector('[data-teacher]').value.trim()
+        };
+      });
+      return validateCoursesInput([{
+        '星期': document.getElementById('courseDay').value,
+        '节次': slot,
+        '时间': SLOT_TIMES.get(slot),
+        '课程': document.getElementById('courseName').value.trim(),
+        '授课分段': segments,
+        '教室': rooms
+      }])[0];
+    }
+
+    function showManagerAuth(message) {
+      document.getElementById('managerEditor').hidden = true;
+      document.getElementById('managerAuth').hidden = false;
+      document.getElementById('adminPassword').value = '';
+      document.getElementById('authMessage').textContent = message || '';
+      window.setTimeout(function () { document.getElementById('adminPassword').focus(); }, 0);
+    }
+
+    function showManagerEditor() {
+      document.getElementById('managerAuth').hidden = true;
+      document.getElementById('managerEditor').hidden = false;
+      state.workingData = cloneData(runtimeData);
+      state.managerDirty = false;
+      state.conflictData = null;
+      renderManagerList();
+      resetCourseEditor();
+      setManagerStatus(isSyncConfigured() ? '已载入当前课表，修改完成后点击“保存全部修改到云端”。' : '云端服务尚未部署；可以先编辑和导出，部署后再保存到云端。', isSyncConfigured() ? '' : 'warning');
+    }
+
+    function openManagerDialog() {
+      const dialog = document.getElementById('managerDialog');
+      if (!dialog.open) dialog.showModal();
+      if (getSessionSecret()) showManagerEditor();
+      else showManagerAuth('');
+    }
+
+    function closeManagerDialog() {
+      if (state.managerDirty && !window.confirm('还有未保存到云端的修改，确定关闭并放弃吗？')) return;
+      state.managerDirty = false;
+      document.getElementById('managerDialog').close();
+    }
+
+    async function saveWorkingDataToCloud() {
+      if (!isSyncConfigured()) {
+        setManagerStatus('云同步服务尚未部署。你可以先导出 JSON 备份，部署完成后再保存。', 'warning');
+        return;
+      }
+      const secret = getSessionSecret();
+      if (!secret) {
+        showManagerAuth('会话已过期，请重新输入管理密码。');
+        return;
+      }
+      let clean;
+      try { clean = validateCoursesInput(state.workingData); }
+      catch (error) { setManagerStatus(error.message, 'error'); return; }
+
+      const button = document.getElementById('saveCloud');
+      button.disabled = true;
+      setManagerStatus('正在核对修订号并保存…', '');
+      try {
+        const response = await fetchWithTimeout(SYNC_ENDPOINT + '/api/schedule', {
+          method: 'PUT',
+          headers: { 'Authorization': 'Bearer ' + secret, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ baseRevision: state.revision, courses: clean })
+        });
+        const payload = await response.json().catch(function () { return null; });
+        if (response.status === 401) {
+          clearSessionSecret();
+          showManagerAuth('管理密码不正确，请重新输入。');
+          return;
+        }
+        if (response.status === 409 && payload && payload.data) {
+          state.conflictData = payload.data;
+          setManagerStatus('保存被阻止：另一台设备已经更新课表。请点击“重新载入云端”，再进行修改。', 'warning');
+          return;
+        }
+        if (!response.ok || !payload || !payload.ok || !payload.data) throw new Error(payload && payload.error ? payload.error.message : '保存失败');
+        applyRuntimeData(payload.data.courses, { revision: Number(payload.data.revision), updatedAt: payload.data.updatedAt, source: 'cloud' });
+        saveCache();
+        state.workingData = cloneData(runtimeData);
+        state.managerDirty = false;
+        state.conflictData = null;
+        renderManagerList();
+        resetCourseEditor();
+        const time = formatUpdatedAt(state.updatedAt);
+        setManagerStatus('已保存到云端。电脑和手机重新打开或回到页面时会自动同步。', 'success');
+        setSyncStatus('synced', '已同步' + (time ? ' ' + time : ''), '云端课表已同步 · 修订 ' + state.revision + (time ? ' · ' + time : ''));
+      } catch (error) {
+        setManagerStatus('保存失败：' + (error.name === 'AbortError' ? '连接超时，请检查网络后重试' : error.message), 'error');
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function reloadManagerFromCloud() {
+      if (state.managerDirty && !window.confirm('重新载入会放弃当前未保存的修改，是否继续？')) return;
+      state.managerDirty = false;
+      const loaded = await loadCloudSchedule({ force: true, fromManager: true });
+      if (loaded) {
+        state.workingData = cloneData(runtimeData);
+        state.conflictData = null;
+        renderManagerList();
+        resetCourseEditor();
+        setManagerStatus('已载入云端最新课表，可以继续编辑。', 'success');
+      }
+    }
+
+    function exportWorkingData() {
+      const content = JSON.stringify({ schemaVersion: 1, exportedAt: new Date().toISOString(), courses: state.workingData }, null, 2);
+      const url = URL.createObjectURL(new Blob([content], { type: 'application/json;charset=utf-8' }));
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = 'KUST-Lab-课表-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(function () { URL.revokeObjectURL(url); }, 0);
+      setManagerStatus('已导出当前待同步课表。', 'success');
+    }
+
+    async function importWorkingData(file) {
+      try {
+        const parsed = JSON.parse(await file.text());
+        const clean = validateCoursesInput(Array.isArray(parsed) ? parsed : parsed.courses);
+        state.workingData = clean;
+        state.managerDirty = true;
+        renderManagerList();
+        resetCourseEditor();
+        setManagerStatus('已导入 ' + clean.length + ' 门次课程，尚未保存到云端。', 'warning');
+      } catch (error) {
+        setManagerStatus('导入失败：' + error.message, 'error');
+      }
+    }
+
+    function setupManager() {
+      const daySelect = document.getElementById('courseDay');
+      const slotSelect = document.getElementById('courseSlot');
+      daySelect.innerHTML = DAYS_FULL.map(function (day) { return '<option value="' + day + '">' + day + '</option>'; }).join('');
+      slotSelect.innerHTML = Array.from(SLOT_TIMES.entries()).map(function (entry) {
+        return '<option value="' + entry[0] + '">' + entry[0] + ' · ' + entry[1].replace('-', '—') + '</option>';
+      }).join('');
+
+      document.getElementById('openManager').addEventListener('click', openManagerDialog);
+      document.getElementById('closeManager').addEventListener('click', closeManagerDialog);
+      document.getElementById('managerDialog').addEventListener('cancel', function (event) { event.preventDefault(); closeManagerDialog(); });
+      document.getElementById('unlockManager').addEventListener('click', function () {
+        const secret = document.getElementById('adminPassword').value;
+        if (!secret) { document.getElementById('authMessage').textContent = '请输入管理密码。'; return; }
+        setSessionSecret(secret);
+        showManagerEditor();
+      });
+      document.getElementById('adminPassword').addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') { event.preventDefault(); document.getElementById('unlockManager').click(); }
+      });
+      document.getElementById('lockManager').addEventListener('click', function () {
+        if (state.managerDirty && !window.confirm('退出管理会放弃当前未保存修改，是否继续？')) return;
+        state.managerDirty = false;
+        clearSessionSecret();
+        showManagerAuth('已退出管理。');
+      });
+      document.getElementById('addCourse').addEventListener('click', function () { openCourseEditor(-1); });
+      document.getElementById('cancelCourseEdit').addEventListener('click', resetCourseEditor);
+      document.getElementById('courseSlot').addEventListener('change', updateCourseTimePreview);
+      document.getElementById('addSegment').addEventListener('click', function () { addSegmentRow(); });
+      document.getElementById('segmentList').addEventListener('click', function (event) {
+        const button = event.target.closest('[data-remove-segment]');
+        if (!button) return;
+        const rows = document.querySelectorAll('#segmentList .segment-row');
+        if (rows.length <= 1) { setManagerStatus('每门课程至少需要一个授课分段。', 'error'); return; }
+        button.closest('.segment-row').remove();
+      });
+      document.getElementById('managerCourseList').addEventListener('click', function (event) {
+        const edit = event.target.closest('[data-edit]');
+        const remove = event.target.closest('[data-delete]');
+        if (edit) { openCourseEditor(Number(edit.dataset.edit)); return; }
+        if (!remove) return;
+        const index = Number(remove.dataset.delete);
+        const course = state.workingData[index];
+        if (!course || !window.confirm('确定删除“' + course['课程'] + '”这门次吗？')) return;
+        state.workingData.splice(index, 1);
+        state.managerDirty = true;
+        renderManagerList();
+        resetCourseEditor();
+        setManagerStatus('课程已从待同步列表删除，尚未保存到云端。', 'warning');
+      });
+      document.getElementById('courseForm').addEventListener('submit', function (event) {
+        event.preventDefault();
+        try {
+          const course = readCourseForm();
+          if (state.editingIndex >= 0) state.workingData[state.editingIndex] = course;
+          else state.workingData.push(course);
+          state.managerDirty = true;
+          renderManagerList();
+          resetCourseEditor();
+          setManagerStatus('课程已加入待同步列表，记得保存全部修改到云端。', 'warning');
+        } catch (error) {
+          setManagerStatus(error.message, 'error');
+        }
+      });
+      document.getElementById('importCourses').addEventListener('click', function () { document.getElementById('importFile').click(); });
+      document.getElementById('importFile').addEventListener('change', function (event) {
+        const file = event.target.files && event.target.files[0];
+        if (file) importWorkingData(file);
+        event.target.value = '';
+      });
+      document.getElementById('exportCourses').addEventListener('click', exportWorkingData);
+      document.getElementById('reloadCloud').addEventListener('click', reloadManagerFromCloud);
+      document.getElementById('saveCloud').addEventListener('click', saveWorkingDataToCloud);
+      window.addEventListener('beforeunload', function (event) {
+        if (!state.managerDirty) return;
+        event.preventDefault();
+        event.returnValue = '';
+      });
+    }
+
     function tick() {
       const now = new Date();
       const previousCurrentWeek = state.currentWeek;
@@ -1987,6 +2802,8 @@
       state.currentWeek = teachingWeek(now);
       state.viewWeek = Math.max(1, Math.min(MAX_WEEK, state.currentWeek));
       state.selectedDay = dayIndex(now);
+      setupManager();
+      hydrateFromCache();
 
       document.getElementById('prevWeek').addEventListener('click', function () {
         state.viewWeek = Math.max(1, state.viewWeek - 1);
@@ -2012,7 +2829,14 @@
 
       tick();
       window.setInterval(tick, 1000);
-      document.addEventListener('visibilitychange', function () { if (!document.hidden) tick(); });
+      loadCloudSchedule();
+      window.setInterval(function () { loadCloudSchedule(); }, SYNC_INTERVAL_MS);
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) {
+          tick();
+          loadCloudSchedule();
+        }
+      });
     }
 
     init();
