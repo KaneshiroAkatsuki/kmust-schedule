@@ -1298,6 +1298,7 @@
       state.currentWeek = teachingWeek(now);
       if (previousCurrentWeek !== state.currentWeek && state.viewWeek === previousCurrentWeek) {
         state.viewWeek = Math.max(1, Math.min(MAX_WEEK, state.currentWeek));
+        state.selectedDay = dayIndex(now);
       }
       renderClock(now);
       renderStatus(now);
@@ -1318,10 +1319,12 @@
 
       document.getElementById('prevWeek').addEventListener('click', function () {
         state.viewWeek = Math.max(1, state.viewWeek - 1);
+        state.selectedDay = 0;
         renderWeek(new Date());
       });
       document.getElementById('nextWeek').addEventListener('click', function () {
         state.viewWeek = Math.min(MAX_WEEK, state.viewWeek + 1);
+        state.selectedDay = 0;
         renderWeek(new Date());
       });
       document.getElementById('weekCurrent').addEventListener('click', function () {
