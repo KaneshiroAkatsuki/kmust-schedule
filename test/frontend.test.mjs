@@ -15,7 +15,8 @@ assert.ok(scriptMatch, 'inline application script should exist');
 const exposedNames = [
   'RAW_DATA', 'FALLBACK_DATA', 'DAYS_FULL', 'SLOT_TIMES', 'state', 'COURSES',
   'teachingWeek', 'academicPhase', 'dateForWeekDay', 'dayIndex', 'isActive',
-  'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput'
+  'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput',
+  'setupMobileMoreMenu'
 ];
 
 const testSource = scriptMatch[1].replace(/\s*init\(\);\s*$/, '') +
@@ -36,7 +37,7 @@ test('page keeps its identity, local assets and responsive layout system', () =>
   assert.match(html, /https:\/\/www\.kmust\.edu\.cn\/info\/1020\/20442\.htm/);
   assert.match(css, /@media \(max-width: 360px\)/);
   assert.match(css, /@media \(max-width: 800px\)/);
-  assert.match(css, /@media \(min-width: 900px\) and \(max-width: 1159px\)/);
+  assert.match(css, /@media \(min-width: 801px\) and \(max-width: 1159px\)/);
   assert.match(css, /@media \(min-width: 1160px\)/);
   assert.match(css, /--workspace: 1880px/);
   assert.match(css, /grid-template-columns: 92px repeat\(7/);
@@ -175,6 +176,77 @@ test('footer expands to four columns and collapses responsively', () => {
   assert.match(html, /<summary>学校链接<\/summary>/);
   assert.match(css, /@media \(min-width: 980px\)[\s\S]*?grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
   assert.match(css, /@media \(min-width: 641px\) and \(max-width: 979px\)[\s\S]*?grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+});
+
+test('foldable and phone breakpoints avoid narrow side columns', () => {
+  assert.match(css, /grid-template-areas:\s*"hero"\s*"today"\s*"week"/);
+  assert.match(css, /@media \(min-width: 801px\) and \(max-width: 1159px\)[\s\S]*?"hero today"\s*"week week"/);
+  assert.match(css, /@media \(max-width: 520px\)[\s\S]*?\.week-row \{ grid-template-columns: minmax\(0,1fr\)/);
+  assert.match(css, /\.week-time br \{ display: none; \}/);
+  assert.doesNotMatch(css, /\.dock-item\.dock-manage \{[^}]*background: var\(--kust-red-soft\)/);
+});
+
+test('mobile more menu keeps every compact-screen function reachable', () => {
+  const ids = [
+    'openMoreMobile', 'mobileMoreDialog', 'closeMoreMobile', 'moreToday',
+    'moreWeek', 'moreCalendar', 'moreManager', 'moreSync', 'moreAbout'
+  ];
+  for (const id of ids) {
+    assert.equal((html.match(new RegExp(`id=["']${id}["']`, 'g')) || []).length, 1, `${id} should exist exactly once`);
+  }
+  assert.match(html, /id="openMoreMobile"[^>]*aria-controls="mobileMoreDialog"[^>]*aria-expanded="false"/);
+  assert.match(html, /function setupMobileMoreMenu\(\)/);
+  assert.match(html, /openButton\.setAttribute\('aria-expanded', 'true'\)/);
+  assert.match(html, /openButton\.setAttribute\('aria-expanded', 'false'\)/);
+  assert.match(html, /document\.getElementById\('moreSync'\)\.addEventListener/);
+  assert.match(css, /\.mobile-more-dialog/);
+  assert.match(css, /@media \(max-width: 800px\)[\s\S]*?\.mobile-more-grid \{[\s\S]*?grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+});
+
+test('mobile more menu opens and closes with synchronized accessibility state', () => {
+  class MockElement {
+    constructor() {
+      this.listeners = {};
+      this.attributes = {};
+      this.open = false;
+    }
+    addEventListener(type, handler) { (this.listeners[type] ||= []).push(handler); }
+    emit(type, event = {}) { for (const handler of this.listeners[type] || []) handler({ target: this, preventDefault() {}, stopPropagation() {}, ...event }); }
+    setAttribute(name, value) { this.attributes[name] = value; }
+    showModal() { this.open = true; }
+    close() { this.open = false; this.emit('close'); }
+    querySelector(selector) { return this.children[selector]; }
+    setPointerCapture() {}
+    scrollIntoView() {}
+  }
+
+  const ids = Object.fromEntries([
+    'openMoreMobile', 'mobileMoreDialog', 'closeMoreMobile', 'moreToday', 'moreWeek',
+    'moreCalendar', 'moreManager', 'moreSync', 'moreAbout', 'todaySection', 'weekSection'
+  ].map((id) => [id, new MockElement()]));
+  const sheet = new MockElement();
+  const handle = new MockElement();
+  ids.mobileMoreDialog.children = { '.mobile-more-sheet': sheet, '.mobile-more-handle': handle };
+  const calendar = new MockElement();
+  const footer = new MockElement();
+
+  context.document = {
+    getElementById: (id) => ids[id],
+    querySelector: (selector) => selector === '.calendar-card' ? calendar : footer
+  };
+  context.window = {
+    requestAnimationFrame: (callback) => callback(),
+    matchMedia: () => ({ matches: false, addEventListener() {} })
+  };
+
+  api.setupMobileMoreMenu();
+  ids.openMoreMobile.emit('click');
+  assert.equal(ids.mobileMoreDialog.open, true);
+  assert.equal(ids.openMoreMobile.attributes['aria-expanded'], 'true');
+
+  ids.closeMoreMobile.emit('click');
+  assert.equal(ids.mobileMoreDialog.open, false);
+  assert.equal(ids.openMoreMobile.attributes['aria-expanded'], 'false');
 });
 
 test('admin secret is session-only and revision conflicts have a visible recovery path', () => {

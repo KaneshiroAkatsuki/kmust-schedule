@@ -1777,11 +1777,53 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19h14M7 16l.7-3.5 7.7-7.7a1.5 1.5 0 0 1 2.1 0l1.7 1.7a1.5 1.5 0 0 1 0 2.1l-7.7 7.7L8 17Z"/></svg>
       <span>管理</span>
     </button>
-    <button class="dock-item" id="openCalendarMobile" type="button" aria-label="查看校历">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M5 4.5h11.5a2 2 0 0 1 2 2V20H7a2 2 0 0 1-2-2V4.5Z"/><path d="M7 20a2 2 0 0 1 2-2h9.5M8.5 8h6M8.5 11h6"/></svg>
-      <span>校历</span>
+    <button class="dock-item" id="openMoreMobile" type="button" aria-controls="mobileMoreDialog" aria-expanded="false" aria-label="展开更多功能">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+      <span>更多</span>
     </button>
   </nav>
+
+  <dialog class="mobile-more-dialog" id="mobileMoreDialog" aria-labelledby="mobileMoreTitle">
+    <section class="mobile-more-sheet">
+      <div class="mobile-more-handle" aria-hidden="true"></div>
+      <header class="mobile-more-head">
+        <div>
+          <p class="mobile-more-eyebrow">KUST·Lab</p>
+          <h2 id="mobileMoreTitle">更多功能</h2>
+        </div>
+        <button class="mobile-more-close" id="closeMoreMobile" type="button" aria-label="收起更多功能">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+      <div class="mobile-more-grid">
+        <button class="mobile-more-item" id="moreToday" type="button">
+          <span class="mobile-more-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4m8-4v4M3 10h18m-13 4h3m2 0h3"/></svg></span>
+          <span><strong>今日课程</strong><small>查看今天的时间线</small></span>
+        </button>
+        <button class="mobile-more-item" id="moreWeek" type="button">
+          <span class="mobile-more-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4m8-4v4M3 10h18m5 4-4 4-2-2"/></svg></span>
+          <span><strong>一周课表</strong><small>按星期浏览课程</small></span>
+        </button>
+        <button class="mobile-more-item" id="moreCalendar" type="button">
+          <span class="mobile-more-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 4.5h11.5a2 2 0 0 1 2 2V20H7a2 2 0 0 1-2-2V4.5Z"/><path d="M7 20a2 2 0 0 1 2-2h9.5M8.5 8h6M8.5 11h6"/></svg></span>
+          <span><strong>校历节点</strong><small>查看本学年安排</small></span>
+        </button>
+        <button class="mobile-more-item is-emphasis" id="moreManager" type="button">
+          <span class="mobile-more-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 19h14M7 16l.7-3.5 7.7-7.7a1.5 1.5 0 0 1 2.1 0l1.7 1.7a1.5 1.5 0 0 1 0 2.1l-7.7 7.7L8 17Z"/></svg></span>
+          <span><strong>管理课表</strong><small>新增、修改或删除</small></span>
+        </button>
+        <button class="mobile-more-item" id="moreSync" type="button">
+          <span class="mobile-more-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 8.7A7 7 0 0 1 18.6 7L20 12M4 12l1.4 5A7 7 0 0 0 18 15.3"/></svg></span>
+          <span><strong>重新同步</strong><small>读取云端最新课表</small></span>
+        </button>
+        <button class="mobile-more-item" id="moreAbout" type="button">
+          <span class="mobile-more-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 10.5V17M12 7.3v.2"/></svg></span>
+          <span><strong>网站说明</strong><small>数据范围与学校链接</small></span>
+        </button>
+      </div>
+      <p class="mobile-more-note">课程与临时调课请以学院和任课教师最新通知为准。</p>
+    </section>
+  </dialog>
 
   <dialog class="manager-dialog" id="managerDialog" aria-labelledby="managerTitle">
     <div class="manager-shell">
@@ -2983,6 +3025,67 @@
       else media.addListener(apply);
     }
 
+    function setupMobileMoreMenu() {
+      const dialog = document.getElementById('mobileMoreDialog');
+      const openButton = document.getElementById('openMoreMobile');
+      const sheet = dialog.querySelector('.mobile-more-sheet');
+      const handle = dialog.querySelector('.mobile-more-handle');
+      let dragStartY = null;
+
+      const closeMenu = function () {
+        if (dialog.open) dialog.close();
+        openButton.setAttribute('aria-expanded', 'false');
+      };
+      const openMenu = function () {
+        if (!dialog.open) dialog.showModal();
+        openButton.setAttribute('aria-expanded', 'true');
+      };
+      const goTo = function (target) {
+        closeMenu();
+        window.requestAnimationFrame(function () {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      };
+
+      openButton.addEventListener('click', openMenu);
+      document.getElementById('closeMoreMobile').addEventListener('click', closeMenu);
+      dialog.addEventListener('close', function () { openButton.setAttribute('aria-expanded', 'false'); });
+      dialog.addEventListener('click', function (event) { if (event.target === dialog) closeMenu(); });
+      dialog.addEventListener('cancel', function (event) { event.preventDefault(); closeMenu(); });
+
+      document.getElementById('moreToday').addEventListener('click', function () { goTo(document.getElementById('todaySection')); });
+      document.getElementById('moreWeek').addEventListener('click', function () { goTo(document.getElementById('weekSection')); });
+      document.getElementById('moreCalendar').addEventListener('click', function () {
+        const calendarCard = document.querySelector('.calendar-card');
+        calendarCard.open = true;
+        goTo(calendarCard);
+      });
+      document.getElementById('moreManager').addEventListener('click', function () {
+        closeMenu();
+        window.requestAnimationFrame(openManagerDialog);
+      });
+      document.getElementById('moreSync').addEventListener('click', function () {
+        closeMenu();
+        loadCloudSchedule();
+      });
+      document.getElementById('moreAbout').addEventListener('click', function () { goTo(document.querySelector('.site-footer')); });
+
+      handle.addEventListener('pointerdown', function (event) {
+        dragStartY = event.clientY;
+        handle.setPointerCapture(event.pointerId);
+      });
+      handle.addEventListener('pointerup', function (event) {
+        if (dragStartY !== null && event.clientY - dragStartY > 42) closeMenu();
+        dragStartY = null;
+      });
+      sheet.addEventListener('click', function (event) { event.stopPropagation(); });
+
+      const desktopMedia = window.matchMedia('(min-width: 801px)');
+      const closeOnDesktop = function (event) { if (event.matches) closeMenu(); };
+      if (desktopMedia.addEventListener) desktopMedia.addEventListener('change', closeOnDesktop);
+      else desktopMedia.addListener(closeOnDesktop);
+    }
+
     function tick() {
       const now = new Date();
       const previousCurrentWeek = state.currentWeek;
@@ -3032,10 +3135,7 @@
       calendarCard.addEventListener('toggle', function () {
         calendarHint.textContent = calendarCard.open ? '收起' : '展开查看';
       });
-      document.getElementById('openCalendarMobile').addEventListener('click', function () {
-        calendarCard.open = true;
-        calendarCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
+      setupMobileMoreMenu();
 
       tick();
       window.setInterval(tick, 1000);
