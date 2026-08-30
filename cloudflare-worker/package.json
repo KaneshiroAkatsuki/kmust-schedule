@@ -1,0 +1,8 @@
+{
+  "name": "kmust-schedule-sync-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}
