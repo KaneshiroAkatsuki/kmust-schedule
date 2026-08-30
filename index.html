@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<title>上课了没 · 昆工研一课表</title>
+<style>
+:root { --ink:#111827; --sub:#6b7280; --line:#e5e7eb; --bg:#f3f4f6; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--ink); padding-bottom:40px; }
+.now { background:#111827; color:#fff; padding:20px 18px 22px; border-radius:0 0 22px 22px; }
+.now .d { font-size:13px; opacity:.65; }
+.now .t { font-size:44px; font-weight:700; letter-spacing:1px; margin:2px 0 10px; font-variant-numeric:tabular-nums; }
+.status { border-radius:14px; padding:13px 14px; font-size:14.5px; line-height:1.6; }
+.status.on { background:#065f46; }
+.status.next { background:#1f2937; border:1px solid #374151; }
+.status.free { background:#1f2937; border:1px solid #374151; }
+.status .big { font-size:17px; font-weight:700; }
+.status .sub { opacity:.75; font-size:12.5px; margin-top:3px; }
+.sec { padding:18px 16px 6px; font-size:15px; font-weight:700; display:flex; justify-content:space-between; align-items:baseline; }
+.sec .w { font-size:12px; color:var(--sub); font-weight:normal; }
+.tcard { margin:8px 16px; background:#fff; border-radius:14px; padding:13px 14px; border-left:5px solid #999; display:flex; gap:12px; align-items:flex-start; }
+.tcard .tm { flex:none; width:64px; font-size:12px; color:var(--sub); line-height:1.5; font-variant-numeric:tabular-nums; }
+.tcard .tm b { display:block; color:var(--ink); font-size:13px; }
+.tcard .bd { flex:1; min-width:0; }
+.tcard .n { font-size:15px; font-weight:600; }
+.tcard .m { font-size:12px; color:var(--sub); margin-top:4px; line-height:1.6; }
+.pill { flex:none; font-size:11px; border-radius:20px; padding:3px 9px; font-weight:600; }
+.pill.doing { background:#d1fae5; color:#065f46; }
+.pill.todo { background:#e5e7eb; color:#4b5563; }
+.pill.done { background:#f3f4f6; color:#9ca3af; }
+.tcard.done { opacity:.45; }
+.none { margin:8px 16px; background:#fff; border-radius:14px; padding:18px; text-align:center; color:var(--sub); font-size:13.5px; }
+.wrap { overflow-x:auto; padding:0 8px; -webkit-overflow-scrolling:touch; }
+table { border-collapse:separate; border-spacing:3px; min-width:780px; width:100%; }
+th, td { vertical-align:top; }
+th.day { background:#fff; border-radius:8px; padding:6px 2px; font-size:12px; min-width:96px; border:1px solid var(--line); }
+th.day.today { background:#111827; color:#fff; }
+th.slot { text-align:left; padding:6px 4px; font-size:11.5px; white-space:nowrap; min-width:74px; }
+th.slot .t { color:var(--sub); font-weight:normal; font-size:10.5px; display:block; }
+td.cell { background:#fff; border:1px solid var(--line); border-radius:8px; padding:4px; min-width:96px; }
+td.cell.today { outline:2px solid #111827; }
+.c { border-left:3px solid #999; border-radius:5px; padding:4px 5px; margin-bottom:4px; background:#fafafa; }
+.c:last-child { margin-bottom:0; }
+.c .n { font-size:11.5px; font-weight:600; line-height:1.35; }
+.c .m { font-size:10px; color:var(--sub); margin-top:2px; line-height:1.5; }
+.c.off { opacity:.3; filter:grayscale(.7); }
+.foot { margin:16px; font-size:11px; color:#9ca3af; line-height:1.8; }
+</style>
+</head>
+<body>
+<div class="now">
+  <div class="d" id="dateLine"></div>
+  <div class="t" id="clock">--:--</div>
+  <div class="status free" id="status"></div>
+</div>
+
+<div class="sec">今日课程<span class="w" id="todayCount"></span></div>
+<div id="todayList"></div>
+
+<div class="sec">本周课表<span class="w">灰色 = 本周不上</span></div>
+<div class="wrap"><table id="tbl"></table></div>
+
+<div class="foot">昆明理工大学 · 现代农业工程院 · 农田水土工程（专硕）· 2026–2027 秋季学期<br>
+开学 2026-08-23，教学周按周一至周日计算；节次时间以 2026-2027 校历为准。数据整理自课表打印.doc。</div>
+
+<script>
+const DATA = [{"day": 0, "slot": 0, "name": "农业与生物系统工程专论", "parts": [[2, 7, "张兆国"]], "rooms": ["公教楼129"], "range": "2-7", "color": "#2563eb"}, {"day": 1, "slot": 0, "name": "专业外语（农水专硕）", "parts": [[2, 5, "陶文梅"], [6, 9, "唐振亚"], [10, 13, "王德金"]], "rooms": ["公教楼450"], "range": "2-13", "color": "#059669"}, {"day": 4, "slot": 0, "name": "土壤微生物学", "parts": [[2, 13, "唐振亚"]], "rooms": ["公教楼247"], "range": "2-13", "color": "#d97706"}, {"day": 0, "slot": 1, "name": "SPAC系统水分运转与调控", "parts": [[2, 5, "王卫华"], [6, 9, "郭金金"]], "rooms": ["公教楼448"], "range": "2-9", "color": "#dc2626"}, {"day": 0, "slot": 1, "name": "设施农业与装备（专硕）", "parts": [[11, 16, "周伟"]], "rooms": ["公教楼249"], "range": "11-16", "color": "#7c3aed"}, {"day": 1, "slot": 1, "name": "农业生态与环境工程", "parts": [[8, 13, "王海东"]], "rooms": ["公教楼138"], "range": "8-13", "color": "#db2777"}, {"day": 1, "slot": 1, "name": "土壤微生物学", "parts": [[14, 17, "彭小瑜"]], "rooms": ["公教楼247"], "range": "14-17", "color": "#d97706"}, {"day": 2, "slot": 1, "name": "数值分析", "parts": [[2, 19, "杨超"]], "rooms": ["公教楼246"], "range": "2-19", "color": "#0d9488"}, {"day": 3, "slot": 1, "name": "硕士研究生思政课程（一）", "parts": [[2, 19, "杜永梅"]], "rooms": ["公教楼446"], "range": "2-19", "color": "#ea580c"}, {"day": 4, "slot": 1, "name": "试验设计与数据处理（农水）", "parts": [[2, 7, "郭金金"], [8, 9, "刘艳伟"], [10, 11, "周立峰"], [12, 13, "袁勇"]], "rooms": ["公教楼132"], "range": "2-13", "color": "#4f46e5"}, {"day": 5, "slot": 1, "name": "现代灌排理论与新技术（专硕）", "parts": [[7, 7, "徐丹"]], "rooms": ["公教楼346"], "range": "7-7", "color": "#65a30d"}, {"day": 6, "slot": 1, "name": "农业面源污染控制工程（农生方向）", "parts": [[2, 7, "袁勇"], [8, 9, "彭红波"]], "rooms": ["公教楼345"], "range": "2-9", "color": "#0891b2"}, {"day": 0, "slot": 2, "name": "农业生态与环境工程", "parts": [[2, 7, "程铭慧"]], "rooms": ["公教楼552"], "range": "2-7", "color": "#db2777"}, {"day": 0, "slot": 2, "name": "生态水文原理及应用（专硕）", "parts": [[9, 11, "彭小瑜"], [12, 14, "刘艳伟"]], "rooms": ["公教楼454", "公教楼346"], "range": "9-14", "color": "#9333ea"}, {"day": 1, "slot": 2, "name": "现代灌排理论与新技术（专硕）", "parts": [[2, 3, "刘小刚"], [4, 6, "董建华"], [8, 8, "董建华"]], "rooms": ["公教楼250", "公教楼352"], "range": "2-8", "color": "#65a30d"}, {"day": 1, "slot": 2, "name": "SPAC系统水分运转与调控", "parts": [[10, 13, "李悦"]], "rooms": ["公教楼446"], "range": "10-13", "color": "#dc2626"}, {"day": 2, "slot": 2, "name": "现代灌排理论与新技术（专硕）", "parts": [[9, 13, "韩焕豪"]], "rooms": ["公教楼137"], "range": "9-13", "color": "#65a30d"}, {"day": 3, "slot": 2, "name": "生态水文原理及应用（专硕）", "parts": [[6, 8, "袁勇"]], "rooms": ["公教楼448"], "range": "6-8", "color": "#9333ea"}, {"day": 3, "slot": 2, "name": "农业面源污染控制工程（农水方向）", "parts": [[2, 5, "韩焕豪"]], "rooms": ["公教楼132"], "range": "2-5", "color": "#e11d48"}, {"day": 4, "slot": 2, "name": "地理信息系统", "parts": [[11, 12, "刘艳伟"]], "rooms": ["公教楼247"], "range": "11-12", "color": "#0284c7"}, {"day": 4, "slot": 2, "name": "农业生物环境控制工程", "parts": [[2, 10, "陶文梅"]], "rooms": ["公教楼247"], "range": "2-10", "color": "#16a34a"}, {"day": 5, "slot": 2, "name": "生态水文原理及应用（专硕）", "parts": [[5, 5, "王德金"]], "rooms": ["公教楼448"], "range": "5-5", "color": "#9333ea"}, {"day": 5, "slot": 2, "name": "农业面源污染控制工程（农水方向）", "parts": [[6, 13, "韩焕豪"]], "rooms": ["公教楼132"], "range": "6-13", "color": "#e11d48"}, {"day": 0, "slot": 3, "name": "土壤水分溶质动力学", "parts": [[2, 5, "谭帅"], [6, 9, "陈绍民"], [10, 13, "李娜"]], "rooms": ["公教楼248"], "range": "2-13", "color": "#ca8a04"}, {"day": 1, "slot": 3, "name": "农林废弃物处理工程", "parts": [[5, 7, "温磊"]], "rooms": ["公教楼448"], "range": "5-7", "color": "#c026d3"}, {"day": 1, "slot": 3, "name": "农业与生物系统工程专论", "parts": [[8, 9, "李加念"], [10, 11, "梁嘉平"], [12, 13, "范旭东"], [14, 17, "王法安"], [18, 21, "武占东"]], "rooms": ["公教楼246"], "range": "8-21", "color": "#2563eb"}, {"day": 1, "slot": 3, "name": "生态水文原理及应用（专硕）", "parts": [[3, 4, "王德金"]], "rooms": ["公教楼448"], "range": "3-4", "color": "#9333ea"}, {"day": 2, "slot": 3, "name": "学科前沿讲座", "parts": [[2, 2, "张兆国"], [3, 3, "张付杰"], [4, 4, "朱惠斌"], [5, 5, "苏有勇"], [6, 6, "杨启良"], [7, 7, "刘小刚"], [8, 8, "李加念"], [9, 9, "王卫华"], [10, 10, "彭红波"]], "rooms": ["公教楼246"], "range": "2-10", "color": "#57534e"}, {"day": 2, "slot": 3, "name": "农业生物环境控制工程", "parts": [[11, 13, "陶文梅"]], "rooms": ["公教楼247"], "range": "11-13", "color": "#16a34a"}, {"day": 3, "slot": 3, "name": "土壤农化分析", "parts": [[2, 5, "唐振亚"], [6, 9, "彭小瑜"], [10, 13, "王海东"]], "rooms": ["公教楼247"], "range": "2-13", "color": "#0f766e"}, {"day": 4, "slot": 3, "name": "农林废弃物处理工程", "parts": [[2, 4, "温磊"]], "rooms": ["公教楼132"], "range": "2-4", "color": "#c026d3"}, {"day": 4, "slot": 3, "name": "设施农业与装备（专硕）", "parts": [[5, 10, "喻黎明"]], "rooms": ["公教楼247"], "range": "5-10", "color": "#7c3aed"}, {"day": 5, "slot": 3, "name": "农林废弃物处理工程", "parts": [[8, 13, "范旭东"]], "rooms": ["公教楼132"], "range": "8-13", "color": "#c026d3"}, {"day": 0, "slot": 4, "name": "农业生物环境控制工程", "parts": [[11, 13, "陶文梅"]], "rooms": ["公教楼247"], "range": "11-13", "color": "#16a34a"}, {"day": 0, "slot": 5, "name": "地理信息系统", "parts": [[3, 9, "王德金"], [10, 10, "王德金"]], "rooms": ["公教楼247"], "range": "3-10", "color": "#0284c7"}, {"day": 1, "slot": 5, "name": "农业面源污染控制工程（农生方向）", "parts": [[10, 15, "温磊"]], "rooms": ["公教楼345"], "range": "10-15", "color": "#0891b2"}, {"day": 3, "slot": 5, "name": "地理信息系统", "parts": [[3, 9, "王德金"]], "rooms": ["公教楼247"], "range": "3-9", "color": "#0284c7"}];
+const SLOTS = [["第1-2节", 480, 575, "08:00", "09:35"], ["第3-5节", 590, 735, "09:50", "12:15"], ["第6-8节", 810, 955, "13:30", "15:55"], ["第9-10节", 970, 1065, "16:10", "17:45"], ["第11节", 1070, 1115, "17:50", "18:35"], ["第12-13节", 1170, 1265, "19:30", "21:05"]]; // [label, startMin, endMin, startStr, endStr]
+const DAYS = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+const START = new Date(2026, 7, 24); // 第1周周一
+
+function tick() {
+  const now = new Date();
+  const mins = now.getHours()*60 + now.getMinutes();
+  const wd = (now.getDay()+6) % 7;
+  const week = Math.max(1, Math.floor((now - START)/6048e5) + 1);
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('clock').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
+  document.getElementById('dateLine').textContent =
+    now.getFullYear() + '年' + (now.getMonth()+1) + '月' + now.getDate() + '日 · ' + DAYS[wd] + ' · 第' + week + '周';
+
+  const inWeek = d => d.parts.some(p => week >= p[0] && week <= p[1]);
+  const today = DATA.filter(d => d.day === wd && inWeek(d)).sort((a,b) => a.slot - b.slot);
+
+  // ---- 当前状态 ----
+  const st = document.getElementById('status');
+  const cur = today.find(d => mins >= SLOTS[d.slot][1] && mins < SLOTS[d.slot][2]);
+  if (cur) {
+    const left = SLOTS[cur.slot][2] - mins;
+    st.className = 'status on';
+    st.innerHTML = '<div class="big">🔔 正在上课：' + cur.name + '</div>' +
+      '<div class="sub">' + SLOTS[cur.slot][0] + '（' + SLOTS[cur.slot][3] + '–' + SLOTS[cur.slot][4] + '）· ' +
+      cur.rooms.join('/') + ' · 还剩 ' + left + ' 分钟下课</div>';
+  } else {
+    const nxt = today.find(d => SLOTS[d.slot][1] > mins);
+    if (nxt) {
+      const till = SLOTS[nxt.slot][1] - mins;
+      const tillTxt = till >= 60 ? Math.floor(till/60) + ' 小时 ' + (till%60) + ' 分钟' : till + ' 分钟';
+      st.className = 'status next';
+      st.innerHTML = '<div class="big">☕ 现在没课 · 下一节 ' + SLOTS[nxt.slot][3] + '</div>' +
+        '<div class="sub">' + nxt.name + ' · ' + nxt.rooms.join('/') + ' · ' + tillTxt + '后上课</div>';
+    } else if (today.length) {
+      st.className = 'status free';
+      st.innerHTML = '<div class="big">🎉 今天的课都上完了</div><div class="sub">共 ' + today.length + ' 节 · 好好休息</div>';
+    } else {
+      st.className = 'status free';
+      st.innerHTML = '<div class="big">🛌 今天没课</div><div class="sub">第' + week + '周 · ' + DAYS[wd] + ' 无安排</div>';
+    }
+  }
+
+  // ---- 今日列表 ----
+  const tl = document.getElementById('todayList');
+  document.getElementById('todayCount').textContent = today.length ? today.length + ' 节' : '';
+  if (!today.length) {
+    tl.innerHTML = '<div class="none">今天没有排课</div>';
+  } else {
+    tl.innerHTML = today.map(d => {
+      const s = SLOTS[d.slot];
+      const state = mins >= s[2] ? 'done' : (mins >= s[1] ? 'doing' : 'todo');
+      const pill = state === 'done' ? '<span class="pill done">已结束</span>'
+                 : state === 'doing' ? '<span class="pill doing">进行中</span>'
+                 : '<span class="pill todo">未开始</span>';
+      const teachers = d.parts.filter(p => week>=p[0]&&week<=p[1]).map(p => p[2]).join('、') || d.parts.map(p=>p[2]).join('、');
+      return '<div class="tcard ' + (state==='done'?'done':'') + '" style="border-left-color:' + d.color + '">' +
+        '<div class="tm"><b>' + s[3] + '</b>' + s[4] + '<br>' + s[0] + '</div>' +
+        '<div class="bd"><div class="n">' + d.name + '</div>' +
+        '<div class="m">' + teachers + ' · ' + d.rooms.join('/') + ' · 第' + d.range + '周</div></div>' + pill + '</div>';
+    }).join('');
+  }
+
+  // ---- 周矩阵 ----
+  const grid = {};
+  DATA.forEach(d => { (grid[d.slot + '|' + d.day] = grid[d.slot+'|'+d.day] || []).push(d); });
+  let h = '<tr><th class="slot"></th>' + DAYS.map((d,i) =>
+    '<th class="day' + (i===wd?' today':'') + '">' + d + '</th>').join('') + '</tr>';
+  SLOTS.forEach((s, si) => {
+    h += '<tr><th class="slot">' + s[0] + '<span class="t">' + s[3] + '–' + s[4] + '</span></th>';
+    for (let di = 0; di < 7; di++) {
+      const list = grid[si + '|' + di] || [];
+      let inner = '';
+      list.forEach(d => {
+        const on = inWeek(d);
+        const teachers = d.parts.map(p => p[2] + (p[0]===p[1] ? p[0]+'周' : p[0]+'-'+p[1]+'周')).join('、');
+        inner += '<div class="c' + (on?'':' off') + '" style="border-left-color:' + d.color + '">' +
+          '<div class="n">' + d.name + '</div>' +
+          '<div class="m">' + teachers + '<br>' + d.rooms.join('/') + '</div></div>';
+      });
+      h += '<td class="cell' + (di===wd?' today':'') + '">' + inner + '</td>';
+    }
+    h += '</tr>';
+  });
+  document.getElementById('tbl').innerHTML = h;
+}
+tick();
+setInterval(tick, 30000);
+</script>
+</body>
+</html>
