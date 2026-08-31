@@ -363,6 +363,26 @@ test('login gate, card actions and cloud recycle bin are available on every layo
   assert.match(css, /@media \(max-width: 800px\)[\s\S]*?\.tool-dialog \{ width: 100vw/);
 });
 
+test('course cards open details before mutually exclusive management and scope steps', () => {
+  for (const id of ['courseDetailView', 'courseManageView', 'courseScopeView', 'courseActionBack', 'beginCourseManage', 'applyCourseAction']) {
+    assert.equal((html.match(new RegExp(`id=["']${id}["']`, 'g')) || []).length, 1, `${id} should exist exactly once`);
+  }
+  assert.match(html, /id="courseDetailView"/);
+  assert.match(html, /id="courseManageView" hidden/);
+  assert.match(html, /id="courseScopeView" hidden/);
+  assert.match(html, /id="detailTeacher"/);
+  assert.match(html, /id="detailRoom"/);
+  assert.match(html, /id="detailSegments"/);
+  assert.match(html, /id="detailMentor" hidden/);
+  assert.match(html, /function setCourseActionStep\(step\)[\s\S]*?courseDetailView[\s\S]*?courseManageView[\s\S]*?courseScopeView/);
+  assert.match(html, /beginCourseManage[\s\S]*?setCourseActionStep\('manage'\)/);
+  assert.match(html, /function chooseCourseAction\(action\)[\s\S]*?setCourseActionStep\('scope'\)/);
+  assert.match(html, /applyCourseAction[\s\S]*?applyPendingCourseAction/);
+  assert.match(css, /\.course-action-view\[hidden\],[^\{]*\.scope-range\[hidden\],[^\{]*\.scope-weeks\[hidden\][^\{]*\{ display: none !important; \}/);
+  assert.match(css, /\.tool-sheet::\-webkit-scrollbar \{ width: 5px; \}/);
+  assert.match(css, /@media \(max-width: 800px\)[\s\S]*?\.tool-sheet \{[^}]*scrollbar-width: none;[^}]*\}[\s\S]*?\.tool-sheet::\-webkit-scrollbar \{ display: none; \}/);
+});
+
 test('homepage owns the immediate cloud upload action and preserves staged edits when manager closes', () => {
   const saveButtonIndex = html.indexOf('id="saveCloud"');
   const mainIndex = html.indexOf('<main class="app"');

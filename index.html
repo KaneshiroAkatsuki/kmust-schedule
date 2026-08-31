@@ -1633,7 +1633,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=2.1">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=2.2">
 </head>
 <body class="app-locked">
   <section class="login-gate" id="loginGate" aria-labelledby="loginTitle">
@@ -1828,7 +1828,7 @@
 
       <div class="footer-bottom">
         <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">2.1</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">2.2</span></span>
       </div>
     </div>
   </footer>
@@ -1965,21 +1965,49 @@
 
   <dialog class="tool-dialog" id="courseActionDialog" aria-labelledby="actionCourseTitle">
     <div class="tool-sheet action-sheet">
-      <header class="tool-head"><div><small id="actionCourseMeta">课程操作</small><h2 id="actionCourseTitle">课程</h2></div><button class="icon-button" type="button" data-close-dialog="courseActionDialog" aria-label="关闭">×</button></header>
-      <fieldset class="scope-picker"><legend>修改范围</legend>
-        <label><input type="radio" name="actionScope" value="once" checked><span>仅本次<strong id="scopeOnceHint">当前周</strong></span></label>
-        <label><input type="radio" name="actionScope" value="from"><span>连续周段<strong>选择起止周</strong></span></label>
-        <label><input type="radio" name="actionScope" value="custom"><span>自定义周次<strong>可不连续选择</strong></span></label>
-        <label><input type="radio" name="actionScope" value="all"><span>整门课程<strong>全部上课周次</strong></span></label>
-      </fieldset>
-      <div class="scope-range" id="scopeRange" hidden><label>从<select id="scopeStart"></select></label><span>至</span><label>到<select id="scopeEnd"></select></label><p id="scopeDateHint"></p></div>
-      <div class="scope-weeks" id="scopeWeeks" hidden></div>
-      <div class="course-actions">
-        <button type="button" data-course-action="edit"><strong>修改</strong><span>保留课程内容并编辑所选范围</span></button>
-        <button type="button" data-course-action="replace"><strong>替换</strong><span>用另一门课替换所选范围</span></button>
-        <button type="button" data-course-action="parallel"><strong>增加并排课程</strong><span>同一时段最多两门无需额外确认</span></button>
-        <button type="button" data-course-action="delete" class="danger-action"><strong>删除</strong><span>移入回收站，可恢复</span></button>
-      </div>
+      <header class="tool-head action-tool-head">
+        <div class="action-head-leading">
+          <button class="action-back" id="courseActionBack" type="button" aria-label="返回上一步" hidden>‹</button>
+          <div><small id="actionCourseMeta">课程详情</small><h2 id="actionCourseTitle">课程</h2></div>
+        </div>
+        <button class="icon-button" type="button" data-close-dialog="courseActionDialog" aria-label="关闭">×</button>
+      </header>
+
+      <section class="course-action-view course-detail-view" id="courseDetailView">
+        <div class="course-detail-status"><span id="detailWeekStatus">本周课程</span><strong id="detailSelection">我的课程</strong></div>
+        <dl class="course-detail-grid">
+          <div><dt>上课时间</dt><dd id="detailTime">—</dd></div>
+          <div><dt>上课地点</dt><dd id="detailRoom">—</dd></div>
+          <div><dt>本周教师</dt><dd id="detailTeacher">—</dd></div>
+          <div><dt>上课周次</dt><dd id="detailWeeks">—</dd></div>
+        </dl>
+        <div class="course-segment-detail"><span>完整授课安排</span><p id="detailSegments">—</p></div>
+        <div class="course-mentor-alert" id="detailMentor" hidden><strong>导师课程 · 不可缺席</strong><span>请优先遵从导师与学院的最新上课通知。</span></div>
+        <button class="course-detail-manage" id="beginCourseManage" type="button">管理此课程 <span>›</span></button>
+      </section>
+
+      <section class="course-action-view course-manage-view" id="courseManageView" hidden>
+        <div class="action-view-intro"><strong>你想怎样处理？</strong><span>选择操作后，再决定只改本周还是一段周次。</span></div>
+        <div class="course-actions">
+          <button type="button" data-course-action="edit"><strong>修改课程</strong><span>调整课程、教师、教室或上课时间</span></button>
+          <button type="button" data-course-action="replace"><strong>替换课程</strong><span>将所选周次换成另一门课程</span></button>
+          <button type="button" data-course-action="parallel"><strong>增加并排课程</strong><span>在同一时段加入另一门课程</span></button>
+          <button type="button" data-course-action="delete" class="danger-action"><strong>删除课程</strong><span>所选周次移入回收站，可恢复</span></button>
+        </div>
+      </section>
+
+      <section class="course-action-view course-scope-view" id="courseScopeView" hidden>
+        <div class="action-view-intro"><strong id="actionScopeTitle">选择修改范围</strong><span id="actionScopeNote">当前操作只会影响选中的周次。</span></div>
+        <fieldset class="scope-picker"><legend class="sr-only">作用范围</legend>
+          <label><input type="radio" name="actionScope" value="once" checked><span>仅本次<strong id="scopeOnceHint">当前周</strong></span></label>
+          <label><input type="radio" name="actionScope" value="from"><span>连续周段<strong>选择起止周</strong></span></label>
+          <label><input type="radio" name="actionScope" value="custom"><span>自定义周次<strong>可不连续选择</strong></span></label>
+          <label><input type="radio" name="actionScope" value="all"><span>整门课程<strong>全部上课周次</strong></span></label>
+        </fieldset>
+        <div class="scope-range" id="scopeRange" hidden><label>从<select id="scopeStart"></select></label><span>至</span><label>到<select id="scopeEnd"></select></label><p id="scopeDateHint"></p></div>
+        <div class="scope-weeks" id="scopeWeeks" hidden></div>
+        <div class="scope-submit-wrap"><button class="scope-submit" id="applyCourseAction" type="button">继续修改</button></div>
+      </section>
     </div>
   </dialog>
 
@@ -2146,8 +2174,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '2.1';
-    const SITE_UPDATED_AT = '2026-08-31T15:50:00+08:00';
+    const SITE_VERSION = '2.2';
+    const SITE_UPDATED_AT = '2026-08-31T15:12:00+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -2279,6 +2307,8 @@
       actionWeek: 1,
       actionDay: 0,
       actionSlot: '第1-2节',
+      courseActionStep: 'detail',
+      pendingCourseAction: '',
       editMode: 'all',
       editAction: 'edit',
       scopeWeeks: [],
@@ -3996,6 +4026,87 @@
       document.getElementById('scopeDateHint').textContent = segmentDateHint(start, end);
     }
 
+    function setCourseActionStep(step) {
+      const validStep = ['detail', 'manage', 'scope'].indexOf(step) !== -1 ? step : 'detail';
+      state.courseActionStep = validStep;
+      document.getElementById('courseDetailView').hidden = validStep !== 'detail';
+      document.getElementById('courseManageView').hidden = validStep !== 'manage';
+      document.getElementById('courseScopeView').hidden = validStep !== 'scope';
+      document.getElementById('courseActionBack').hidden = validStep === 'detail';
+      document.getElementById('actionCourseMeta').textContent = validStep === 'detail' ? '课程详情' : (validStep === 'manage' ? '管理课程' : '选择作用范围');
+      const sheet = document.querySelector('#courseActionDialog .tool-sheet');
+      if (sheet) sheet.scrollTop = 0;
+    }
+
+    function populateCourseDetail(index) {
+      const rawCourse = state.workingData[index];
+      const course = buildCourses(state.workingData).find(function (item) { return item.id === index; });
+      if (!rawCourse || !course) return;
+      const activeThisWeek = isActive(course, state.viewWeek);
+      const info = activeThisWeek ? activeInfo(course, state.viewWeek) : { teachers: '本周不上课', rooms: rawCourse['教室'].join(' / ') };
+      const selection = courseSelectionStatus(course);
+      const selectionLabels = {
+        selected: '我的课程',
+        'pending-drop': '待退选课程',
+        unselected: '非选课内容'
+      };
+      const status = document.getElementById('detailWeekStatus');
+      status.textContent = '第' + state.viewWeek + '周 · ' + (activeThisWeek ? '本周上课' : '本周不上课');
+      status.parentElement.classList.toggle('is-off', !activeThisWeek);
+      document.getElementById('detailSelection').textContent = selectionLabels[selection] || '我的课程';
+      document.getElementById('detailTime').textContent = rawCourse['星期'] + ' · ' + rawCourse['时间'] + ' · ' + rawCourse['节次'];
+      document.getElementById('detailRoom').textContent = info.rooms || '教室待定';
+      document.getElementById('detailTeacher').textContent = info.teachers || '教师待定';
+      document.getElementById('detailWeeks').textContent = rawCourse['授课分段'].map(function (part) { return '第' + part['周次'] + '周'; }).join('、');
+      document.getElementById('detailSegments').textContent = allSegments(course);
+      document.getElementById('detailMentor').hidden = !rawCourseHasMentor(rawCourse);
+    }
+
+    function chooseCourseAction(action) {
+      const copy = {
+        edit: ['修改课程', '选择需要修改的上课周次。', '继续修改'],
+        replace: ['替换课程', '选择需要替换为另一门课的周次。', '继续替换'],
+        parallel: ['增加并排课程', '选择需要在同一时段增加课程的周次。', '继续添加'],
+        delete: ['删除课程', '选择需要移入回收站的周次，下一步仍会二次确认。', '确认删除范围']
+      };
+      if (!copy[action]) return;
+      state.pendingCourseAction = action;
+      document.getElementById('actionScopeTitle').textContent = copy[action][0];
+      document.getElementById('actionScopeNote').textContent = copy[action][1];
+      const apply = document.getElementById('applyCourseAction');
+      apply.textContent = copy[action][2];
+      apply.classList.toggle('is-danger', action === 'delete');
+      setCourseActionStep('scope');
+      updateActionScopeView();
+    }
+
+    function applyPendingCourseAction() {
+      const action = state.pendingCourseAction;
+      const index = state.actionCourseIndex;
+      const course = state.workingData[index];
+      if (!course || !action) return;
+      const weeks = selectedActionWeeks();
+      if (!weeks.length) { window.alert('所选范围没有这门课程，请重新选择。'); return; }
+      if (action === 'delete') {
+        try {
+          if (moveScopedCourseToTrash(index, weeks, '从课程卡片删除')) document.getElementById('courseActionDialog').close();
+        } catch (error) { window.alert(error.message); }
+        return;
+      }
+      document.getElementById('courseActionDialog').close();
+      if (action === 'parallel') {
+        const template = rawCourseSubset(course, weeks);
+        template['课程'] = '';
+        template['授课分段'].forEach(function (part) { part['教师'] = ''; });
+        openNewCourse({ course: template });
+        return;
+      }
+      const subset = rawCourseSubset(course, weeks);
+      if (action === 'replace') subset['课程'] = '';
+      openManagerDialog();
+      openCourseEditor(index, { course: subset, scopeWeeks: weeks, action: action });
+    }
+
     function openCourseAction(index) {
       ensureWorkingDocument();
       const course = state.workingData[index];
@@ -4004,8 +4115,9 @@
       state.actionWeek = state.viewWeek;
       state.actionDay = DAYS_FULL.indexOf(course['星期']);
       state.actionSlot = course['节次'];
+      state.pendingCourseAction = '';
       document.getElementById('actionCourseTitle').textContent = course['课程'];
-      document.getElementById('actionCourseMeta').textContent = course['星期'] + ' · ' + course['时间'] + ' · ' + course['节次'];
+      populateCourseDetail(index);
       const available = Array.from(rawCourseWeekMap(course).keys());
       const activeThisWeek = available.indexOf(state.viewWeek) !== -1;
       document.getElementById('scopeOnceHint').textContent = activeThisWeek ? ('第' + state.viewWeek + '周 · ' + longDate(dateForWeekDay(state.viewWeek, state.actionDay))) : '当前查看周没有这门课';
@@ -4027,6 +4139,7 @@
       once.checked = activeThisWeek;
       allScope.checked = !activeThisWeek;
       updateActionScopeView();
+      setCourseActionStep('detail');
       const dialog = document.getElementById('courseActionDialog');
       if (!dialog.open) dialog.showModal();
     }
@@ -4213,30 +4326,15 @@
       document.querySelectorAll('input[name="actionScope"]').forEach(function (input) { input.addEventListener('change', updateActionScopeView); });
       document.getElementById('scopeStart').addEventListener('change', updateActionScopeView);
       document.getElementById('scopeEnd').addEventListener('change', updateActionScopeView);
+      document.getElementById('beginCourseManage').addEventListener('click', function () { setCourseActionStep('manage'); });
+      document.getElementById('courseActionBack').addEventListener('click', function () {
+        setCourseActionStep(state.courseActionStep === 'scope' ? 'manage' : 'detail');
+      });
+      document.getElementById('applyCourseAction').addEventListener('click', applyPendingCourseAction);
       document.getElementById('courseActionDialog').addEventListener('click', function (event) {
         const action = event.target.closest('[data-course-action]');
         if (!action) return;
-        const index = state.actionCourseIndex;
-        const course = state.workingData[index];
-        const weeks = selectedActionWeeks();
-        if (!weeks.length) { window.alert('所选范围没有这门课程，请重新选择。'); return; }
-        if (action.dataset.courseAction === 'delete') {
-          try { if (moveScopedCourseToTrash(index, weeks, '从课程卡片删除')) document.getElementById('courseActionDialog').close(); }
-          catch (error) { window.alert(error.message); }
-          return;
-        }
-        document.getElementById('courseActionDialog').close();
-        if (action.dataset.courseAction === 'parallel') {
-          const template = rawCourseSubset(course, weeks);
-          template['课程'] = '';
-          template['授课分段'].forEach(function (part) { part['教师'] = ''; });
-          openNewCourse({ course: template });
-          return;
-        }
-        const subset = rawCourseSubset(course, weeks);
-        if (action.dataset.courseAction === 'replace') subset['课程'] = '';
-        openManagerDialog();
-        openCourseEditor(index, { course: subset, scopeWeeks: weeks, action: action.dataset.courseAction });
+        chooseCourseAction(action.dataset.courseAction);
       });
       document.getElementById('trashList').addEventListener('click', function (event) {
         ensureWorkingDocument();
