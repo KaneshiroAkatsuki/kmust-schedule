@@ -20,6 +20,7 @@ const exposedNames = [
   'dayPartForMinutes',
   'teachingWeek', 'academicPhase', 'dateForWeekDay', 'dayIndex', 'isActive',
   'scheduleTermForDate',
+  'courseSelectionStatus', 'isPersonalCourse',
   'normalizeWeekRange', 'weekDateRangeLabel', 'segmentDateHint', 'weekRangeValue', 'weekOptions',
   'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput',
   'stageCourseUpsert', 'stageCourseDelete',
@@ -76,6 +77,25 @@ test('fallback data is immutable and contains all 37 course meetings', () => {
   assert.ok(Object.isFrozen(api.FALLBACK_DATA));
   assert.ok(Object.isFrozen(api.FALLBACK_DATA[0]));
   assert.ok(Object.isFrozen(api.FALLBACK_DATA[0]['授课分段']));
+});
+
+test('course selection marks match the submitted plan without hiding timetable reference rows', () => {
+  assert.equal(api.courseSelectionStatus({ name: '数值分析' }), 'selected');
+  assert.equal(api.courseSelectionStatus({ name: '专业外语（农水专硕）' }), 'selected');
+  assert.equal(api.courseSelectionStatus({ name: '设施农业与装备（专硕）' }), 'selected');
+  assert.equal(api.courseSelectionStatus({ name: '生态水文原理及应用（专硕）' }), 'pending-drop');
+  assert.equal(api.courseSelectionStatus({ name: '农业水土环境' }), 'pending-drop');
+  assert.equal(api.courseSelectionStatus({ name: '土壤微生物学' }), 'unselected');
+  assert.equal(api.courseSelectionStatus({ name: '农业面源污染控制工程（农水方向）' }), 'unselected');
+  assert.equal(api.courseSelectionStatus({ name: '新增个人课程' }), 'selected', 'newly added personal courses should remain visible as selected by default');
+
+  const unselectedNames = new Set(api.COURSES.filter((course) => api.courseSelectionStatus(course) === 'unselected').map((course) => course.name));
+  assert.deepEqual(Array.from(unselectedNames).sort(), [
+    '农业生态与环境工程', '农业生物环境控制工程', '农业面源污染控制工程（农水方向）',
+    '农业面源污染控制工程（农生方向）', '农林废弃物处理工程', '土壤农化分析',
+    '土壤微生物学', '土壤水分溶质动力学', '地理信息系统'
+  ].sort());
+  assert.equal(api.COURSES.some((course) => course.name === '农业水土环境'), false, 'the current 37 meetings do not contain this pending-drop course');
 });
 
 test('first teaching week begins on Monday August 24 and Sunday stays day seven', () => {
@@ -142,7 +162,7 @@ test('week heading term follows the current academic date', () => {
   assert.equal(api.scheduleTermForDate(localDate(2027, 8, 20)), '第二学期课程');
   assert.equal(api.scheduleTermForDate(localDate(2027, 8, 21)), '新学年课程');
   assert.match(html, /id="weekTermNote"/);
-  assert.match(html, /scheduleTermForDate\(now\) \+ ' · 红色实线表示本周上课 · 灰色虚线表示此时间段无课'/);
+  assert.match(html, /scheduleTermForDate\(now\) \+ ' · 仅已选与待退选课程参与上课提醒'/);
 });
 
 test('live status reports current class, next class and remaining time', () => {
@@ -158,6 +178,21 @@ test('live status reports current class, next class and remaining time', () => {
   assert.equal(next.room, '公教楼448');
   assert.equal(next.label, '下一节 09:50');
   assert.equal(next.countdownLabel, '还有');
+});
+
+test('non-selected reference courses never become current or next-class reminders', () => {
+  const nonSelectedOnly = api.currentStatus(localDate(2026, 9, 6, 10, 30));
+  assert.equal(nonSelectedOnly.type, 'free');
+  assert.equal(nonSelectedOnly.course, '今天没有课程安排');
+
+  const afterPersonalClasses = api.currentStatus(localDate(2026, 8, 31, 14, 0));
+  assert.equal(afterPersonalClasses.type, 'finished');
+  assert.notEqual(afterPersonalClasses.course, '农业生态与环境工程');
+
+  const pendingDrop = api.currentStatus(localDate(2026, 9, 8, 16, 30));
+  assert.equal(pendingDrop.type, 'active');
+  assert.equal(pendingDrop.course, '生态水文原理及应用（专硕）');
+  assert.equal(api.courseSelectionStatus({ name: pendingDrop.course }), 'pending-drop');
 });
 
 test('day parts follow the published class times', () => {
@@ -194,12 +229,16 @@ test('desktop matrix renders all seven days, six time bands and mentor warning',
   assert.equal((matrix.innerHTML.match(/class="matrix-cell/g) || []).length, 42);
   assert.match(matrix.innerHTML, /设施农业与装备（专硕）/);
   assert.match(matrix.innerHTML, /导师课 · 不可缺席/);
+  assert.match(matrix.innerHTML, /非选课 · 无需上课/);
+  assert.match(matrix.innerHTML, /待退选 · 请确认/);
   assert.match(matrix.innerHTML, /本周上课/);
   assert.match(matrix.innerHTML, /此时间段无课/);
   assert.match(matrix.innerHTML, />上午</);
   assert.match(matrix.innerHTML, />下午</);
   assert.match(matrix.innerHTML, />晚上</);
   assert.match(matrix.innerHTML, /16:10—17:45/);
+  assert.match(css, /\.matrix-card\.is-unselected/);
+  assert.match(css, /\.week-list > \.week-row\.is-pending-drop/);
 });
 
 test('course editor validation matches the cloud contract', () => {
@@ -520,7 +559,7 @@ test('foldable and phone breakpoints avoid narrow side columns', () => {
   assert.doesNotMatch(css, /\.dock-item\.dock-manage \{[^}]*background: var\(--kust-red-soft\)/);
   assert.match(css, /\.week-list > \.week-row\.off[\s\S]*?border: 1px dashed/);
   assert.match(css, /\.on-label[\s\S]*?background: var\(--kust-red-soft\)/);
-  assert.match(html, /if \(on\) labels\.push\('<span class="on-label">本周上课<\/span>'\)/);
+  assert.match(html, /if \(on && selection !== 'unselected'\) labels\.push\('<span class="on-label">本周上课<\/span>'\)/);
   assert.match(css, /\.week-list \{[\s\S]*?grid-auto-rows: 1fr/);
   assert.match(css, /\.matrix-cell \{[\s\S]*?grid-auto-rows: 1fr/);
   assert.match(css, /\.timeline \{ display: grid; grid-auto-rows: 1fr; \}/);

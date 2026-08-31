@@ -1633,7 +1633,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=20260830-2327">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=1.5">
 </head>
 <body>
   <a class="skip-link" href="#mainContent">跳到课表内容</a>
@@ -1709,7 +1709,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4m8-4v4M3 10h18m5 4-4 4-2-2"/></svg>
           一周课表
         </h2>
-        <span class="section-note" id="weekTermNote">正在读取学期 · 红色实线表示本周上课 · 灰色虚线表示此时间段无课</span>
+        <span class="section-note" id="weekTermNote">正在读取学期 · 仅已选课程参与上课提醒</span>
       </div>
 
       <div class="mentor-reminder">喻黎明老师课程已重点标记：导师课 · 不可缺席</div>
@@ -1736,6 +1736,8 @@
           <span><i class="legend-live"></i>正在上课</span>
           <span><i class="legend-active"></i>本周上课</span>
           <span><i class="legend-mentor">★</i>导师课 · 不可缺席</span>
+          <span><i class="legend-pending"></i>待退选</span>
+          <span><i class="legend-unselected"></i>非选课 · 无需上课</span>
           <span><i class="legend-off"></i>此时间段无课</span>
         </div>
       </div>
@@ -1805,7 +1807,7 @@
 
       <div class="footer-bottom">
         <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">1.4</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">1.5</span></span>
       </div>
     </div>
   </footer>
@@ -2055,6 +2057,21 @@
     const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
     const MAX_WEEK = 21;
     const MENTOR_NAME = '喻黎明';
+    const PENDING_DROP_COURSE_NAMES = new Set([
+      '生态水文原理及应用（专硕）',
+      '农业水土环境'
+    ]);
+    const UNSELECTED_COURSE_NAMES = new Set([
+      '土壤微生物学',
+      '农业生态与环境工程',
+      '农业面源污染控制工程（农生方向）',
+      '农业面源污染控制工程（农水方向）',
+      '地理信息系统',
+      '农业生物环境控制工程',
+      '土壤水分溶质动力学',
+      '农林废弃物处理工程',
+      '土壤农化分析'
+    ]);
     const SYNC_ENDPOINT = 'https://kmust-schedule-sync.kaneshiroakatsuki.workers.dev';
     const WEATHER_SNAPSHOT_URL = 'data/weather.json';
     const CACHE_KEY = 'kust-lab-schedule-cache-v1';
@@ -2062,8 +2079,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '1.4';
-    const SITE_UPDATED_AT = '2026-08-31T11:57:45+08:00';
+    const SITE_VERSION = '1.5';
+    const SITE_UPDATED_AT = '2026-08-31T12:24:58+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -2342,11 +2359,25 @@
       }).join('；');
     }
 
-    function todayCourses(now) {
+    function courseSelectionStatus(course) {
+      const name = String(course && (course.name || course['课程']) || '').trim();
+      if (PENDING_DROP_COURSE_NAMES.has(name)) return 'pending-drop';
+      if (UNSELECTED_COURSE_NAMES.has(name)) return 'unselected';
+      return 'selected';
+    }
+
+    function isPersonalCourse(course) {
+      return courseSelectionStatus(course) !== 'unselected';
+    }
+
+    function todayCourses(now, options) {
+      const settings = options || {};
       const week = teachingWeek(now);
       const day = dayIndex(now);
       if (week < 1 || week > MAX_WEEK) return [];
-      return COURSES.filter(function (course) { return course.day === day && isActive(course, week); });
+      return COURSES.filter(function (course) {
+        return course.day === day && isActive(course, week) && (settings.includeUnselected || isPersonalCourse(course));
+      });
     }
 
     function nowMinuteFloat(now) {
@@ -2478,6 +2509,7 @@
     }
 
     function courseState(course, now) {
+      if (!isPersonalCourse(course)) return 'unselected';
       const minute = nowMinuteFloat(now);
       if (minute >= course.endMin) return 'done';
       if (minute >= course.startMin) return 'current';
@@ -2503,9 +2535,13 @@
 
     function renderToday(now) {
       const week = teachingWeek(now);
-      const list = todayCourses(now);
+      const list = todayCourses(now, { includeUnselected: true });
+      const personalCount = list.filter(isPersonalCourse).length;
+      const unselectedCount = list.length - personalCount;
       const container = document.getElementById('todayList');
-      document.getElementById('todayCount').textContent = list.length ? list.length + ' 门' : '无安排';
+      document.getElementById('todayCount').textContent = personalCount
+        ? personalCount + ' 门需上' + (unselectedCount ? ' · ' + unselectedCount + ' 条非选课' : '')
+        : (unselectedCount ? '无课 · ' + unselectedCount + ' 条非选课' : '无安排');
 
       if (!list.length) {
         const copy = emptyTodayCopy(now);
@@ -2519,11 +2555,15 @@
         const status = courseState(course, now);
         const info = activeInfo(course, week);
         const mentor = isMentorCourse(course, week);
+        const selection = courseSelectionStatus(course);
         const part = dayPartForMinutes(course.startMin);
         const stateLabel = status === 'current' ? '<span class="state-label">进行中</span>' : (status === 'next' ? '<span class="state-label">下一节</span>' : '');
         const mentorLabel = mentor ? '<span class="mentor-label">导师课 · 不可缺席</span>' : '';
+        const selectionLabel = selection === 'unselected'
+          ? '<span class="unselected-label">非选课内容 · 无需上课</span>'
+          : (selection === 'pending-drop' ? '<span class="pending-drop-label">待退选 · 退选前请确认</span>' : '');
         const partLabel = '<span class="daypart-label part-' + part.key + '">' + part.label + '</span>';
-        return '<article class="timeline-item ' + status + ' part-' + part.key + (mentor ? ' mentor-course' : '') + '"><div class="timeline-time"><span>' + course.start + '</span><span class="time-end">' + course.end + '</span></div><span class="timeline-dot" aria-hidden="true"></span><div class="timeline-body"><div>' + partLabel + '<span class="slot-label">' + esc(course.slot) + '</span>' + stateLabel + mentorLabel + '</div><div class="timeline-name">' + esc(course.name) + '</div><div class="row-meta">' + ICONS.user + '<span>' + esc(info.teachers) + '</span><span>·</span>' + ICONS.pin + '<span>' + esc(info.rooms) + '</span></div></div></article>';
+        return '<article class="timeline-item ' + status + ' part-' + part.key + (mentor ? ' mentor-course' : '') + (selection === 'unselected' ? ' is-unselected' : '') + (selection === 'pending-drop' ? ' is-pending-drop' : '') + '"><div class="timeline-time"><span>' + course.start + '</span><span class="time-end">' + course.end + '</span></div><span class="timeline-dot" aria-hidden="true"></span><div class="timeline-body"><div>' + partLabel + '<span class="slot-label">' + esc(course.slot) + '</span>' + stateLabel + mentorLabel + selectionLabel + '</div><div class="timeline-name">' + esc(course.name) + '</div><div class="row-meta">' + ICONS.user + '<span>' + esc(info.teachers) + '</span><span>·</span>' + ICONS.pin + '<span>' + esc(info.rooms) + '</span></div></div></article>';
       }).join('');
     }
 
@@ -2555,7 +2595,7 @@
     }
 
     function isLiveCourse(course, now) {
-      return sameDate(dateForWeekDay(state.viewWeek, state.selectedDay), now) && isActive(course, state.viewWeek) && nowMinuteFloat(now) >= course.startMin && nowMinuteFloat(now) < course.endMin;
+      return isPersonalCourse(course) && sameDate(dateForWeekDay(state.viewWeek, state.selectedDay), now) && isActive(course, state.viewWeek) && nowMinuteFloat(now) >= course.startMin && nowMinuteFloat(now) < course.endMin;
     }
 
     function renderWeekMatrix(now) {
@@ -2584,20 +2624,23 @@
 
           const cards = courses.map(function (course) {
             const on = isActive(course, state.viewWeek);
+            const selection = courseSelectionStatus(course);
             const active = activeInfo(course, state.viewWeek);
             const date = dateForWeekDay(state.viewWeek, day);
-            const live = sameDate(date, now) && on && nowMinuteFloat(now) >= course.startMin && nowMinuteFloat(now) < course.endMin;
+            const live = isPersonalCourse(course) && sameDate(date, now) && on && nowMinuteFloat(now) >= course.startMin && nowMinuteFloat(now) < course.endMin;
             const mentor = on && isMentorCourse(course, state.viewWeek);
             const mentorPlan = mentorSchedule(course);
             let badge = '';
-            if (mentor) badge = '<span class="matrix-badge">★ 导师课 · 不可缺席</span>';
+            if (selection === 'unselected') badge = '<span class="matrix-badge is-unselected-status">非选课 · 无需上课</span>';
+            else if (selection === 'pending-drop') badge = '<span class="matrix-badge is-pending-status">待退选 · 请确认</span>';
+            else if (mentor) badge = '<span class="matrix-badge">★ 导师课 · 不可缺席</span>';
             else if (live) badge = '<span class="matrix-badge">正在上课</span>';
             else if (!on) badge = '<span class="matrix-badge is-off-status">此时间段无课' + (mentorPlan ? ' · ' + esc(mentorPlan) : '') + '</span>';
             else badge = '<span class="matrix-badge is-on-status">本周上课</span>';
             const details = on
               ? active.teachers + ' · ' + active.rooms
               : course.rooms.join(' / ') + ' · ' + allSegments(course);
-            const className = 'matrix-card' + (on ? '' : ' is-off') + (mentor ? ' is-mentor' : '') + (live ? ' is-live' : '');
+            const className = 'matrix-card' + (on ? '' : ' is-off') + (mentor ? ' is-mentor' : '') + (live ? ' is-live' : '') + (selection === 'unselected' ? ' is-unselected' : '') + (selection === 'pending-drop' ? ' is-pending-drop' : '');
             return '<article class="' + className + '" title="' + esc(course.name + '｜' + details) + '">' + badge + '<div class="matrix-name">' + esc(course.name) + '</div><div class="matrix-meta">' + esc(details) + '</div></article>';
           }).join('');
           html += '<div class="matrix-cell part-' + part.key + '">' + cards + '</div>';
@@ -2609,7 +2652,7 @@
 
     function renderWeek(now) {
       const termNote = document.getElementById('weekTermNote');
-      if (termNote) termNote.textContent = scheduleTermForDate(now) + ' · 红色实线表示本周上课 · 灰色虚线表示此时间段无课';
+      if (termNote) termNote.textContent = scheduleTermForDate(now) + ' · 仅已选与待退选课程参与上课提醒';
       const currentWeek = teachingWeek(now);
       const currentButton = document.getElementById('weekCurrent');
       const weekStart = dateForWeekDay(state.viewWeek, 0);
@@ -2625,9 +2668,11 @@
       renderWeekMatrix(now);
 
       const list = COURSES.filter(function (course) { return course.day === state.selectedDay; });
-      const activeCount = list.filter(function (course) { return isActive(course, state.viewWeek); }).length;
+      const activePersonalCount = list.filter(function (course) { return isActive(course, state.viewWeek) && isPersonalCourse(course); }).length;
+      const activeUnselectedCount = list.filter(function (course) { return isActive(course, state.viewWeek) && !isPersonalCourse(course); }).length;
+      const inactiveCount = list.length - activePersonalCount - activeUnselectedCount;
       const selectedDate = dateForWeekDay(state.viewWeek, state.selectedDay);
-      document.getElementById('weekSummary').textContent = DAYS_FULL[state.selectedDay] + ' · ' + longDate(selectedDate) + ' · ' + activeCount + ' 门上课，' + (list.length - activeCount) + ' 个时间段无课';
+      document.getElementById('weekSummary').textContent = DAYS_FULL[state.selectedDay] + ' · ' + longDate(selectedDate) + ' · ' + activePersonalCount + ' 门需上' + (activeUnselectedCount ? '，' + activeUnselectedCount + ' 条非选课' : '') + '，' + inactiveCount + ' 个本周无课';
 
       const container = document.getElementById('weekList');
       if (!list.length) {
@@ -2640,20 +2685,23 @@
         const active = activeInfo(course, state.viewWeek);
         const live = isLiveCourse(course, now);
         const mentor = on && isMentorCourse(course, state.viewWeek);
+        const selection = courseSelectionStatus(course);
         const mentorPlan = mentorSchedule(course);
         const part = dayPartForMinutes(course.startMin);
         const labels = [];
         labels.push('<span class="daypart-badge part-' + part.key + '">' + part.label + '</span>');
         if (mentor) labels.push('<span class="mentor-label">导师课 · 不可缺席</span>');
         else if (mentorPlan) labels.push('<span class="mentor-schedule-label">' + esc(mentorPlan) + '</span>');
-        if (on) labels.push('<span class="on-label">本周上课</span>');
+        if (selection === 'unselected') labels.push('<span class="unselected-label">非选课内容 · 无需上课</span>');
+        else if (selection === 'pending-drop') labels.push('<span class="pending-drop-label">待退选 · 退选前请确认</span>');
+        if (on && selection !== 'unselected') labels.push('<span class="on-label">本周上课</span>');
         if (live) labels.push('<span class="live-label">上课中</span>');
         if (!on) labels.push('<span class="off-label">此时间段无课</span>');
         const label = labels.length ? '<div class="week-badges">' + labels.join('') + '</div>' : '';
         const details = on
           ? '<span>' + esc(active.teachers) + ' · ' + esc(active.rooms) + '</span>'
           : '<span>' + esc(course.rooms.join(' / ')) + '</span><span class="segments">' + esc(allSegments(course)) + '</span>';
-        return '<article class="week-row part-' + part.key + (on ? '' : ' off') + (mentor ? ' mentor-course' : '') + '"><div class="week-time">' + course.start + '–<br>' + course.end + '<span class="period">' + esc(course.slot) + '</span></div><div class="week-main"><div class="week-name-row"><div class="week-name">' + esc(course.name) + '</div>' + label + '</div><div class="week-detail">' + details + '</div></div></article>';
+        return '<article class="week-row part-' + part.key + (on ? '' : ' off') + (mentor ? ' mentor-course' : '') + (selection === 'unselected' ? ' is-unselected' : '') + (selection === 'pending-drop' ? ' is-pending-drop' : '') + '"><div class="week-time">' + course.start + '–<br>' + course.end + '<span class="period">' + esc(course.slot) + '</span></div><div class="week-main"><div class="week-name-row"><div class="week-name">' + esc(course.name) + '</div>' + label + '</div><div class="week-detail">' + details + '</div></div></article>';
       }).join('');
     }
 
