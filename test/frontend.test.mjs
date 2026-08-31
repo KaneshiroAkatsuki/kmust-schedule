@@ -467,6 +467,7 @@ test('weather is readable, cached locally and refreshed automatically or on dema
     source: '百度地图天气',
     location: '呈贡区',
     observedAt: '2026-08-30T22:25:00+08:00',
+    fetchedAt: '2026-08-30T22:25:00+08:00',
     current: {
       condition: '多云', temperature: 17, feelsLike: 16, humidity: 73,
       windDirection: '东南风', windLevel: '2级', precipitation: 0, visibility: 18000, airQualityIndex: 35
@@ -526,6 +527,9 @@ test('weather is readable, cached locally and refreshed automatically or on dema
     emit(type, event = {}) {
       for (const handler of this.listeners[type] || []) handler({ target: this, preventDefault() {}, ...event });
     }
+    async emitAsync(type, event = {}) {
+      for (const handler of this.listeners[type] || []) await handler({ target: this, preventDefault() {}, ...event });
+    }
     showModal() { this.open = true; }
     close() { this.open = false; }
   }
@@ -559,6 +563,7 @@ test('weather is readable, cached locally and refreshed automatically or on dema
         ok: true,
         data: {
           ...cachedData,
+          fetchedAt: String(url).includes('kmust-schedule-cn-gateway.pages.dev') ? new Date().toISOString() : cachedData.fetchedAt,
           current: { condition: '晴', temperature: 19, feelsLike: 18 }
         }
       })
@@ -568,13 +573,14 @@ test('weather is readable, cached locally and refreshed automatically or on dema
   assert.equal(await api.loadWeather(), true);
   assert.equal(fetchCalls.length, 0, 'fresh local cache should render without another request');
   assert.equal(elements.weatherPrimary.textContent, '17°');
-  assert.equal(elements.weatherSecondary.textContent, '多云');
+  assert.equal(elements.weatherSecondary.textContent, '多云 · 缓存');
   assert.equal(elements.weatherDialogTemperature.textContent, '17°');
   assert.match(elements.weatherMetrics.innerHTML, /相对湿度/);
 
   assert.equal(await api.loadWeather({ force: true }), true);
-  assert.equal(fetchCalls.length, 1, 'click-to-refresh should bypass the fresh-cache shortcut');
+  assert.equal(fetchCalls.length, 2, 'a stale snapshot should automatically continue to the live gateway');
   assert.match(fetchCalls[0], /^data\/weather\.json\?v=\d+$/, 'mobile refresh should use the same-origin snapshot first');
+  assert.match(fetchCalls[1], /kmust-schedule-cn-gateway\.pages\.dev\/api\/weather$/);
   assert.equal(elements.weatherPrimary.textContent, '19°');
   assert.equal(elements.weatherSecondary.textContent, '晴');
   assert.match(storage.get('kust-lab-weather-cache-v1'), /\"temperature\":19/);
@@ -605,10 +611,25 @@ test('weather is readable, cached locally and refreshed automatically or on dema
   assert.equal(elements.weatherDialog.open, false, 'Escape/cancel should close the weather dialog');
   api.state.weatherBusy = false;
 
+  const manualStart = fetchCalls.length;
+  await elements.refreshWeather.emitAsync('click');
+  assert.match(fetchCalls[manualStart], /kmust-schedule-cn-gateway\.pages\.dev\/api\/weather$/, 'manual refresh should request the live mainland gateway first');
+  assert.equal(elements.refreshWeather.attributes['aria-busy'], 'false');
+  assert.match(elements.refreshWeather.className, /is-success/);
+  assert.match(elements.weatherDialogStatus.textContent, /已检查|天气已更新/);
+
   assert.match(html, /class="clock-weather-row"[\s\S]*?id="clock"[\s\S]*?id="weatherChip"/);
   assert.match(html, /function setupWeatherDialog\(\)/);
   assert.match(html, /chip\.addEventListener\('click', openWeatherDialog\)/);
-  assert.match(html, /refreshButton\.addEventListener\('click',[\s\S]*?loadWeather\(\{ force: true \}\)/);
+  assert.match(html, /refreshButton\.addEventListener\('click',[\s\S]*?loadWeather\(\{ force: true, preferLive: true, feedback: true \}\)/);
+  assert.match(html, /function setWeatherFeedback\(kind, message\)/);
+  assert.match(css, /\.weather-dialog-button\.is-success/);
+  assert.match(css, /\.weather-dialog-button\.is-error/);
+  assert.match(css, /Unified tactile feedback/);
+  assert.match(css, /touch-action: manipulation/);
+  assert.match(css, /transform: translate3d\(0,1px,0\) scale\(\.97\)/);
+  assert.match(css, /@keyframes control-feedback/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.weather-dialog-button\.is-success[\s\S]*?animation: none !important/);
   assert.match(html, /window\.setInterval\(function \(\) \{\s*if \(!document\.hidden\) loadWeather\(\);\s*\}, WEATHER_REFRESH_MS\)/);
   assert.match(html, /visibilitychange[\s\S]*?if \(!document\.hidden\)[\s\S]*?loadWeather\(\)/);
   assert.match(html, /数据来源：百度地图天气/);

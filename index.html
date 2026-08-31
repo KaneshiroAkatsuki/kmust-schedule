@@ -1633,7 +1633,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=2.4">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=2.5">
 </head>
 <body class="app-locked">
   <section class="login-gate" id="loginGate" aria-labelledby="loginTitle">
@@ -1828,7 +1828,7 @@
 
       <div class="footer-bottom">
         <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">2.4</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">2.5</span></span>
       </div>
     </div>
   </footer>
@@ -2174,8 +2174,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '2.4';
-    const SITE_UPDATED_AT = '2026-08-31T15:28:00+08:00';
+    const SITE_VERSION = '2.5';
+    const SITE_UPDATED_AT = '2026-08-31T15:35:00+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -3390,11 +3390,21 @@
       return payload.data;
     }
 
-    async function fetchWeatherWithFallback() {
+    async function fetchWeatherWithFallback(options) {
+      const settings = options || {};
+      const snapshotUrl = WEATHER_SNAPSHOT_URL + '?v=' + Date.now();
+      const liveUrl = SYNC_ENDPOINT + '/api/weather';
+      if (settings.preferLive) {
+        try { return await fetchWeatherData(liveUrl); }
+        catch (_) { return fetchWeatherData(snapshotUrl); }
+      }
       try {
-        return await fetchWeatherData(WEATHER_SNAPSHOT_URL + '?v=' + Date.now());
+        const snapshot = await fetchWeatherData(snapshotUrl);
+        if (!weatherDataIsStale(snapshot)) return snapshot;
+        try { return await fetchWeatherData(liveUrl); }
+        catch (_) { return snapshot; }
       } catch (_) {
-        return fetchWeatherData(SYNC_ENDPOINT + '/api/weather');
+        return fetchWeatherData(liveUrl);
       }
     }
 
@@ -3442,28 +3452,54 @@
       if (refresh) {
         refresh.disabled = Boolean(busy);
         refresh.setAttribute('aria-busy', busy ? 'true' : 'false');
+        if (busy) {
+          refresh.classList.remove('is-success');
+          refresh.classList.remove('is-error');
+          refresh.title = '正在更新天气';
+        }
       }
       if (busy && status) status.textContent = '正在读取云端天气…';
+    }
+
+    function setWeatherFeedback(kind, message) {
+      const refresh = document.getElementById('refreshWeather');
+      const status = document.getElementById('weatherDialogStatus');
+      if (refresh) {
+        refresh.classList.remove('is-success');
+        refresh.classList.remove('is-error');
+        if (kind) refresh.classList.add('is-' + kind);
+        refresh.title = message;
+      }
+      if (status) status.textContent = message;
     }
 
     async function loadWeather(options) {
       const settings = options || {};
       if (state.weatherBusy) return false;
+      const previousObservedAt = state.weatherData && state.weatherData.observedAt || '';
       const cached = readWeatherCache();
       const cacheFresh = cached && Date.now() - cached.savedAt < WEATHER_REFRESH_MS;
-      if (cached) renderWeather(cached.data, { stale: !cacheFresh });
+      if (cached) renderWeather(cached.data, { stale: !cacheFresh || weatherDataIsStale(cached.data) });
       if (cacheFresh && !settings.force) return true;
       state.weatherBusy = true;
       setWeatherBusy(true);
       try {
-        const weatherData = await fetchWeatherWithFallback();
+        const weatherData = await fetchWeatherWithFallback({ preferLive: Boolean(settings.preferLive) });
         const stale = Boolean(weatherData.stale || weatherDataIsStale(weatherData));
         saveWeatherCache(weatherData);
         renderWeather(weatherData, { stale: stale });
+        if (settings.feedback) {
+          const observed = formatUpdatedAt(weatherData.observedAt);
+          const message = previousObservedAt && previousObservedAt === weatherData.observedAt
+            ? '已检查，当前天气已是最新'
+            : '天气已更新' + (observed ? ' · ' + observed : '');
+          setWeatherFeedback('success', message);
+        }
         return true;
       } catch (_) {
         if (cached) renderWeather(cached.data, { stale: true });
         else renderWeather(null);
+        if (settings.feedback) setWeatherFeedback('error', '更新失败，已保留上次天气，请稍后重试');
         return false;
       } finally {
         state.weatherBusy = false;
@@ -3479,6 +3515,12 @@
     function openWeatherDialog() {
       const dialog = document.getElementById('weatherDialog');
       if (!dialog) return;
+      const refresh = document.getElementById('refreshWeather');
+      if (refresh) {
+        refresh.classList.remove('is-success');
+        refresh.classList.remove('is-error');
+        refresh.title = '重新读取云端天气';
+      }
       renderWeatherDialog(state.weatherData);
       if (!dialog.open) dialog.showModal();
       loadWeather();
@@ -3492,7 +3534,7 @@
       if (!dialog || !chip || !closeButton || !refreshButton) return;
       chip.addEventListener('click', openWeatherDialog);
       closeButton.addEventListener('click', closeWeatherDialog);
-      refreshButton.addEventListener('click', function () { loadWeather({ force: true }); });
+      refreshButton.addEventListener('click', function () { return loadWeather({ force: true, preferLive: true, feedback: true }); });
       dialog.addEventListener('cancel', function (event) {
         event.preventDefault();
         closeWeatherDialog();

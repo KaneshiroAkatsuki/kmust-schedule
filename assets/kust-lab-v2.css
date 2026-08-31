@@ -308,6 +308,8 @@ body {
 .weather-dialog-button:hover { color: var(--kust-red); border-color: rgba(178,12,37,.28); background: #fff4f5; }
 .weather-dialog-button:focus-visible { outline: 3px solid rgba(178,12,37,.18); outline-offset: 2px; }
 .weather-dialog-button:disabled { opacity: .5; cursor: wait; }
+.weather-dialog-button.is-success { color: #23704b; border-color: rgba(35,112,75,.32); background: #eef8f2; animation: control-feedback .26s cubic-bezier(.2,.8,.2,1); }
+.weather-dialog-button.is-error { color: #a0142c; border-color: rgba(160,20,44,.3); background: #fff1f3; animation: control-feedback .26s cubic-bezier(.2,.8,.2,1); }
 .weather-dialog-button[aria-busy="true"] svg { animation: weather-sun-spin 1s linear infinite; }
 .weather-dialog-button svg { width: 19px; height: 19px; }
 
@@ -1439,6 +1441,26 @@ body.app-locked > :not(.login-gate) { visibility: hidden; }
   .app { grid-template-columns: minmax(300px,.8fr) minmax(520px,1.2fr); }
 }
 
+/* Unified tactile feedback: short compositor-friendly motion for mouse and touch. */
+:where(button,summary,[role="button"],.scope-picker label span,.scope-weeks span) {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform .16s cubic-bezier(.2,.8,.2,1), border-color .16s ease, background-color .16s ease, color .16s ease, box-shadow .16s ease, opacity .16s ease;
+}
+:where(button,summary,[role="button"]):active:not(:disabled),
+:where(.scope-picker label span,.scope-weeks span):active {
+  transform: translate3d(0,1px,0) scale(.97);
+  transition-duration: .06s;
+}
+:where(.matrix-card,.week-row,.timeline-item):active {
+  transform: translate3d(0,1px,0) scale(.99);
+}
+.weather-dialog[open],.tool-dialog[open],.manager-dialog[open],
+.weather-dialog-button[aria-busy="true"] svg { will-change: transform,opacity; }
+@keyframes control-feedback {
+  50% { transform: scale(1.08); }
+}
+
 @media (prefers-contrast: more) {
   .hero, .section, .week-matrix-wrap { border-color: #8d867c; }
   .matrix-card.is-off { opacity: .9; }
@@ -1450,6 +1472,12 @@ body.app-locked > :not(.login-gate) { visibility: hidden; }
   .weather-dialog[open],
   .weather-symbol svg,
   .weather-symbol svg path,
-  .weather-dialog-button[aria-busy="true"] svg { animation: none !important; }
+  .weather-dialog-button[aria-busy="true"] svg,
+  .weather-dialog-button.is-success,
+  .weather-dialog-button.is-error { animation: none !important; }
+  :where(button,summary,[role="button"],.scope-picker label span,.scope-weeks span),
   .weather-chip { transition: none; }
+  :where(button,summary,[role="button"]):active:not(:disabled),
+  :where(.scope-picker label span,.scope-weeks span):active,
+  :where(.matrix-card,.week-row,.timeline-item):active { transform: none; }
 }
