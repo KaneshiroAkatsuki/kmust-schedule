@@ -733,6 +733,13 @@ test('manager password is numeric, hidden by default and optionally remembered',
   assert.match(html, /response\.status === 401[\s\S]*?clearRememberedSecret\(\)/);
 });
 
+test('login school mark keeps its wide official proportion and scales across phone and desktop', () => {
+  assert.match(css, /\.login-brand \.brand-logo \{[^}]*width: clamp\(104px,25vw,132px\);[^}]*height: auto;[^}]*aspect-ratio: 311 \/ 72;/);
+  assert.doesNotMatch(css, /\.login-brand \.brand-logo \{[^}]*width: 48px;[^}]*height: 48px;/);
+  assert.match(css, /@media \(max-width: 420px\)[\s\S]*?\.login-brand \.brand-logo \{[^}]*width: clamp\(92px,28vw,104px\);/);
+  assert.match(css, /\.login-brand > span:last-child \{ min-width: 0; \}/);
+});
+
 test('modification sync status uses the latest page or schedule change in China time', () => {
   assert.match(html, /const SITE_UPDATED_AT = '2026-08-31T\d{2}:\d{2}:\d{2}\+08:00'/);
   assert.match(html, /function latestModifiedAt\(scheduleUpdatedAt\)/);

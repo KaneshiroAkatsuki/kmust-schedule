@@ -1292,10 +1292,11 @@ body.app-locked > :not(.login-gate) { visibility: hidden; }
 .login-atmosphere { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(circle at 16% 16%, rgba(158,27,50,.16), transparent 31%), radial-gradient(circle at 88% 82%, rgba(189,147,74,.16), transparent 28%), linear-gradient(135deg, rgba(255,255,255,.94), rgba(242,236,226,.88)); }
 .login-atmosphere::after { content: "KUST"; position: absolute; right: -3vw; bottom: -10vw; color: rgba(158,27,50,.035); font-family: Georgia,serif; font-size: clamp(180px,34vw,580px); font-weight: 900; line-height: .8; }
 .login-card { position: relative; width: min(440px,100%); padding: clamp(24px,5vw,44px); border: 1px solid rgba(57,45,35,.13); border-radius: 28px; background: rgba(255,253,249,.9); box-shadow: 0 30px 90px rgba(55,37,26,.14); backdrop-filter: blur(20px); }
-.login-brand { display: flex; align-items: center; gap: 13px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
-.login-brand .brand-logo { width: 48px; height: 48px; flex: 0 0 48px; }
+.login-brand { display: flex; align-items: center; gap: clamp(13px,3vw,18px); padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+.login-brand > span:last-child { min-width: 0; }
+.login-brand .brand-logo { width: clamp(104px,25vw,132px); height: auto; flex: 0 0 clamp(104px,25vw,132px); aspect-ratio: 311 / 72; }
 .login-brand strong { display: block; color: var(--mentor); font-family: var(--display-font); font-size: 21px; letter-spacing: .02em; }
-.login-brand small { display: block; margin-top: 3px; color: var(--muted); font-size: 8px; letter-spacing: .08em; }
+.login-brand small { display: block; margin-top: 4px; color: var(--muted); font-size: 8px; line-height: 1.45; letter-spacing: .07em; overflow-wrap: anywhere; }
 .login-copy { margin: 27px 0 24px; }
 .login-copy p { margin: 0 0 7px; color: var(--mentor); font-size: 12px; font-weight: 800; letter-spacing: .08em; }
 .login-copy h1 { margin: 0 0 10px; font-family: var(--display-font); font-size: clamp(32px,7vw,44px); line-height: 1; }
@@ -1427,7 +1428,10 @@ body.app-locked > :not(.login-gate) { visibility: hidden; }
   .scope-picker { grid-template-columns: 1fr 1fr; }
   .course-actions { grid-template-columns: 1fr; }
   .course-actions button { min-height: 62px; }
-  .login-brand small { max-width: 230px; }
+  .login-brand { gap: 11px; }
+  .login-brand .brand-logo { width: clamp(92px,28vw,104px); flex-basis: clamp(92px,28vw,104px); }
+  .login-brand strong { font-size: 19px; }
+  .login-brand small { max-width: 160px; font-size: 7px; letter-spacing: .045em; }
   .makeup-head { display: block; }
   .makeup-head .makeup-pending { display: inline-block; max-width: none; margin-top: 8px; text-align: left; }
 }
