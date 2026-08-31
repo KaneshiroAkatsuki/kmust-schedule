@@ -1633,7 +1633,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=1.8">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=1.9">
 </head>
 <body class="app-locked">
   <section class="login-gate" id="loginGate" aria-labelledby="loginTitle">
@@ -1725,7 +1725,7 @@
         <span class="section-note" id="weekTermNote">正在读取学期 · 仅已选课程参与上课提醒</span>
       </div>
 
-      <div class="mentor-reminder">喻黎明老师课程已重点标记：导师课 · 不可缺席</div>
+      <div class="mentor-reminder">导师相关课程已重点标记：设施农业与装备、农业节水与供水工程 · 不可缺席</div>
 
       <section class="makeup-assistant" id="makeupAssistant" hidden aria-labelledby="makeupTitle">
         <div class="makeup-head"><div><span>法定节假日调休</span><h3 id="makeupTitle">补课安排助手</h3></div><span class="makeup-pending">学校具体补课规则待通知</span></div>
@@ -1828,7 +1828,7 @@
 
       <div class="footer-bottom">
         <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">1.8</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">1.9</span></span>
       </div>
     </div>
   </footer>
@@ -2119,6 +2119,11 @@
     const MAX_WEEK = 21;
     const EXPERIENCE_WEEK = 2;
     const MENTOR_NAME = '喻黎明';
+    const MENTOR_COURSE_NAMES = new Set([
+      '设施农业与装备',
+      '设施农业与装备（专硕）',
+      '农业节水与供水工程'
+    ]);
     const PENDING_DROP_COURSE_NAMES = new Set([
       '生态水文原理及应用（专硕）',
       '农业水土环境'
@@ -2141,8 +2146,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '1.8';
-    const SITE_UPDATED_AT = '2026-08-31T15:05:00+08:00';
+    const SITE_VERSION = '1.9';
+    const SITE_UPDATED_AT = '2026-08-31T15:20:00+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -2397,12 +2402,18 @@
 
     function isActive(course, week) { return activeParts(course, week).length > 0; }
 
+    function isMentorCourseName(name) {
+      const normalized = String(name || '').replace(/\s+/g, '').trim();
+      return MENTOR_COURSE_NAMES.has(normalized) || normalized.indexOf('设施农业与装备') === 0;
+    }
+
     function isMentorCourse(course, week) {
-      return activeParts(course, week).some(function (part) { return part.teacher === MENTOR_NAME; });
+      const active = activeParts(course, week);
+      return active.length > 0 && (isMentorCourseName(course.name) || active.some(function (part) { return part.teacher === MENTOR_NAME; }));
     }
 
     function mentorSchedule(course) {
-      const ranges = course.parts.filter(function (part) { return part.teacher === MENTOR_NAME; }).map(function (part) {
+      const ranges = course.parts.filter(function (part) { return isMentorCourseName(course.name) || part.teacher === MENTOR_NAME; }).map(function (part) {
         return part.start === part.end ? '第' + part.start + '周' : '第' + part.start + '–' + part.end + '周';
       });
       return ranges.length ? ranges.join('、') + '导师授课' : '';
@@ -3581,7 +3592,7 @@
     }
 
     function rawCourseHasMentor(course) {
-      return course['授课分段'].some(function (part) { return part['教师'] === MENTOR_NAME; });
+      return isMentorCourseName(course['课程']) || course['授课分段'].some(function (part) { return part['教师'] === MENTOR_NAME; });
     }
 
     function resetCourseEditor() {
@@ -4032,7 +4043,7 @@
       const course = state.workingData[index];
       const deleted = rawCourseSubset(course, weeks);
       if (!deleted) throw new Error('所选范围没有这门课程，请重新选择。');
-      const mentor = deleted['授课分段'].some(function (part) { return part['教师'] === MENTOR_NAME; });
+      const mentor = rawCourseHasMentor(deleted);
       const message = (mentor ? '警告：所选范围包含导师课“不可缺席”。\n\n' : '') + '确定删除“' + course['课程'] + '”的' + weeksLabel(weeks) + '吗？删除后会移入回收站。';
       if (!window.confirm(message)) return false;
       const remaining = rawCourseWithoutWeeks(course, weeks);

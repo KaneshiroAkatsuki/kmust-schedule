@@ -22,7 +22,7 @@ const exposedNames = [
   'scheduleTermForDate',
   'courseSelectionStatus', 'isPersonalCourse', 'requiresAttendance',
   'normalizeWeekRange', 'weekDateRangeLabel', 'segmentDateHint', 'weekRangeValue', 'weekOptions',
-  'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput', 'tripleSlotConflicts',
+  'isMentorCourseName', 'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput', 'tripleSlotConflicts',
   'stageCourseUpsert', 'stageCourseDelete', 'rawCourseSubset', 'rawCourseWithoutWeeks', 'weeksLabel',
   'cloudSaveButtonView',
   'weatherKind', 'weatherNumber', 'weatherSummary', 'visibleWeatherHours', 'weatherHourLabel', 'weatherDayLabel',
@@ -217,11 +217,16 @@ test('day parts follow the published class times', () => {
 
 test('mentor class is specially marked only during mentor teaching weeks', () => {
   const mentorMeeting = api.COURSES.find((course) => course.name === '设施农业与装备（专硕）' && course.dayLabel === '星期五');
+  const otherTeacherMeeting = api.COURSES.find((course) => course.name === '设施农业与装备（专硕）' && course.dayLabel === '星期一');
   assert.ok(mentorMeeting);
+  assert.ok(otherTeacherMeeting);
   assert.equal(api.isMentorCourse(mentorMeeting, 4), false);
   assert.equal(api.isMentorCourse(mentorMeeting, 5), true);
   assert.equal(api.isMentorCourse(mentorMeeting, 10), true);
   assert.equal(api.isMentorCourse(mentorMeeting, 11), false);
+  assert.equal(api.isMentorCourse(otherTeacherMeeting, 11), true, 'mentor course name remains protected with another segment teacher');
+  assert.equal(api.isMentorCourseName('农业节水与供水工程'), true);
+  assert.equal(api.isMentorCourseName('普通课程'), false);
 
   const live = api.currentStatus(localDate(2026, 9, 25, 16, 30));
   assert.equal(live.course, '设施农业与装备（专硕）');
