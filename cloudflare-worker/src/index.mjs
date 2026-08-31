@@ -1,6 +1,7 @@
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const MAX_BODY_BYTES = 256 * 1024;
 const MAX_COURSES = 200;
+const MAX_TRASH_ITEMS = 400;
 const WEATHER_PROVIDER_CACHE_MS = 15 * 60 * 1000;
 const WEATHER_REFRESH_MS = 60 * 60 * 1000;
 const BAIDU_WEATHER_ENDPOINT = 'https://api.map.baidu.com/weather/v1/';
@@ -30,7 +31,8 @@ function publicState(state) {
       initialized: false,
       revision: 0,
       updatedAt: null,
-      courses: []
+      courses: [],
+      trash: []
     };
   }
   return {
@@ -38,7 +40,8 @@ function publicState(state) {
     initialized: true,
     revision: state.revision,
     updatedAt: state.updatedAt,
-    courses: clone(state.courses)
+    courses: clone(state.courses),
+    trash: clone(state.trash || [])
   };
 }
 
@@ -64,7 +67,16 @@ function weekRange(value) {
   return [numbers[0], numbers[1] ?? numbers[0]];
 }
 
-function assertNoCourseConflicts(courses) {
+function courseWeeks(course) {
+  const weeks = new Set();
+  course.授课分段.forEach((part) => {
+    const range = weekRange(part.周次);
+    for (let week = range[0]; week <= range[1]; week += 1) weeks.add(week);
+  });
+  return weeks;
+}
+
+function assertNoCourseConflicts(courses, allowTripleSlots = false) {
   for (let leftIndex = 0; leftIndex < courses.length; leftIndex += 1) {
     for (let rightIndex = leftIndex + 1; rightIndex < courses.length; rightIndex += 1) {
       const left = courses[leftIndex];
@@ -89,8 +101,26 @@ function assertNoCourseConflicts(courses) {
       if (left.课程.toLowerCase() === right.课程.toLowerCase()) {
         throw new ValidationError(`重复课程：“${left.课程}”在${where}已经存在`);
       }
-      throw new ValidationError(`课程时间冲突：“${left.课程}”和“${right.课程}”在${where}同时上课`);
+      // Two different courses may legitimately share one time band.  The UI
+      // renders them side-by-side and asks for confirmation before a third is
+      // saved, so the API only needs to prevent silent triple overlaps.
     }
+  }
+
+  if (allowTripleSlots) return;
+  const occupancy = new Map();
+  courses.forEach((course) => {
+    courseWeeks(course).forEach((week) => {
+      const key = `${course.星期}|${course.节次}|${week}`;
+      const names = occupancy.get(key) || new Set();
+      names.add(course.课程.toLocaleLowerCase('zh-CN'));
+      occupancy.set(key, names);
+    });
+  });
+  for (const [key, names] of occupancy) {
+    if (names.size <= 2) continue;
+    const [day, slot, week] = key.split('|');
+    throw new ValidationError(`${day}${slot}第${week}周已有两门并排课程，添加第三门需要再次确认`);
   }
 }
 
@@ -146,10 +176,25 @@ function cleanPayload(payload) {
     throw new ValidationError(`课程数量不能超过 ${MAX_COURSES}`);
   }
   const courses = payload.courses.map(cleanCourse);
-  assertNoCourseConflicts(courses);
+  assertNoCourseConflicts(courses, payload.confirmTriple === true);
+  if (!Array.isArray(payload.trash || []) || (payload.trash || []).length > MAX_TRASH_ITEMS) {
+    throw new ValidationError(`回收站项目不能超过 ${MAX_TRASH_ITEMS}`);
+  }
+  const trash = (payload.trash || []).map((item, index) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) throw new ValidationError(`第${index + 1}个回收站项目无效`);
+    return {
+      id: cleanText(item.id, '回收站编号', 80),
+      deletedAt: cleanText(item.deletedAt, '删除时间', 40),
+      reason: cleanText(item.reason || '手动删除', '删除原因', 80),
+      originalWeeks: cleanText(item.originalWeeks || '原课程全部周次', '原周次', 120),
+      course: cleanCourse(item.course, index)
+    };
+  });
   return {
     baseRevision: payload.baseRevision,
-    courses
+    courses,
+    trash,
+    confirmTriple: payload.confirmTriple === true
   };
 }
 
@@ -361,13 +406,14 @@ export function createMemoryStore(seed = null) {
     async get() {
       return clone(state);
     },
-    async put(expectedRevision, courses, updatedAt) {
+    async put(expectedRevision, document, updatedAt) {
       const currentRevision = state ? state.revision : 0;
       if (currentRevision !== expectedRevision) return { ok: false, current: clone(state) };
       state = {
         revision: currentRevision + 1,
         updatedAt,
-        courses: clone(courses)
+        courses: clone(document.courses || []),
+        trash: clone(document.trash || [])
       };
       return { ok: true, current: clone(state) };
     }
@@ -377,24 +423,36 @@ export function createMemoryStore(seed = null) {
 export function createD1Store(database) {
   if (!database) throw new Error('D1 binding DB is missing');
   const get = async () => {
-    const row = await database.prepare('SELECT revision, updated_at, courses_json FROM schedule_state WHERE id = 1').first();
-    if (!row) return null;
+    const documentRow = await database.prepare('SELECT revision, updated_at, document_json FROM schedule_document_state WHERE id = 1').first();
+    if (documentRow) {
+      const document = JSON.parse(documentRow.document_json);
+      return {
+        revision: Number(documentRow.revision),
+        updatedAt: documentRow.updated_at,
+        courses: document.courses || [],
+        trash: document.trash || []
+      };
+    }
+    const legacyRow = await database.prepare('SELECT revision, updated_at, courses_json FROM schedule_state WHERE id = 1').first();
+    if (!legacyRow) return null;
     return {
-      revision: Number(row.revision),
-      updatedAt: row.updated_at,
-      courses: JSON.parse(row.courses_json)
+      revision: Number(legacyRow.revision),
+      updatedAt: legacyRow.updated_at,
+      courses: JSON.parse(legacyRow.courses_json),
+      trash: [],
+      legacy: true
     };
   };
   return {
     get,
-    async put(expectedRevision, courses, updatedAt) {
-      const encoded = JSON.stringify(courses);
+    async put(expectedRevision, document, updatedAt) {
+      const encoded = JSON.stringify({ courses: document.courses || [], trash: document.trash || [] });
       const current = await get();
       if (!current) {
         if (expectedRevision !== 0) return { ok: false, current: null };
         try {
           await database.prepare(
-            'INSERT INTO schedule_state (id, revision, updated_at, courses_json) VALUES (1, 1, ?, ?)'
+            'INSERT INTO schedule_document_state (id, revision, updated_at, document_json) VALUES (1, 1, ?, ?)'
           ).bind(updatedAt, encoded).run();
           return { ok: true, current: await get() };
         } catch {
@@ -402,8 +460,18 @@ export function createD1Store(database) {
         }
       }
       if (current.revision !== expectedRevision) return { ok: false, current };
+      if (current.legacy) {
+        try {
+          await database.prepare(
+            'INSERT INTO schedule_document_state (id, revision, updated_at, document_json) VALUES (1, ?, ?, ?)'
+          ).bind(expectedRevision + 1, updatedAt, encoded).run();
+          return { ok: true, current: await get() };
+        } catch {
+          return { ok: false, current: await get() };
+        }
+      }
       const result = await database.prepare(
-        'UPDATE schedule_state SET revision = revision + 1, updated_at = ?, courses_json = ? WHERE id = 1 AND revision = ?'
+        'UPDATE schedule_document_state SET revision = revision + 1, updated_at = ?, document_json = ? WHERE id = 1 AND revision = ?'
       ).bind(updatedAt, encoded, expectedRevision).run();
       if (Number(result.meta?.changes || 0) !== 1) return { ok: false, current: await get() };
       return { ok: true, current: await get() };
@@ -524,7 +592,7 @@ export function createApp({ store, adminSecret, allowedOrigin, now = () => new D
           return json({ ok: false, error: { code: 'INVALID_JSON', message: 'JSON格式无效' } }, 400, origin, allowedOrigin);
         }
         const payload = cleanPayload(parsed);
-        const saved = await store.put(payload.baseRevision, payload.courses, now());
+        const saved = await store.put(payload.baseRevision, { courses: payload.courses, trash: payload.trash }, now());
         if (!saved.ok) {
           return json({
             ok: false,

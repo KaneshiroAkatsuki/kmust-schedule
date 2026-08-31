@@ -22,8 +22,8 @@ const exposedNames = [
   'scheduleTermForDate',
   'courseSelectionStatus', 'isPersonalCourse', 'requiresAttendance',
   'normalizeWeekRange', 'weekDateRangeLabel', 'segmentDateHint', 'weekRangeValue', 'weekOptions',
-  'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput',
-  'stageCourseUpsert', 'stageCourseDelete',
+  'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput', 'tripleSlotConflicts',
+  'stageCourseUpsert', 'stageCourseDelete', 'rawCourseSubset', 'rawCourseWithoutWeeks', 'weeksLabel',
   'cloudSaveButtonView',
   'weatherKind', 'weatherNumber', 'weatherSummary', 'visibleWeatherHours', 'weatherHourLabel', 'weatherDayLabel',
   'renderWeatherDialog', 'readWeatherCache', 'weatherDataIsStale', 'fetchWeatherData', 'fetchWeatherWithFallback', 'loadWeather', 'setupWeatherDialog', 'openWeatherDialog', 'closeWeatherDialog',
@@ -271,7 +271,10 @@ test('course editor validation matches the cloud contract', () => {
     { '周次': '2-5', '教师': '教师甲' }, { '周次': '5-8', '教师': '教师乙' }
   ] }]), /教师安排周次重叠/);
   assert.throws(() => api.validateCoursesInput([good[0], { ...good[0], '教室': ['公教楼102'] }]), /重复课程/);
-  assert.throws(() => api.validateCoursesInput([good[0], { ...good[0], '课程': '另一门课程' }]), /课程时间冲突/);
+  const parallel = api.validateCoursesInput([good[0], { ...good[0], '课程': '另一门课程' }]);
+  assert.equal(parallel.length, 2, 'two different courses may share one period');
+  assert.equal(api.tripleSlotConflicts(parallel).length, 0);
+  assert.equal(api.tripleSlotConflicts(parallel.concat({ ...good[0], '课程': '第三门课程' })).length, 3);
   const separated = api.validateCoursesInput([good[0], { ...good[0], '授课分段': [{ '周次': '5-6', '教师': '测试教师' }] }]);
   assert.equal(separated.length, 2, 'same course in non-overlapping weeks remains valid');
 });
@@ -298,6 +301,20 @@ test('course staging really adds, edits and deletes without mutating the previou
   assert.throws(() => api.stageCourseUpsert(added, { ...course, '教室': ['公教楼303'] }, -1), /重复课程/);
 });
 
+test('scoped edits split selected and remaining weeks without losing teachers', () => {
+  const source = {
+    '星期': '星期二', '节次': '第3-5节', '时间': '09:50-12:15', '课程': '分段测试课',
+    '授课分段': [{ '周次': '2-5', '教师': '教师甲' }, { '周次': '6-9', '教师': '教师乙' }], '教室': ['公教楼101']
+  };
+  const selected = api.rawCourseSubset(source, [4, 6, 8]);
+  const remaining = api.rawCourseWithoutWeeks(source, [4, 6, 8]);
+  assert.equal(selected['授课分段'].length, 3);
+  assert.equal(selected['授课分段'][0]['周次'], '4');
+  assert.equal(selected['授课分段'][1]['教师'], '教师乙');
+  assert.equal(remaining['授课分段'].some((part) => part['周次'] === '2-3'), true);
+  assert.equal(api.weeksLabel([4, 6, 8]), '第4周、第6周、第8周');
+});
+
 test('course deletion requires a second confirmation before it enters the pending upload list', () => {
   const confirmationIndex = html.indexOf("if (!window.confirm(warning + '确定删除“'");
   const deleteIndex = html.indexOf('state.workingData = stageCourseDelete(state.workingData, index)');
@@ -318,6 +335,21 @@ test('course management uses one unified entry on desktop and mobile', () => {
   assert.match(html, /compactScreen = window\.matchMedia && window\.matchMedia\('\(max-width: 980px\)'\)\.matches[\s\S]*?editorPane\.scrollIntoView/);
   assert.match(html, /nameInput\.focus\(\{ preventScroll: true \}\)/);
   assert.match(html, /@media \(max-width: 420px\)[\s\S]*?\.manager-toolbar #reloadCloud \{ flex-basis: 100%; \}/);
+});
+
+test('login gate, card actions and cloud recycle bin are available on every layout', () => {
+  assert.match(html, /<body class="app-locked">/);
+  assert.match(html, /id="loginAccount" value="KANESHIRO"/);
+  assert.match(html, /id="loginPassword" type="password" inputmode="numeric"/);
+  assert.match(html, /id="rememberLogin"/);
+  assert.match(html, /data-course-action="edit"/);
+  assert.match(html, /data-course-action="replace"/);
+  assert.match(html, /data-course-action="parallel"/);
+  assert.match(html, /data-course-action="delete"/);
+  assert.match(html, /id="trashDialog"/);
+  assert.match(html, /trash: state\.workingTrash/);
+  assert.match(html, /第5周起清理非本人课程/);
+  assert.match(css, /@media \(max-width: 800px\)[\s\S]*?\.tool-dialog \{ width: 100vw/);
 });
 
 test('homepage owns the immediate cloud upload action and preserves staged edits when manager closes', () => {

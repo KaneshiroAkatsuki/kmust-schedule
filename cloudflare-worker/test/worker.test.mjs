@@ -195,11 +195,12 @@ test('public read reports an uninitialized schedule', async () => {
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('access-control-allow-origin'), ORIGIN);
   assert.deepEqual((await response.json()).data, {
-    schemaVersion: 1,
+    schemaVersion: 2,
     initialized: false,
     revision: 0,
     updatedAt: null,
-    courses: []
+    courses: [],
+    trash: []
   });
 });
 
@@ -272,6 +273,30 @@ test('authorized write persists a validated revision', async () => {
   assert.deepEqual((await read.json()).data, saved);
 });
 
+test('courses and recycle bin share one cross-device revision', async () => {
+  const app = makeApp();
+  const removedCourse = sampleCourse({ 课程: '已删除课程' });
+  const trash = [{
+    id: 'trash-test-1',
+    deletedAt: '2026-08-31T10:00:00.000Z',
+    reason: '手动删除',
+    originalWeeks: '第2—4周',
+    course: removedCourse
+  }];
+  const save = await app.fetch(request('/api/schedule', {
+    method: 'PUT',
+    headers: adminHeaders(),
+    body: JSON.stringify({ baseRevision: 0, courses: [sampleCourse()], trash })
+  }));
+  assert.equal(save.status, 200);
+  const saved = (await save.json()).data;
+  assert.equal(saved.schemaVersion, 2);
+  assert.equal(saved.trash.length, 1);
+  assert.equal(saved.trash[0].course.课程, '已删除课程');
+  const read = await app.fetch(request('/api/schedule'));
+  assert.deepEqual((await read.json()).data, saved);
+});
+
 test('stale revision is rejected without overwriting newer data', async () => {
   const app = makeApp();
   const first = JSON.stringify({ baseRevision: 0, courses: [sampleCourse()] });
@@ -306,7 +331,7 @@ test('invalid and oversized schedules are rejected', async () => {
   assert.equal(oversized.status, 413);
 });
 
-test('duplicate and overlapping course meetings are rejected', async () => {
+test('duplicates are rejected, two courses may overlap, and a third requires confirmation', async () => {
   const duplicate = await makeApp().fetch(request('/api/schedule', {
     method: 'PUT',
     headers: adminHeaders(),
@@ -320,8 +345,19 @@ test('duplicate and overlapping course meetings are rejected', async () => {
     headers: adminHeaders(),
     body: JSON.stringify({ baseRevision: 0, courses: [sampleCourse(), sampleCourse({ 课程: '另一门课程' })] })
   }));
-  assert.equal(conflict.status, 422);
-  assert.match((await conflict.json()).error.message, /课程时间冲突/);
+  assert.equal(conflict.status, 200);
+
+  const tripleCourses = [sampleCourse(), sampleCourse({ 课程: '另一门课程' }), sampleCourse({ 课程: '第三门课程' })];
+  const triple = await makeApp().fetch(request('/api/schedule', {
+    method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ baseRevision: 0, courses: tripleCourses })
+  }));
+  assert.equal(triple.status, 422);
+  assert.match((await triple.json()).error.message, /第三门需要再次确认/);
+
+  const confirmedTriple = await makeApp().fetch(request('/api/schedule', {
+    method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ baseRevision: 0, courses: tripleCourses, confirmTriple: true })
+  }));
+  assert.equal(confirmedTriple.status, 200);
 
   const separated = await makeApp().fetch(request('/api/schedule', {
     method: 'PUT',

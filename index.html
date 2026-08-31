@@ -1633,9 +1633,22 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=1.6">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=1.7">
 </head>
-<body>
+<body class="app-locked">
+  <section class="login-gate" id="loginGate" aria-labelledby="loginTitle">
+    <div class="login-atmosphere" aria-hidden="true"></div>
+    <form class="login-card" id="loginForm" novalidate>
+      <div class="login-brand"><span class="brand-logo" role="img" aria-label="昆明理工大学官方校标"></span><span><strong>KUST·Lab</strong><small>KUNMING UNIVERSITY OF SCIENCE AND TECHNOLOGY</small></span></div>
+      <div class="login-copy"><p>研究生智能课表</p><h1 id="loginTitle">欢迎回来</h1><span>登录后可查看并直接编辑课表，所有修改均可同步到手机和电脑。</span></div>
+      <label class="login-field"><span>账号</span><input id="loginAccount" value="KANESHIRO" autocomplete="username" autocapitalize="characters" spellcheck="false"></label>
+      <label class="login-field"><span>密码</span><span class="login-password"><input id="loginPassword" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="32" autocomplete="current-password" placeholder="请输入管理员密码"><button id="toggleLoginPassword" type="button" aria-label="显示密码">显示</button></span></label>
+      <label class="login-remember"><input id="rememberLogin" type="checkbox"><span>在此设备记住密码</span></label>
+      <p class="login-note">密码由数字构成，忘记密码请联系金城中月管理员。记住状态仅保存在当前设备的当前浏览器。</p>
+      <button class="login-submit" id="loginSubmit" type="submit">进入 KUST·Lab</button>
+      <p class="login-status" id="loginStatus" role="status" aria-live="polite"></p>
+    </form>
+  </section>
   <a class="skip-link" href="#mainContent">跳到课表内容</a>
   <header class="site-header" aria-label="站点标题">
     <div class="nav-inner">
@@ -1645,9 +1658,9 @@
         <span class="product-name">KUST·Lab</span>
       </a>
       <div class="nav-actions">
-        <button class="nav-manage" id="openManagerTop" type="button" aria-label="管理课表，新增、修改或删除课程">
+        <button class="nav-manage account-button" id="openManagerTop" type="button" aria-label="打开账户与课表工具">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16M6.5 16.5l.8-4.1L16 3.7a1.4 1.4 0 0 1 2 0l2.3 2.3a1.4 1.4 0 0 1 0 2l-8.7 8.7-4.1.8Z"/><path d="m14.8 4.9 4.3 4.3"/></svg>
-          <span>管理课表</span>
+          <span>KANESHIRO</span>
         </button>
         <button class="nav-cloud-save" id="saveCloud" type="button" disabled aria-label="当前没有待上传修改">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18.5H5.8A3.8 3.8 0 0 1 5.3 11 6.7 6.7 0 0 1 18 9.2a4.7 4.7 0 0 1 .2 9.3H17"/><path d="M12 20V11m-3 3 3-3 3 3"/></svg>
@@ -1713,6 +1726,13 @@
       </div>
 
       <div class="mentor-reminder">喻黎明老师课程已重点标记：导师课 · 不可缺席</div>
+
+      <section class="makeup-assistant" id="makeupAssistant" hidden aria-labelledby="makeupTitle">
+        <div class="makeup-head"><div><span>法定节假日调休</span><h3 id="makeupTitle">补课安排助手</h3></div><span class="makeup-pending">学校具体补课规则待通知</span></div>
+        <p>仅在国家公布的调休上班日显示。推荐内容只包含我的课程，不会混入非选课内容。</p>
+        <div class="makeup-tabs" role="tablist"><button type="button" class="is-active" data-makeup-tab="affected">我的受影响课程</button><button type="button" data-makeup-tab="other">我的其他课程</button></div>
+        <div class="makeup-list" id="makeupList"></div>
+      </section>
 
       <div class="week-shell">
         <div class="week-nav">
@@ -1794,7 +1814,7 @@
             <span id="footerCourseCount">第一学期 37 门次课程</span>
             <span id="footerSyncText">当前使用内置课表</span>
             <a href="https://lbsyun.baidu.com/" target="_blank" rel="noopener noreferrer">天气数据 · 百度地图</a>
-            <button class="footer-action" id="openManager" type="button">管理课表</button>
+            <button class="footer-action" id="openManager" type="button">新增课程</button>
           </div>
         </details>
         <details class="footer-group">
@@ -1808,7 +1828,7 @@
 
       <div class="footer-bottom">
         <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">1.6</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">1.7</span></span>
       </div>
     </div>
   </footer>
@@ -1822,9 +1842,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"/><path d="M7.5 3.5v4m9-4v4M3.5 10h17"/></svg>
       <span>本周</span>
     </a>
-    <button class="dock-item dock-manage" id="openManagerMobile" type="button" aria-label="管理课表，新增、修改或删除课程">
+    <button class="dock-item dock-manage" id="openManagerMobile" type="button" aria-label="新增课程">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19h14M7 16l.7-3.5 7.7-7.7a1.5 1.5 0 0 1 2.1 0l1.7 1.7a1.5 1.5 0 0 1 0 2.1l-7.7 7.7L8 17Z"/></svg>
-      <span>管理</span>
+      <span>新增</span>
     </button>
     <button class="dock-item" id="openMoreMobile" type="button" aria-controls="mobileMoreDialog" aria-expanded="false" aria-label="展开更多功能">
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
@@ -1859,7 +1879,7 @@
         </button>
         <button class="mobile-more-item is-emphasis" id="moreManager" type="button">
           <span class="mobile-more-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 19h14M7 16l.7-3.5 7.7-7.7a1.5 1.5 0 0 1 2.1 0l1.7 1.7a1.5 1.5 0 0 1 0 2.1l-7.7 7.7L8 17Z"/></svg></span>
-          <span><strong>管理课表</strong><small>新增、修改或删除</small></span>
+          <span><strong>新增课程</strong><small>快速加入当前课表</small></span>
         </button>
         <button class="mobile-more-item" id="moreSync" type="button">
           <span class="mobile-more-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 8.7A7 7 0 0 1 18.6 7L20 12M4 12l1.4 5A7 7 0 0 0 18 15.3"/></svg></span>
@@ -1931,12 +1951,52 @@
     </div>
   </dialog>
 
+  <dialog class="tool-dialog" id="accountDialog" aria-labelledby="accountTitle">
+    <div class="tool-sheet account-sheet">
+      <header class="tool-head"><div><small>已登录</small><h2 id="accountTitle">KANESHIRO</h2></div><button class="icon-button" type="button" data-close-dialog="accountDialog" aria-label="关闭">×</button></header>
+      <div class="account-actions">
+        <button type="button" id="accountAddCourse"><strong>＋ 新增课程</strong><span>选择星期、节次、周次和教师</span></button>
+        <button type="button" id="accountTrash"><strong>回收站</strong><span id="accountTrashCount">0 项，可恢复</span></button>
+        <button type="button" id="accountImportExport"><strong>导入与导出</strong><span>备份或迁移课表 JSON</span></button>
+        <button type="button" id="accountLogout" class="account-logout"><strong>退出登录</strong><span>不会清除本机课表缓存</span></button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="tool-dialog" id="courseActionDialog" aria-labelledby="actionCourseTitle">
+    <div class="tool-sheet action-sheet">
+      <header class="tool-head"><div><small id="actionCourseMeta">课程操作</small><h2 id="actionCourseTitle">课程</h2></div><button class="icon-button" type="button" data-close-dialog="courseActionDialog" aria-label="关闭">×</button></header>
+      <fieldset class="scope-picker"><legend>修改范围</legend>
+        <label><input type="radio" name="actionScope" value="once" checked><span>仅本次<strong id="scopeOnceHint">当前周</strong></span></label>
+        <label><input type="radio" name="actionScope" value="from"><span>连续周段<strong>选择起止周</strong></span></label>
+        <label><input type="radio" name="actionScope" value="custom"><span>自定义周次<strong>可不连续选择</strong></span></label>
+        <label><input type="radio" name="actionScope" value="all"><span>整门课程<strong>全部上课周次</strong></span></label>
+      </fieldset>
+      <div class="scope-range" id="scopeRange" hidden><label>从<select id="scopeStart"></select></label><span>至</span><label>到<select id="scopeEnd"></select></label><p id="scopeDateHint"></p></div>
+      <div class="scope-weeks" id="scopeWeeks" hidden></div>
+      <div class="course-actions">
+        <button type="button" data-course-action="edit"><strong>修改</strong><span>保留课程内容并编辑所选范围</span></button>
+        <button type="button" data-course-action="replace"><strong>替换</strong><span>用另一门课替换所选范围</span></button>
+        <button type="button" data-course-action="parallel"><strong>增加并排课程</strong><span>同一时段最多两门无需额外确认</span></button>
+        <button type="button" data-course-action="delete" class="danger-action"><strong>删除</strong><span>移入回收站，可恢复</span></button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="tool-dialog" id="trashDialog" aria-labelledby="trashTitle">
+    <div class="tool-sheet trash-sheet">
+      <header class="tool-head"><div><small>跨设备同步</small><h2 id="trashTitle">回收站</h2></div><button class="icon-button" type="button" data-close-dialog="trashDialog" aria-label="关闭">×</button></header>
+      <p class="trash-intro">删除的课程会保留原周次和删除时间。恢复或永久删除后，请点击主页的“立即上传云端”。</p>
+      <div class="trash-list" id="trashList"></div>
+    </div>
+  </dialog>
+
   <dialog class="manager-dialog" id="managerDialog" aria-labelledby="managerTitle">
     <div class="manager-shell">
       <header class="manager-head" aria-label="课表管理标题">
         <div>
-          <h2 class="manager-title" id="managerTitle">管理课表</h2>
-          <p class="manager-subtitle">在这里增删改课程，完成后回到主页上传到云端</p>
+          <h2 class="manager-title" id="managerTitle">课程编辑器</h2>
+          <p class="manager-subtitle">课程卡片可直接修改；这里也可以新增、搜索与备份</p>
         </div>
         <button class="icon-button" id="closeManager" type="button" aria-label="关闭管理课表">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
@@ -2081,8 +2141,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '1.6';
-    const SITE_UPDATED_AT = '2026-08-31T12:31:51+08:00';
+    const SITE_VERSION = '1.7';
+    const SITE_UPDATED_AT = '2026-08-31T18:40:00+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -2206,6 +2266,16 @@
       formDirty: false,
       editingIndex: -1,
       workingData: [],
+      trash: [],
+      workingTrash: [],
+      confirmedTriple: false,
+      actionCourseIndex: -1,
+      actionWeek: 1,
+      actionDay: 0,
+      actionSlot: '第1-2节',
+      editMode: 'all',
+      editAction: 'edit',
+      scopeWeeks: [],
       conflictData: null,
       uploadAfterAuth: false
     };
@@ -2577,7 +2647,7 @@
           ? '<span class="unselected-label">非选课内容 · 无需上课</span>'
           : (selection === 'pending-drop' ? '<span class="pending-drop-label">待退选 · 退选前请确认</span>' : '');
         const partLabel = '<span class="daypart-label part-' + part.key + '">' + part.label + '</span>';
-        return '<article class="timeline-item ' + status + ' part-' + part.key + (mentor ? ' mentor-course' : '') + (selection === 'unselected' ? ' is-unselected' : '') + (selection === 'pending-drop' ? ' is-pending-drop' : '') + (experienceCourse ? ' is-experience' : '') + '"><div class="timeline-time"><span>' + course.start + '</span><span class="time-end">' + course.end + '</span></div><span class="timeline-dot" aria-hidden="true"></span><div class="timeline-body"><div>' + partLabel + '<span class="slot-label">' + esc(course.slot) + '</span>' + stateLabel + mentorLabel + selectionLabel + '</div><div class="timeline-name">' + esc(course.name) + '</div><div class="row-meta">' + ICONS.user + '<span>' + esc(info.teachers) + '</span><span>·</span>' + ICONS.pin + '<span>' + esc(info.rooms) + '</span></div></div></article>';
+        return '<article class="timeline-item ' + status + ' part-' + part.key + (mentor ? ' mentor-course' : '') + (selection === 'unselected' ? ' is-unselected' : '') + (selection === 'pending-drop' ? ' is-pending-drop' : '') + (experienceCourse ? ' is-experience' : '') + '" tabindex="0" role="button" data-course-index="' + course.id + '"><div class="timeline-time"><span>' + course.start + '</span><span class="time-end">' + course.end + '</span></div><span class="timeline-dot" aria-hidden="true"></span><div class="timeline-body"><div>' + partLabel + '<span class="slot-label">' + esc(course.slot) + '</span>' + stateLabel + mentorLabel + selectionLabel + '</div><div class="timeline-name">' + esc(course.name) + '</div><div class="row-meta">' + ICONS.user + '<span>' + esc(info.teachers) + '</span><span>·</span>' + ICONS.pin + '<span>' + esc(info.rooms) + '</span></div></div></article>';
       }).join('');
     }
 
@@ -2632,7 +2702,7 @@
             return course.day === day && course.start + '-' + course.end === time;
           });
           if (!courses.length) {
-            html += '<div class="matrix-cell part-' + part.key + '"><span class="matrix-empty">—</span></div>';
+            html += '<div class="matrix-cell part-' + part.key + '"><button class="matrix-empty-add" type="button" data-add-day="' + day + '" data-add-slot="' + esc(rawSlot) + '" aria-label="在' + DAYS_FULL[day] + displaySlot + '添加课程">＋</button></div>';
             return;
           }
 
@@ -2657,7 +2727,7 @@
               ? active.teachers + ' · ' + active.rooms
               : course.rooms.join(' / ') + ' · ' + allSegments(course);
             const className = 'matrix-card' + (on ? '' : ' is-off') + (mentor ? ' is-mentor' : '') + (live ? ' is-live' : '') + (selection === 'unselected' ? ' is-unselected' : '') + (selection === 'pending-drop' ? ' is-pending-drop' : '') + (experienceCourse ? ' is-experience' : '');
-            return '<article class="' + className + '" title="' + esc(course.name + '｜' + details) + '">' + badge + '<div class="matrix-name">' + esc(course.name) + '</div><div class="matrix-meta">' + esc(details) + '</div></article>';
+            return '<article class="' + className + '" tabindex="0" role="button" data-course-index="' + course.id + '" title="点击编辑｜' + esc(course.name + '｜' + details) + '">' + badge + '<div class="matrix-name">' + esc(course.name) + '</div><div class="matrix-meta">' + esc(details) + '</div></article>';
           }).join('');
           html += '<div class="matrix-cell part-' + part.key + '">' + cards + '</div>';
         });
@@ -2684,6 +2754,7 @@
       document.getElementById('nextWeek').disabled = state.viewWeek >= MAX_WEEK;
       renderDayTabs(now);
       renderWeekMatrix(now);
+      renderMakeupAssistant();
 
       const list = COURSES.filter(function (course) { return course.day === state.selectedDay; });
       const activePersonalCount = list.filter(function (course) { return isActive(course, state.viewWeek) && requiresAttendance(course, state.viewWeek); }).length;
@@ -2693,12 +2764,7 @@
       document.getElementById('weekSummary').textContent = DAYS_FULL[state.selectedDay] + ' · ' + longDate(selectedDate) + ' · ' + activePersonalCount + ' 门需上' + (activeUnselectedCount ? '，' + activeUnselectedCount + ' 条非选课' : '') + '，' + inactiveCount + ' 个本周无课';
 
       const container = document.getElementById('weekList');
-      if (!list.length) {
-        container.innerHTML = '<div class="empty-state" style="margin-top:12px"><strong>没有课程记录</strong><span>' + DAYS_FULL[state.selectedDay] + '整学期均无排课</span></div>';
-        return;
-      }
-
-      container.innerHTML = list.map(function (course) {
+      const courseRows = list.map(function (course) {
         const on = isActive(course, state.viewWeek);
         const active = activeInfo(course, state.viewWeek);
         const live = isLiveCourse(course, now);
@@ -2721,8 +2787,17 @@
         const details = on
           ? '<span>' + esc(active.teachers) + ' · ' + esc(active.rooms) + '</span>'
           : '<span>' + esc(course.rooms.join(' / ')) + '</span><span class="segments">' + esc(allSegments(course)) + '</span>';
-        return '<article class="week-row part-' + part.key + (on ? '' : ' off') + (mentor ? ' mentor-course' : '') + (selection === 'unselected' ? ' is-unselected' : '') + (selection === 'pending-drop' ? ' is-pending-drop' : '') + (experienceCourse ? ' is-experience' : '') + '"><div class="week-time">' + course.start + '–<br>' + course.end + '<span class="period">' + esc(course.slot) + '</span></div><div class="week-main"><div class="week-name-row"><div class="week-name">' + esc(course.name) + '</div>' + label + '</div><div class="week-detail">' + details + '</div></div></article>';
-      }).join('');
+        return '<article class="week-row part-' + part.key + (on ? '' : ' off') + (mentor ? ' mentor-course' : '') + (selection === 'unselected' ? ' is-unselected' : '') + (selection === 'pending-drop' ? ' is-pending-drop' : '') + (experienceCourse ? ' is-experience' : '') + '" style="order:' + Array.from(SLOT_TIMES.keys()).indexOf(course.slot.replace('–','-')) + '" tabindex="0" role="button" data-course-index="' + course.id + '"><div class="week-time">' + course.start + '–<br>' + course.end + '<span class="period">' + esc(course.slot) + '</span></div><div class="week-main"><div class="week-name-row"><div class="week-name">' + esc(course.name) + '</div>' + label + '</div><div class="week-detail">' + details + '</div></div></article>';
+      });
+      const emptyRows = Array.from(SLOT_TIMES.entries()).map(function (entry, index) {
+        const rawSlot = entry[0];
+        const time = entry[1];
+        const exists = list.some(function (course) { return course.start + '-' + course.end === time; });
+        if (exists) return '';
+        const part = dayPartForMinutes(toMinutes(time.split('-')[0]));
+        return '<div class="week-empty-slot part-' + part.key + '" style="order:' + index + '"><span><strong>' + esc(rawSlot.replace(/第(\d+)-(\d+)节/, '第$1–$2节')) + '</strong> · ' + esc(time.replace('-','—')) + ' · 此时间段无课</span><button type="button" data-add-day="' + state.selectedDay + '" data-add-slot="' + esc(rawSlot) + '">＋ 添加</button></div>';
+      });
+      container.innerHTML = courseRows.concat(emptyRows).join('');
     }
 
     function isSyncConfigured() {
@@ -2811,10 +2886,32 @@
           if (left['课程'].toLocaleLowerCase('zh-CN') === right['课程'].toLocaleLowerCase('zh-CN')) {
             throw new Error('重复课程：“' + left['课程'] + '”在' + where + '已经存在');
           }
-          throw new Error('课程时间冲突：“' + left['课程'] + '”和“' + right['课程'] + '”在' + where + '同时上课');
+          // Two different courses can share one period and are rendered
+          // side-by-side. Duplicate names are still rejected above.
         }
       }
       return clean;
+    }
+
+    function tripleSlotConflicts(courses) {
+      const occupancy = new Map();
+      courses.forEach(function (course) {
+        const weeks = new Set();
+        course['授课分段'].forEach(function (part) {
+          const range = parseRange(part['周次']);
+          for (let week = range[0]; week <= range[1]; week += 1) weeks.add(week);
+        });
+        weeks.forEach(function (week) {
+          const key = course['星期'] + '|' + course['节次'] + '|' + week;
+          const names = occupancy.get(key) || new Set();
+          names.add(course['课程'].toLocaleLowerCase('zh-CN'));
+          occupancy.set(key, names);
+        });
+      });
+      return Array.from(occupancy.entries()).filter(function (entry) { return entry[1].size > 2; }).map(function (entry) {
+        const pieces = entry[0].split('|');
+        return pieces[0] + ' ' + pieces[1] + ' 第' + pieces[2] + '周';
+      });
     }
 
     function stageCourseUpsert(courses, course, editingIndex) {
@@ -2833,6 +2930,86 @@
       const nextData = cloneData(courses);
       nextData.splice(index, 1);
       return validateCoursesInput(nextData);
+    }
+
+    function rawCourseWeekMap(course) {
+      const weeks = new Map();
+      (course && course['授课分段'] || []).forEach(function (part) {
+        const range = parseRange(part['周次']);
+        for (let week = range[0]; week <= range[1]; week += 1) weeks.set(week, part['教师']);
+      });
+      return weeks;
+    }
+
+    function compressTeacherWeeks(weekMap) {
+      const entries = Array.from(weekMap.entries()).sort(function (a, b) { return a[0] - b[0]; });
+      const result = [];
+      entries.forEach(function (entry) {
+        const week = entry[0];
+        const teacher = entry[1];
+        const previous = result[result.length - 1];
+        if (previous && previous.teacher === teacher && previous.end + 1 === week) previous.end = week;
+        else result.push({ start: week, end: week, teacher: teacher });
+      });
+      return result.map(function (part) {
+        return { '周次': weekRangeValue(part.start, part.end), '教师': part.teacher };
+      });
+    }
+
+    function rawCourseSubset(course, selectedWeeks) {
+      const all = rawCourseWeekMap(course);
+      const wanted = new Set((selectedWeeks || []).map(Number));
+      const subset = new Map(Array.from(all.entries()).filter(function (entry) { return wanted.has(entry[0]); }));
+      if (!subset.size) return null;
+      const copy = cloneData(course);
+      copy['授课分段'] = compressTeacherWeeks(subset);
+      return copy;
+    }
+
+    function rawCourseWithoutWeeks(course, selectedWeeks) {
+      const map = rawCourseWeekMap(course);
+      const unwanted = new Set((selectedWeeks || []).map(Number));
+      unwanted.forEach(function (week) { map.delete(week); });
+      if (!map.size) return null;
+      const copy = cloneData(course);
+      copy['授课分段'] = compressTeacherWeeks(map);
+      return copy;
+    }
+
+    function weeksLabel(weeks) {
+      const sorted = Array.from(new Set((weeks || []).map(Number))).sort(function (a, b) { return a - b; });
+      if (!sorted.length) return '无周次';
+      const groups = [];
+      sorted.forEach(function (week) {
+        const last = groups[groups.length - 1];
+        if (last && last[1] + 1 === week) last[1] = week;
+        else groups.push([week, week]);
+      });
+      return groups.map(function (group) { return group[0] === group[1] ? '第' + group[0] + '周' : '第' + group[0] + '—' + group[1] + '周'; }).join('、');
+    }
+
+    function createTrashItem(course, weeks, reason) {
+      return {
+        id: (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : 'trash-' + Date.now() + '-' + Math.random().toString(16).slice(2)),
+        deletedAt: new Date().toISOString(),
+        reason: reason || '手动删除',
+        originalWeeks: weeksLabel(weeks),
+        course: cloneData(course)
+      };
+    }
+
+    function previewWorkingData() {
+      const revision = state.revision;
+      const updatedAt = state.updatedAt;
+      runtimeData = cloneData(state.workingData);
+      COURSES = buildCourses(runtimeData);
+      state.trash = cloneData(state.workingTrash);
+      state.revision = revision;
+      state.updatedAt = updatedAt;
+      state.lastMinuteKey = '';
+      renderToday(new Date());
+      renderWeek(new Date());
+      renderTrashList();
     }
 
     function chinaTimeParts(value) {
@@ -2896,6 +3073,7 @@
       state.revision = Number(metadata && metadata.revision || 0);
       state.updatedAt = metadata && metadata.updatedAt || null;
       state.dataSource = metadata && metadata.source || 'fallback';
+      state.trash = cloneData(metadata && metadata.trash || []);
       state.lastMinuteKey = '';
       const count = document.getElementById('footerCourseCount');
       if (count) count.textContent = '第一学期 ' + runtimeData.length + ' 门次课程';
@@ -2912,7 +3090,8 @@
           schemaVersion: 1,
           revision: state.revision,
           updatedAt: state.updatedAt,
-          courses: runtimeData
+          courses: runtimeData,
+          trash: state.trash
         }));
       } catch (_) {}
     }
@@ -2921,7 +3100,7 @@
       try {
         const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
         if (!cached || cached.schemaVersion !== 1 || !Number.isInteger(cached.revision)) return false;
-        applyRuntimeData(cached.courses, { revision: cached.revision, updatedAt: cached.updatedAt, source: 'cache' });
+        applyRuntimeData(cached.courses, { revision: cached.revision, updatedAt: cached.updatedAt, source: 'cache', trash: cached.trash || [] });
         setModifiedSyncStatus(cached.updatedAt, cached.revision, '当前使用本机缓存');
         return true;
       } catch (_) {
@@ -3321,11 +3500,12 @@
           }
           return false;
         }
-        applyRuntimeData(clean, { revision: Number(cloud.revision), updatedAt: cloud.updatedAt, source: 'cloud' });
+        applyRuntimeData(clean, { revision: Number(cloud.revision), updatedAt: cloud.updatedAt, source: 'cloud', trash: cloud.trash || [] });
         saveCache();
         const managerEditor = document.getElementById('managerEditor');
         if (managerEditor && !managerEditor.hidden && !state.managerDirty) {
           state.workingData = cloneData(runtimeData);
+          state.workingTrash = cloneData(state.trash);
           renderManagerList();
           resetCourseEditor();
         }
@@ -3393,6 +3573,7 @@
 
     function setManagerDirty(value) {
       state.managerDirty = Boolean(value);
+      if (state.managerDirty) state.confirmedTriple = false;
       updateSaveButton();
       if (state.managerDirty) setSyncStatus('pending', '有修改待上传', '课程修改已保留，点击主页顶部“立即上传云端”后同步到其他设备');
     }
@@ -3404,6 +3585,11 @@
     function resetCourseEditor() {
       state.editingIndex = -1;
       state.formDirty = false;
+      state.editMode = 'all';
+      state.editAction = 'edit';
+      state.scopeWeeks = [];
+      const title = document.getElementById('courseEditorTitle');
+      if (title) title.textContent = '课程编辑器';
       document.getElementById('courseForm').hidden = true;
       document.getElementById('courseEditorEmpty').hidden = false;
     }
@@ -3503,17 +3689,21 @@
       document.getElementById('courseTime').textContent = (SLOT_TIMES.get(slot) || '').replace('-', '—');
     }
 
-    function openCourseEditor(index) {
+    function openCourseEditor(index, options) {
       if (state.formDirty && !window.confirm('当前课程还没有保存到待上传列表，确定放弃并切换吗？')) return;
+      const settings = options || {};
       state.editingIndex = Number.isInteger(index) ? index : -1;
-      const course = state.editingIndex >= 0 ? state.workingData[state.editingIndex] : {
-        '星期': DAYS_FULL[0],
-        '节次': '第1-2节',
-        '时间': SLOT_TIMES.get('第1-2节'),
+      state.editMode = settings.scopeWeeks && settings.scopeWeeks.length ? 'scoped' : 'all';
+      state.editAction = settings.action || 'edit';
+      state.scopeWeeks = (settings.scopeWeeks || []).map(Number);
+      const course = settings.course || (state.editingIndex >= 0 ? state.workingData[state.editingIndex] : {
+        '星期': DAYS_FULL[Number.isInteger(settings.day) ? settings.day : 0],
+        '节次': settings.slot || '第1-2节',
+        '时间': SLOT_TIMES.get(settings.slot || '第1-2节'),
         '课程': '',
-        '授课分段': [{ '周次': '2-2', '教师': '' }],
+        '授课分段': [{ '周次': weekRangeValue(settings.week || Math.max(1, state.viewWeek), settings.week || Math.max(1, state.viewWeek)), '教师': '' }],
         '教室': ['']
-      };
+      });
       if (!course) return;
       document.getElementById('courseEditorEmpty').hidden = true;
       document.getElementById('courseForm').hidden = false;
@@ -3521,6 +3711,7 @@
       document.getElementById('courseDay').value = course['星期'];
       document.getElementById('courseSlot').value = course['节次'];
       document.getElementById('courseRooms').value = course['教室'].join('，');
+      document.getElementById('courseEditorTitle').textContent = state.editAction === 'replace' ? '替换课程' : (state.editMode === 'scoped' ? '编辑所选周次' : (state.editingIndex >= 0 ? '编辑课程' : '新增课程'));
       renderSegments(course['授课分段']);
       updateCourseTimePreview();
       state.formDirty = false;
@@ -3573,6 +3764,7 @@
       document.getElementById('managerEditor').hidden = false;
       if (!preserveWorking) {
         state.workingData = cloneData(runtimeData);
+        state.workingTrash = cloneData(state.trash);
         setManagerDirty(false);
         state.conflictData = null;
       } else {
@@ -3647,6 +3839,14 @@
       let clean;
       try { clean = validateCoursesInput(state.workingData); }
       catch (error) { setManagerStatus(error.message, 'error'); return false; }
+      const tripleConflicts = tripleSlotConflicts(clean);
+      if (tripleConflicts.length && !state.confirmedTriple) {
+        if (!window.confirm('以下时段将出现三门或更多并排课程：\n\n' + tripleConflicts.slice(0, 8).join('\n') + '\n\n确定仍要上传吗？')) {
+          setManagerStatus('已取消上传，请调整并排课程。', 'warning');
+          return false;
+        }
+        state.confirmedTriple = true;
+      }
 
       state.cloudSaveBusy = true;
       updateSaveButton();
@@ -3656,13 +3856,15 @@
         const response = await fetchWithTimeout(SYNC_ENDPOINT + '/api/schedule', {
           method: 'PUT',
           headers: { 'Authorization': 'Bearer ' + secret, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ baseRevision: state.revision, courses: clean })
+          body: JSON.stringify({ baseRevision: state.revision, courses: clean, trash: state.workingTrash, confirmTriple: state.confirmedTriple })
         });
         const payload = await response.json().catch(function () { return null; });
         if (response.status === 401) {
           clearSessionSecret();
           clearRememberedSecret();
-          openManagerDialog({ uploadAfterAuth: true, authMessage: '管理员密码已失效，请重新输入；验证成功后会继续上传。' });
+          if (document.getElementById('managerDialog').open) document.getElementById('managerDialog').close();
+          lockApplication();
+          document.getElementById('loginStatus').textContent = '登录已失效，请重新输入密码后再上传。';
           return false;
         }
         if (response.status === 409 && payload && payload.data) {
@@ -3672,9 +3874,11 @@
           return false;
         }
         if (!response.ok || !payload || !payload.ok || !payload.data) throw new Error(payload && payload.error ? payload.error.message : '保存失败');
-        applyRuntimeData(payload.data.courses, { revision: Number(payload.data.revision), updatedAt: payload.data.updatedAt, source: 'cloud' });
+        applyRuntimeData(payload.data.courses, { revision: Number(payload.data.revision), updatedAt: payload.data.updatedAt, source: 'cloud', trash: payload.data.trash || [] });
         saveCache();
         state.workingData = cloneData(runtimeData);
+        state.workingTrash = cloneData(state.trash);
+        state.confirmedTriple = false;
         setManagerDirty(false);
         state.conflictData = null;
         renderManagerList();
@@ -3697,6 +3901,7 @@
       const loaded = await loadCloudSchedule({ force: true, fromManager: true });
       if (loaded) {
         state.workingData = cloneData(runtimeData);
+        state.workingTrash = cloneData(state.trash);
         setManagerDirty(false);
         state.conflictData = null;
         renderManagerList();
@@ -3710,7 +3915,7 @@
         setManagerStatus('课程编辑器中还有内容未加入待上传列表，请先保存或取消编辑后再导出。', 'error');
         return;
       }
-      const content = JSON.stringify({ schemaVersion: 1, exportedAt: new Date().toISOString(), courses: state.workingData }, null, 2);
+      const content = JSON.stringify({ schemaVersion: 2, exportedAt: new Date().toISOString(), courses: state.workingData, trash: state.workingTrash }, null, 2);
       const url = URL.createObjectURL(new Blob([content], { type: 'application/json;charset=utf-8' }));
       const anchor = document.createElement('a');
       anchor.href = url;
@@ -3728,13 +3933,326 @@
         const parsed = JSON.parse(await file.text());
         const clean = validateCoursesInput(Array.isArray(parsed) ? parsed : parsed.courses);
         state.workingData = clean;
+        state.workingTrash = Array.isArray(parsed && parsed.trash) ? cloneData(parsed.trash) : state.workingTrash;
         setManagerDirty(true);
+        previewWorkingData();
         renderManagerList();
         resetCourseEditor();
         setManagerStatus('已导入 ' + clean.length + ' 门次课程，正在等待主页上传。', 'warning');
       } catch (error) {
         setManagerStatus('导入失败：' + error.message, 'error');
       }
+    }
+
+    function ensureWorkingDocument() {
+      if (!state.managerDirty) {
+        state.workingData = cloneData(runtimeData);
+        state.workingTrash = cloneData(state.trash);
+      }
+    }
+
+    function selectedActionWeeks() {
+      const scope = document.querySelector('input[name="actionScope"]:checked');
+      const value = scope ? scope.value : 'once';
+      const course = state.workingData[state.actionCourseIndex] || runtimeData[state.actionCourseIndex];
+      const available = course ? Array.from(rawCourseWeekMap(course).keys()) : [];
+      if (value === 'all') return available;
+      if (value === 'from') {
+        const start = Number(document.getElementById('scopeStart').value);
+        const end = Number(document.getElementById('scopeEnd').value);
+        return available.filter(function (week) { return week >= start && week <= end; });
+      }
+      if (value === 'custom') {
+        const chosen = Array.from(document.querySelectorAll('#scopeWeeks input:checked')).map(function (input) { return Number(input.value); });
+        return available.filter(function (week) { return chosen.indexOf(week) !== -1; });
+      }
+      return available.indexOf(state.actionWeek) !== -1 ? [state.actionWeek] : [available[0]].filter(Boolean);
+    }
+
+    function updateActionScopeView() {
+      const value = (document.querySelector('input[name="actionScope"]:checked') || {}).value || 'once';
+      document.getElementById('scopeRange').hidden = value !== 'from';
+      document.getElementById('scopeWeeks').hidden = value !== 'custom';
+      const start = document.getElementById('scopeStart').value;
+      const end = document.getElementById('scopeEnd').value;
+      document.getElementById('scopeDateHint').textContent = segmentDateHint(start, end);
+    }
+
+    function openCourseAction(index) {
+      ensureWorkingDocument();
+      const course = state.workingData[index];
+      if (!course) return;
+      state.actionCourseIndex = index;
+      state.actionWeek = state.viewWeek;
+      state.actionDay = DAYS_FULL.indexOf(course['星期']);
+      state.actionSlot = course['节次'];
+      document.getElementById('actionCourseTitle').textContent = course['课程'];
+      document.getElementById('actionCourseMeta').textContent = course['星期'] + ' · ' + course['时间'] + ' · ' + course['节次'];
+      const available = Array.from(rawCourseWeekMap(course).keys());
+      const activeThisWeek = available.indexOf(state.viewWeek) !== -1;
+      document.getElementById('scopeOnceHint').textContent = activeThisWeek ? ('第' + state.viewWeek + '周 · ' + longDate(dateForWeekDay(state.viewWeek, state.actionDay))) : '当前查看周没有这门课';
+      const first = available[0] || state.viewWeek;
+      const last = available[available.length - 1] || state.viewWeek;
+      const start = document.getElementById('scopeStart');
+      const end = document.getElementById('scopeEnd');
+      start.innerHTML = weekOptions(first);
+      end.innerHTML = weekOptions(last);
+      start.value = String(first);
+      end.value = String(last);
+      document.getElementById('scopeWeeks').innerHTML = Array.from({ length: MAX_WEEK }, function (_, offset) {
+        const week = offset + 1;
+        const active = available.indexOf(week) !== -1;
+        return '<label' + (active ? '' : ' hidden') + '><input type="checkbox" value="' + week + '"' + (week === state.viewWeek ? ' checked' : '') + '><span>' + week + '</span></label>';
+      }).join('');
+      const once = document.querySelector('input[name="actionScope"][value="once"]');
+      const allScope = document.querySelector('input[name="actionScope"][value="all"]');
+      once.checked = activeThisWeek;
+      allScope.checked = !activeThisWeek;
+      updateActionScopeView();
+      const dialog = document.getElementById('courseActionDialog');
+      if (!dialog.open) dialog.showModal();
+    }
+
+    function openNewCourse(options) {
+      const settings = options || {};
+      ensureWorkingDocument();
+      openManagerDialog();
+      openCourseEditor(-1, {
+        day: Number.isInteger(settings.day) ? settings.day : state.selectedDay,
+        slot: settings.slot || '第1-2节',
+        week: settings.week || state.viewWeek,
+        course: settings.course || null,
+        action: 'parallel'
+      });
+    }
+
+    function moveScopedCourseToTrash(index, weeks, reason) {
+      const course = state.workingData[index];
+      const deleted = rawCourseSubset(course, weeks);
+      if (!deleted) throw new Error('所选范围没有这门课程，请重新选择。');
+      const mentor = deleted['授课分段'].some(function (part) { return part['教师'] === MENTOR_NAME; });
+      const message = (mentor ? '警告：所选范围包含导师课“不可缺席”。\n\n' : '') + '确定删除“' + course['课程'] + '”的' + weeksLabel(weeks) + '吗？删除后会移入回收站。';
+      if (!window.confirm(message)) return false;
+      const remaining = rawCourseWithoutWeeks(course, weeks);
+      const next = cloneData(state.workingData);
+      next.splice(index, 1);
+      if (remaining) next.push(remaining);
+      state.workingData = validateCoursesInput(next);
+      state.workingTrash.unshift(createTrashItem(deleted, weeks, reason || '按周次删除'));
+      setManagerDirty(true);
+      previewWorkingData();
+      return true;
+    }
+
+    function renderTrashList() {
+      const list = document.getElementById('trashList');
+      const count = document.getElementById('accountTrashCount');
+      const trash = state.managerDirty ? state.workingTrash : state.trash;
+      if (count) count.textContent = trash.length + ' 项，可恢复';
+      if (!list) return;
+      if (!trash.length) {
+        list.innerHTML = '<div class="editor-empty"><strong>回收站是空的</strong><span>删除的课程会安全地保存在这里</span></div>';
+        return;
+      }
+      list.innerHTML = trash.map(function (item, index) {
+        const course = item.course;
+        return '<article class="trash-item"><h3>' + esc(course['课程']) + '</h3><p>' + esc(course['星期'] + ' · ' + course['时间'] + ' · ' + item.originalWeeks) + '</p><p>' + esc(item.reason) + ' · 删除于 ' + esc(formatUpdatedDateTime(item.deletedAt) || item.deletedAt) + '</p><div class="trash-actions"><button type="button" data-trash-restore="' + index + '">恢复</button><button type="button" class="trash-delete" data-trash-delete="' + index + '">永久删除</button></div></article>';
+      }).join('');
+    }
+
+    function renderMakeupAssistant() {
+      const assistant = document.getElementById('makeupAssistant');
+      if (!assistant) return;
+      const makeUpDays = [
+        { date: new Date(2026, 8, 20, 12), label: '9月20日调休上班' },
+        { date: new Date(2026, 9, 10, 12), label: '10月10日调休上班' }
+      ];
+      const selected = makeUpDays.find(function (item) { return teachingWeek(item.date) === state.viewWeek; });
+      assistant.hidden = !selected;
+      if (!selected) return;
+      assistant.dataset.makeupDay = String(dayIndex(selected.date));
+      assistant.dataset.makeupWeek = String(teachingWeek(selected.date));
+      document.getElementById('makeupTitle').textContent = selected.label + ' · 补课助手';
+      const holidayDates = [
+        new Date(2026, 8, 25, 12), new Date(2026, 8, 26, 12), new Date(2026, 8, 27, 12),
+        new Date(2026, 9, 1, 12), new Date(2026, 9, 2, 12), new Date(2026, 9, 3, 12), new Date(2026, 9, 4, 12), new Date(2026, 9, 5, 12), new Date(2026, 9, 6, 12), new Date(2026, 9, 7, 12)
+      ];
+      const affectedNames = new Set();
+      COURSES.forEach(function (course) {
+        if (!isPersonalCourse(course)) return;
+        holidayDates.forEach(function (date) {
+          if (course.day === dayIndex(date) && isActive(course, teachingWeek(date))) affectedNames.add(course.name);
+        });
+      });
+      const tab = assistant.dataset.tab || 'affected';
+      assistant.querySelectorAll('[data-makeup-tab]').forEach(function (button) { button.classList.toggle('is-active', button.dataset.makeupTab === tab); });
+      const candidates = COURSES.filter(function (course, index, all) {
+        if (!isPersonalCourse(course)) return false;
+        const affected = affectedNames.has(course.name);
+        if ((tab === 'affected') !== affected) return false;
+        return all.findIndex(function (item) { return item.name === course.name; }) === index;
+      });
+      document.getElementById('makeupList').innerHTML = candidates.length ? candidates.map(function (course) {
+        return '<article class="makeup-course"><div><strong>' + esc(course.name) + '</strong><span>' + esc(tab === 'affected' ? '假期内有原排课程，优先核对补课' : allSegments(course)) + '</span></div><button type="button" data-makeup-course="' + course.id + '">添加</button></article>';
+      }).join('') : '<div class="editor-empty"><strong>暂无课程</strong><span>当前分类没有可推荐内容</span></div>';
+    }
+
+    async function runAutomaticUnselectedCleanup() {
+      if (teachingWeek(new Date()) < 5 || state.managerDirty) return false;
+      const targets = runtimeData.map(function (course, index) { return { course: course, index: index }; }).filter(function (entry) { return courseSelectionStatus(entry.course) === 'unselected'; });
+      if (!targets.length) return false;
+      ensureWorkingDocument();
+      targets.slice().reverse().forEach(function (entry) {
+        const course = state.workingData[entry.index];
+        const weeks = Array.from(rawCourseWeekMap(course).keys());
+        state.workingTrash.unshift(createTrashItem(course, weeks, '第5周起清理非本人课程'));
+        state.workingData.splice(entry.index, 1);
+      });
+      state.workingData = validateCoursesInput(state.workingData);
+      setManagerDirty(true);
+      previewWorkingData();
+      setManagerStatus('已按规则将第5周后的非本人课程移入回收站，正在同步。', 'warning');
+      return saveWorkingDataToCloud();
+    }
+
+    function unlockApplication() {
+      document.body.classList.remove('app-locked');
+      document.getElementById('loginGate').hidden = true;
+      window.requestAnimationFrame(function () { tick(); });
+    }
+
+    function lockApplication() {
+      document.body.classList.add('app-locked');
+      document.getElementById('loginGate').hidden = false;
+      const remembered = getRememberedSecret();
+      document.getElementById('loginPassword').value = remembered;
+      document.getElementById('rememberLogin').checked = Boolean(remembered);
+      document.getElementById('loginStatus').textContent = '';
+    }
+
+    function setupLogin() {
+      const remembered = getRememberedSecret();
+      document.getElementById('loginPassword').value = remembered;
+      document.getElementById('rememberLogin').checked = Boolean(remembered);
+      document.getElementById('toggleLoginPassword').addEventListener('click', function () {
+        const input = document.getElementById('loginPassword');
+        const showing = input.type === 'text';
+        input.type = showing ? 'password' : 'text';
+        this.textContent = showing ? '显示' : '隐藏';
+        this.setAttribute('aria-label', showing ? '显示密码' : '隐藏密码');
+      });
+      document.getElementById('loginForm').addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const account = document.getElementById('loginAccount').value.trim().toUpperCase();
+        const secret = document.getElementById('loginPassword').value.trim();
+        const status = document.getElementById('loginStatus');
+        const button = document.getElementById('loginSubmit');
+        if (account !== 'KANESHIRO') { status.textContent = '账号不正确，请使用 KANESHIRO。'; return; }
+        if (!/^\d+$/.test(secret)) { status.textContent = '密码只能由数字构成。'; return; }
+        button.disabled = true;
+        button.textContent = '正在验证…';
+        status.textContent = '正在连接课表云端';
+        try {
+          const valid = await verifyAdminSecret(secret);
+          if (!valid) { status.textContent = '密码错误，请重新输入。'; return; }
+          setSessionSecret(secret);
+          if (document.getElementById('rememberLogin').checked) setRememberedSecret(secret);
+          else clearRememberedSecret();
+          unlockApplication();
+          await loadCloudSchedule({ force: true });
+          await runAutomaticUnselectedCleanup();
+        } catch (error) {
+          status.textContent = error.name === 'AbortError' ? '验证超时，请检查网络后重试。' : '暂时无法登录：' + error.message;
+        } finally {
+          button.disabled = false;
+          button.textContent = '进入 KUST·Lab';
+        }
+      });
+    }
+
+    function setupCourseTools() {
+      document.querySelectorAll('[data-close-dialog]').forEach(function (button) {
+        button.addEventListener('click', function () { document.getElementById(button.dataset.closeDialog).close(); });
+      });
+      ['accountDialog','courseActionDialog','trashDialog'].forEach(function (id) {
+        const dialog = document.getElementById(id);
+        dialog.addEventListener('click', function (event) { if (event.target === dialog) dialog.close(); });
+      });
+      document.getElementById('accountAddCourse').addEventListener('click', function () { document.getElementById('accountDialog').close(); openNewCourse(); });
+      document.getElementById('accountTrash').addEventListener('click', function () { document.getElementById('accountDialog').close(); renderTrashList(); document.getElementById('trashDialog').showModal(); });
+      document.getElementById('accountImportExport').addEventListener('click', function () { document.getElementById('accountDialog').close(); openManagerDialog(); });
+      document.getElementById('accountLogout').addEventListener('click', function () { document.getElementById('accountDialog').close(); clearSessionSecret(); lockApplication(); });
+      document.querySelectorAll('input[name="actionScope"]').forEach(function (input) { input.addEventListener('change', updateActionScopeView); });
+      document.getElementById('scopeStart').addEventListener('change', updateActionScopeView);
+      document.getElementById('scopeEnd').addEventListener('change', updateActionScopeView);
+      document.getElementById('courseActionDialog').addEventListener('click', function (event) {
+        const action = event.target.closest('[data-course-action]');
+        if (!action) return;
+        const index = state.actionCourseIndex;
+        const course = state.workingData[index];
+        const weeks = selectedActionWeeks();
+        if (!weeks.length) { window.alert('所选范围没有这门课程，请重新选择。'); return; }
+        if (action.dataset.courseAction === 'delete') {
+          try { if (moveScopedCourseToTrash(index, weeks, '从课程卡片删除')) document.getElementById('courseActionDialog').close(); }
+          catch (error) { window.alert(error.message); }
+          return;
+        }
+        document.getElementById('courseActionDialog').close();
+        if (action.dataset.courseAction === 'parallel') {
+          const template = rawCourseSubset(course, weeks);
+          template['课程'] = '';
+          template['授课分段'].forEach(function (part) { part['教师'] = ''; });
+          openNewCourse({ course: template });
+          return;
+        }
+        const subset = rawCourseSubset(course, weeks);
+        if (action.dataset.courseAction === 'replace') subset['课程'] = '';
+        openManagerDialog();
+        openCourseEditor(index, { course: subset, scopeWeeks: weeks, action: action.dataset.courseAction });
+      });
+      document.getElementById('trashList').addEventListener('click', function (event) {
+        ensureWorkingDocument();
+        const restore = event.target.closest('[data-trash-restore]');
+        const remove = event.target.closest('[data-trash-delete]');
+        const index = Number((restore || remove || {}).dataset && (restore ? restore.dataset.trashRestore : remove.dataset.trashDelete));
+        if (!Number.isInteger(index) || !state.workingTrash[index]) return;
+        const item = state.workingTrash[index];
+        if (restore) {
+          try {
+            state.workingData = stageCourseUpsert(state.workingData, item.course, -1);
+            state.workingTrash.splice(index, 1);
+            setManagerDirty(true);
+            previewWorkingData();
+          } catch (error) { window.alert('无法恢复：' + error.message); }
+        } else if (window.confirm('永久删除“' + item.course['课程'] + '”吗？此操作上传后无法从回收站恢复。')) {
+          state.workingTrash.splice(index, 1);
+          setManagerDirty(true);
+          previewWorkingData();
+        }
+      });
+      document.addEventListener('click', function (event) {
+        const card = event.target.closest('[data-course-index]');
+        if (card && !event.target.closest('button,a,input,select')) { openCourseAction(Number(card.dataset.courseIndex)); return; }
+        const add = event.target.closest('[data-add-day]');
+        if (add) openNewCourse({ day: Number(add.dataset.addDay), slot: add.dataset.addSlot, week: state.viewWeek });
+      });
+      document.addEventListener('keydown', function (event) {
+        if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[data-course-index]')) { event.preventDefault(); openCourseAction(Number(event.target.dataset.courseIndex)); }
+      });
+      document.getElementById('makeupAssistant').addEventListener('click', function (event) {
+        const tab = event.target.closest('[data-makeup-tab]');
+        if (tab) { this.dataset.tab = tab.dataset.makeupTab; renderMakeupAssistant(); return; }
+        const add = event.target.closest('[data-makeup-course]');
+        if (!add) return;
+        const source = runtimeData[Number(add.dataset.makeupCourse)];
+        if (!source) return;
+        const copy = cloneData(source);
+        copy['星期'] = DAYS_FULL[Number(this.dataset.makeupDay)];
+        const week = Number(this.dataset.makeupWeek);
+        const teacher = (rawCourseWeekMap(source).get(week) || source['授课分段'][0]['教师']);
+        copy['授课分段'] = [{ '周次': String(week), '教师': teacher }];
+        openNewCourse({ course: copy });
+      });
     }
 
     function setupManager() {
@@ -3754,9 +4272,9 @@
         }).join('') + '</optgroup>';
       }).join('');
 
-      document.getElementById('openManager').addEventListener('click', openManagerDialog);
-      document.getElementById('openManagerTop').addEventListener('click', openManagerDialog);
-      document.getElementById('openManagerMobile').addEventListener('click', openManagerDialog);
+      document.getElementById('openManager').addEventListener('click', function () { openNewCourse(); });
+      document.getElementById('openManagerTop').addEventListener('click', function () { renderTrashList(); document.getElementById('accountDialog').showModal(); });
+      document.getElementById('openManagerMobile').addEventListener('click', function () { openNewCourse(); });
       document.getElementById('closeManager').addEventListener('click', closeManagerDialog);
       document.getElementById('managerDialog').addEventListener('cancel', function (event) { event.preventDefault(); closeManagerDialog(); });
       document.getElementById('unlockManager').addEventListener('click', async function () {
@@ -3853,9 +4371,13 @@
         if (!course) return;
         const warning = rawCourseHasMentor(course) ? '这是导师课，标记为“不可缺席”。\n\n' : '';
         if (!window.confirm(warning + '确定删除“' + course['课程'] + '”这门次吗？删除后还需要回到主页点击“立即上传云端”才会生效。')) return;
-        try { state.workingData = stageCourseDelete(state.workingData, index); }
+        try {
+          state.workingData = stageCourseDelete(state.workingData, index);
+          state.workingTrash.unshift(createTrashItem(course, Array.from(rawCourseWeekMap(course).keys()), '手动删除整门课程'));
+        }
         catch (error) { setManagerStatus(error.message, 'error'); return; }
         setManagerDirty(true);
+        previewWorkingData();
         renderManagerList();
         resetCourseEditor();
         setManagerStatus('课程“' + course['课程'] + '”已从待上传列表删除。关闭管理页后，请在主页上传到云端。', 'warning');
@@ -3865,8 +4387,19 @@
         try {
           const course = readCourseForm();
           const editingCourse = state.editingIndex >= 0;
-          state.workingData = stageCourseUpsert(state.workingData, course, state.editingIndex);
+          if (state.editMode === 'scoped' && state.editingIndex >= 0) {
+            const original = state.workingData[state.editingIndex];
+            const remaining = rawCourseWithoutWeeks(original, state.scopeWeeks);
+            const next = cloneData(state.workingData);
+            next.splice(state.editingIndex, 1);
+            if (remaining) next.push(remaining);
+            next.push(course);
+            state.workingData = validateCoursesInput(next);
+          } else {
+            state.workingData = stageCourseUpsert(state.workingData, course, state.editingIndex);
+          }
           setManagerDirty(true);
+          previewWorkingData();
           renderManagerList();
           resetCourseEditor();
           setManagerStatus(editingCourse ? '课程修改已暂存：“' + course['课程'] + '”。关闭管理页后，请在主页上传到云端。' : '课程已新增：“' + course['课程'] + '”。关闭管理页后，请在主页上传到云端。', 'warning');
@@ -3937,7 +4470,7 @@
       });
       document.getElementById('moreManager').addEventListener('click', function () {
         closeMenu();
-        window.requestAnimationFrame(openManagerDialog);
+        window.requestAnimationFrame(function () { openNewCourse(); });
       });
       document.getElementById('moreSync').addEventListener('click', function () {
         closeMenu();
@@ -3986,7 +4519,9 @@
       state.currentWeek = teachingWeek(now);
       state.viewWeek = Math.max(1, Math.min(MAX_WEEK, state.currentWeek));
       state.selectedDay = dayIndex(now);
+      setupLogin();
       setupManager();
+      setupCourseTools();
       setupFooterDisclosure();
       hydrateFromCache();
 
