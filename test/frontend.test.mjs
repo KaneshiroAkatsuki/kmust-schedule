@@ -8,6 +8,9 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const css = fs.readFileSync(path.join(root, 'assets', 'kust-lab-v2.css'), 'utf8');
+const weatherWorkflow = fs.readFileSync(path.join(root, '.github', 'workflows', 'weather-snapshot.yml'), 'utf8');
+const weatherUpdateScript = fs.readFileSync(path.join(root, 'scripts', 'update-weather-snapshot.mjs'), 'utf8');
+const weatherSnapshot = JSON.parse(fs.readFileSync(path.join(root, 'data', 'weather.json'), 'utf8'));
 const scriptMatch = html.match(/<script>\s*([\s\S]*?)<\/script>\s*<\/body>/);
 
 assert.ok(scriptMatch, 'inline application script should exist');
@@ -22,7 +25,7 @@ const exposedNames = [
   'stageCourseUpsert', 'stageCourseDelete',
   'cloudSaveButtonView',
   'weatherKind', 'weatherNumber', 'weatherSummary', 'visibleWeatherHours', 'weatherHourLabel', 'weatherDayLabel',
-  'renderWeatherDialog', 'readWeatherCache', 'loadWeather', 'setupWeatherDialog', 'openWeatherDialog', 'closeWeatherDialog',
+  'renderWeatherDialog', 'readWeatherCache', 'weatherDataIsStale', 'fetchWeatherData', 'fetchWeatherWithFallback', 'loadWeather', 'setupWeatherDialog', 'openWeatherDialog', 'closeWeatherDialog',
   'setupMobileMoreMenu', 'chinaTimeParts', 'chinaHourStart', 'formatUpdatedAt', 'formatUpdatedDateTime', 'latestModifiedAt',
   'getRememberedSecret', 'setRememberedSecret', 'clearRememberedSecret'
 ];
@@ -329,6 +332,7 @@ test('footer expands to four columns and collapses responsively', () => {
 
 test('weather is readable, cached locally and refreshed automatically or on demand', async () => {
   assert.match(html, /const WEATHER_REFRESH_MS = 60 \* 60 \* 1000/);
+  assert.match(html, /const WEATHER_SNAPSHOT_URL = 'data\/weather\.json'/);
   assert.equal(api.weatherKind('晴'), 'sun');
   assert.equal(api.weatherKind('多云'), 'cloud');
   assert.equal(api.weatherKind('雷阵雨'), 'storm');
@@ -424,9 +428,9 @@ test('weather is readable, cached locally and refreshed automatically or on dema
   };
   context.window = { setTimeout, clearTimeout };
   context.AbortController = AbortController;
-  let fetchCalls = 0;
-  context.fetch = async () => {
-    fetchCalls += 1;
+  const fetchCalls = [];
+  context.fetch = async (url) => {
+    fetchCalls.push(String(url));
     return {
       ok: true,
       json: async () => ({
@@ -440,19 +444,33 @@ test('weather is readable, cached locally and refreshed automatically or on dema
   };
 
   assert.equal(await api.loadWeather(), true);
-  assert.equal(fetchCalls, 0, 'fresh local cache should render without another request');
+  assert.equal(fetchCalls.length, 0, 'fresh local cache should render without another request');
   assert.equal(elements.weatherPrimary.textContent, '17°');
   assert.equal(elements.weatherSecondary.textContent, '多云');
   assert.equal(elements.weatherDialogTemperature.textContent, '17°');
   assert.match(elements.weatherMetrics.innerHTML, /相对湿度/);
 
   assert.equal(await api.loadWeather({ force: true }), true);
-  assert.equal(fetchCalls, 1, 'click-to-refresh should bypass the fresh-cache shortcut');
+  assert.equal(fetchCalls.length, 1, 'click-to-refresh should bypass the fresh-cache shortcut');
+  assert.match(fetchCalls[0], /^data\/weather\.json\?v=\d+$/, 'mobile refresh should use the same-origin snapshot first');
   assert.equal(elements.weatherPrimary.textContent, '19°');
   assert.equal(elements.weatherSecondary.textContent, '晴');
   assert.match(storage.get('kust-lab-weather-cache-v1'), /\"temperature\":19/);
 
+  context.fetch = async (url) => {
+    fetchCalls.push(String(url));
+    if (String(url).startsWith('data/weather.json')) return { ok: false, json: async () => null };
+    return { ok: true, json: async () => ({ ok: true, data: cachedData }) };
+  };
+  assert.equal(await api.loadWeather({ force: true }), true);
+  assert.match(fetchCalls.at(-2), /^data\/weather\.json\?v=/);
+  assert.match(fetchCalls.at(-1), /workers\.dev\/api\/weather$/, 'Worker should remain a fallback when the same-origin snapshot is unavailable');
+
   api.state.weatherBusy = true;
+  api.state.weatherData = {
+    ...cachedData,
+    hourly: [{ time: new Date().toISOString(), condition: '晴', temperature: 19 }]
+  };
   api.setupWeatherDialog();
   elements.weatherChip.emit('click');
   assert.equal(elements.weatherDialog.open, true, 'weather chip should open the detail dialog');
@@ -477,6 +495,21 @@ test('weather is readable, cached locally and refreshed automatically or on dema
   assert.match(css, /@media \(max-width: 420px\)[\s\S]*?\.weather-current \{ display: block;[\s\S]*?\.weather-current-symbol \{ position: absolute/);
   assert.match(css, /@media \(max-width: 360px\)[\s\S]*?\.weather-copy small \{ display: none; \}/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.weather-symbol svg[\s\S]*?animation: none !important/);
+});
+
+test('same-origin weather snapshot is valid and refreshed hourly without exposing credentials', () => {
+  assert.equal(weatherSnapshot.ok, true);
+  assert.equal(weatherSnapshot.data.location, '呈贡区');
+  assert.equal(weatherSnapshot.data.hourly.length, 24);
+  assert.equal(weatherSnapshot.data.daily.length, 7);
+  assert.doesNotMatch(JSON.stringify(weatherSnapshot), /(?:api[_-]?key|authorization|bearer|secret)/i);
+  assert.match(weatherWorkflow, /cron: "12 \* \* \* \*"/);
+  assert.match(weatherWorkflow, /permissions:[\s\S]*?contents: write/);
+  assert.match(weatherWorkflow, /node scripts\/update-weather-snapshot\.mjs/);
+  assert.match(weatherWorkflow, /git add data\/weather\.json[\s\S]*?git push/);
+  assert.match(weatherUpdateScript, /AbortSignal\.timeout\(20000\)/);
+  assert.match(weatherUpdateScript, /attempt <= 3/);
+  assert.match(weatherUpdateScript, /data\.hourly\.length < 1/);
 });
 
 test('foldable and phone breakpoints avoid narrow side columns', () => {
@@ -581,7 +614,7 @@ test('manager password is numeric, hidden by default and optionally remembered',
 });
 
 test('modification sync status uses the latest page or schedule change in China time', () => {
-  assert.match(html, /const SITE_UPDATED_AT = '2026-08-30T\d{2}:\d{2}:\d{2}\+08:00'/);
+  assert.match(html, /const SITE_UPDATED_AT = '2026-08-31T\d{2}:\d{2}:\d{2}\+08:00'/);
   assert.match(html, /function latestModifiedAt\(scheduleUpdatedAt\)/);
   assert.match(html, /getUTC(?:Month|Date|Hours|Minutes)/);
   assert.match(html, /修改同步时间/);
@@ -594,7 +627,7 @@ test('China time formatting and remembered-secret storage behave deterministical
   const siteUpdatedAt = html.match(/const SITE_UPDATED_AT = '([^']+)'/)[1];
   assert.equal(api.latestModifiedAt(null), siteUpdatedAt);
   assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), api.formatUpdatedAt(siteUpdatedAt));
-  assert.equal(api.latestModifiedAt('2026-08-31T00:00:00.000Z'), '2026-08-31T00:00:00.000Z');
+  assert.equal(api.latestModifiedAt('2026-09-01T00:00:00.000Z'), '2026-09-01T00:00:00.000Z');
 
   const remembered = new Map();
   context.localStorage = {
