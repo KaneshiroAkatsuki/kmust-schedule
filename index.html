@@ -1633,7 +1633,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=2.0">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=2.1">
 </head>
 <body class="app-locked">
   <section class="login-gate" id="loginGate" aria-labelledby="loginTitle">
@@ -1828,7 +1828,7 @@
 
       <div class="footer-bottom">
         <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">2.0</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">2.1</span></span>
       </div>
     </div>
   </footer>
@@ -2146,8 +2146,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '2.0';
-    const SITE_UPDATED_AT = '2026-08-31T15:35:00+08:00';
+    const SITE_VERSION = '2.1';
+    const SITE_UPDATED_AT = '2026-08-31T15:50:00+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -3477,7 +3477,8 @@
         method: 'POST',
         cache: 'no-store',
         credentials: 'omit',
-        headers: { 'Authorization': 'Bearer ' + secret }
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        body: secret
       }, 5000);
       const payload = await response.json().catch(function () { return null; });
       if (response.status === 401) return false;
@@ -3871,9 +3872,9 @@
       setSyncStatus('loading', '正在上传修改', '正在核对云端修订号并上传课表…');
       try {
         const response = await fetchWithTimeout(SYNC_ENDPOINT + '/api/schedule', {
-          method: 'PUT',
-          headers: { 'Authorization': 'Bearer ' + secret, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ baseRevision: state.revision, courses: clean, trash: state.workingTrash, mentorCourseNames: state.mentorCourseNames, confirmTriple: state.confirmedTriple })
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+          body: JSON.stringify({ auth: secret, baseRevision: state.revision, courses: clean, trash: state.workingTrash, mentorCourseNames: state.mentorCourseNames, confirmTriple: state.confirmedTriple })
         });
         const payload = await response.json().catch(function () { return null; });
         if (response.status === 401) {
@@ -4144,12 +4145,10 @@
       else clearRememberedSecret();
     }
 
-    function enterOfflineAfterLoginFailure(secret, error) {
-      rememberLoginSecret(secret);
-      unlockApplication();
-      const reason = error && error.name === 'AbortError' ? '验证连接超时' : '验证服务暂时不可达';
-      setSyncStatus('error', '离线进入', reason + '，已使用本机缓存或内置课表；网络恢复后会自动重试云同步');
-      window.setTimeout(function () { loadCloudSchedule(); }, 15000);
+    function normalizeNumericSecret(value) {
+      return String(value || '').replace(/[０-９]/g, function (character) {
+        return String.fromCharCode(character.charCodeAt(0) - 65248);
+      }).replace(/\s+/g, '');
     }
 
     function lockApplication() {
@@ -4175,7 +4174,7 @@
       document.getElementById('loginForm').addEventListener('submit', async function (event) {
         event.preventDefault();
         const account = document.getElementById('loginAccount').value.trim().toUpperCase();
-        const secret = document.getElementById('loginPassword').value.trim();
+        const secret = normalizeNumericSecret(document.getElementById('loginPassword').value);
         const status = document.getElementById('loginStatus');
         const button = document.getElementById('loginSubmit');
         if (account !== 'KANESHIRO') { status.textContent = '账号不正确，请使用 KANESHIRO。'; return; }
@@ -4191,11 +4190,7 @@
           await loadCloudSchedule({ force: true });
           await runAutomaticUnselectedCleanup();
         } catch (error) {
-          // The public timetable remains usable when some mobile networks
-          // cannot reach workers.dev. Cloud writes still require the Worker to
-          // validate this password, so offline entry does not bypass server
-          // authorization.
-          enterOfflineAfterLoginFailure(secret, error);
+          status.textContent = error.name === 'AbortError' ? '云端连接超时，请检查手机网络后重试。' : '无法连接云端：' + error.message;
         } finally {
           button.disabled = false;
           button.textContent = '进入 KUST·Lab';

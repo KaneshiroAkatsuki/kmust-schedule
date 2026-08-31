@@ -28,7 +28,7 @@ const exposedNames = [
   'weatherKind', 'weatherNumber', 'weatherSummary', 'visibleWeatherHours', 'weatherHourLabel', 'weatherDayLabel',
   'renderWeatherDialog', 'readWeatherCache', 'weatherDataIsStale', 'fetchWeatherData', 'fetchWeatherWithFallback', 'loadWeather', 'setupWeatherDialog', 'openWeatherDialog', 'closeWeatherDialog',
   'setupMobileMoreMenu', 'chinaTimeParts', 'chinaHourStart', 'formatUpdatedAt', 'formatUpdatedDateTime', 'latestModifiedAt',
-  'getRememberedSecret', 'setRememberedSecret', 'clearRememberedSecret'
+  'getRememberedSecret', 'setRememberedSecret', 'clearRememberedSecret', 'normalizeNumericSecret'
 ];
 
 const testSource = scriptMatch[1].replace(/\s*init\(\);\s*$/, '') +
@@ -355,9 +355,10 @@ test('login gate, card actions and cloud recycle bin are available on every layo
   assert.match(html, /trash: state\.workingTrash/);
   assert.match(html, /mentorCourseNames: state\.mentorCourseNames/);
   assert.match(html, /第5周起清理非本人课程/);
-  assert.match(html, /function enterOfflineAfterLoginFailure\(secret, error\)/);
-  assert.match(html, /setSyncStatus\('error', '离线进入'/);
-  assert.match(html, /Cloud writes still require the Worker/);
+  assert.doesNotMatch(html, /enterOfflineAfterLoginFailure|离线进入/);
+  assert.match(html, /'Content-Type': 'text\/plain;charset=UTF-8'/);
+  assert.match(html, /method: 'POST'[\s\S]*?auth: secret/);
+  assert.equal(api.normalizeNumericSecret(' １１４ ５１４ '), '114514');
   assert.match(html, /window\.addEventListener\('online'/);
   assert.match(css, /@media \(max-width: 800px\)[\s\S]*?\.tool-dialog \{ width: 100vw/);
 });

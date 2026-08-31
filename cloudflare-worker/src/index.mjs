@@ -561,7 +561,12 @@ export function createApp({ store, adminSecret, allowedOrigin, now = () => new D
           return json({ ok: false, error: { code: 'ORIGIN_REQUIRED', message: '管理操作缺少来源' } }, 403, '', allowedOrigin);
         }
         const authorization = request.headers.get('Authorization') || '';
-        const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
+        const headerToken = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
+        const bodyToken = headerToken ? '' : (await request.text()).trim();
+        const token = headerToken || bodyToken;
+        if (token.length > 128) {
+          return json({ ok: false, error: { code: 'UNAUTHORIZED', message: '管理密码错误' } }, 401, origin, allowedOrigin);
+        }
         if (!(await secureEqual(token, adminSecret))) {
           return json({ ok: false, error: { code: 'UNAUTHORIZED', message: '管理密码错误' } }, 401, origin, allowedOrigin);
         }
@@ -573,18 +578,12 @@ export function createApp({ store, adminSecret, allowedOrigin, now = () => new D
       if (request.method === 'GET') {
         return json({ ok: true, data: publicState(await store.get()) }, 200, origin, allowedOrigin);
       }
-      if (request.method !== 'PUT') {
+      if (request.method !== 'PUT' && request.method !== 'POST') {
         return json({ ok: false, error: { code: 'METHOD_NOT_ALLOWED', message: '请求方法不允许' } }, 405, origin, allowedOrigin);
       }
 
       if (!origin) {
         return json({ ok: false, error: { code: 'ORIGIN_REQUIRED', message: '管理操作缺少来源' } }, 403, '', allowedOrigin);
-      }
-
-      const authorization = request.headers.get('Authorization') || '';
-      const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-      if (!(await secureEqual(token, adminSecret))) {
-        return json({ ok: false, error: { code: 'UNAUTHORIZED', message: '管理密码错误' } }, 401, origin, allowedOrigin);
       }
 
       const declaredLength = Number(request.headers.get('Content-Length') || 0);
@@ -602,6 +601,12 @@ export function createApp({ store, adminSecret, allowedOrigin, now = () => new D
           parsed = JSON.parse(raw);
         } catch {
           return json({ ok: false, error: { code: 'INVALID_JSON', message: 'JSON格式无效' } }, 400, origin, allowedOrigin);
+        }
+        const authorization = request.headers.get('Authorization') || '';
+        const headerToken = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
+        const token = headerToken || (request.method === 'POST' && typeof parsed.auth === 'string' ? parsed.auth : '');
+        if (!(await secureEqual(token, adminSecret))) {
+          return json({ ok: false, error: { code: 'UNAUTHORIZED', message: '管理密码错误' } }, 401, origin, allowedOrigin);
         }
         const payload = cleanPayload(parsed);
         const saved = await store.put(payload.baseRevision, { courses: payload.courses, trash: payload.trash, mentorCourseNames: payload.mentorCourseNames }, now());

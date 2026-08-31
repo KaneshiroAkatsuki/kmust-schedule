@@ -225,6 +225,14 @@ test('admin password is verified before the editor opens', async () => {
     headers: { Authorization: `Bearer ${SECRET}` }
   }));
   assert.equal(missingOrigin.status, 403);
+
+  const mobileSimpleRequest = await app.fetch(request('/api/auth/verify', {
+    method: 'POST',
+    headers: { Origin: ORIGIN, 'Content-Type': 'text/plain;charset=UTF-8' },
+    body: SECRET
+  }));
+  assert.equal(mobileSimpleRequest.status, 200);
+  assert.equal((await mobileSimpleRequest.json()).ok, true);
 });
 
 test('write requires the allowed origin and bearer secret', async () => {
@@ -272,6 +280,20 @@ test('authorized write persists a validated revision', async () => {
 
   const read = await app.fetch(request('/api/schedule'));
   assert.deepEqual((await read.json()).data, saved);
+});
+
+test('mobile simple POST saves without authorization headers or preflight', async () => {
+  const app = makeApp();
+  const response = await app.fetch(request('/api/schedule', {
+    method: 'POST',
+    headers: { Origin: ORIGIN, 'Content-Type': 'text/plain;charset=UTF-8' },
+    body: JSON.stringify({ auth: SECRET, baseRevision: 0, courses: [sampleCourse()] })
+  }));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('access-control-allow-origin'), ORIGIN);
+  const saved = (await response.json()).data;
+  assert.equal(saved.courses.length, 1);
+  assert.equal(saved.revision, 1);
 });
 
 test('courses and recycle bin share one cross-device revision', async () => {
