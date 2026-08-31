@@ -20,7 +20,7 @@ const exposedNames = [
   'dayPartForMinutes',
   'teachingWeek', 'academicPhase', 'dateForWeekDay', 'dayIndex', 'isActive',
   'scheduleTermForDate',
-  'courseSelectionStatus', 'isPersonalCourse',
+  'courseSelectionStatus', 'isPersonalCourse', 'requiresAttendance',
   'normalizeWeekRange', 'weekDateRangeLabel', 'segmentDateHint', 'weekRangeValue', 'weekOptions',
   'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput',
   'stageCourseUpsert', 'stageCourseDelete',
@@ -88,6 +88,8 @@ test('course selection marks match the submitted plan without hiding timetable r
   assert.equal(api.courseSelectionStatus({ name: '土壤微生物学' }), 'unselected');
   assert.equal(api.courseSelectionStatus({ name: '农业面源污染控制工程（农水方向）' }), 'unselected');
   assert.equal(api.courseSelectionStatus({ name: '新增个人课程' }), 'selected', 'newly added personal courses should remain visible as selected by default');
+  assert.equal(api.requiresAttendance({ name: '土壤微生物学' }, 2), true, 'every scheduled course is mandatory during experience week');
+  assert.equal(api.requiresAttendance({ name: '土壤微生物学' }, 3), false, 'non-selected courses stop entering reminders after experience week');
 
   const unselectedNames = new Set(api.COURSES.filter((course) => api.courseSelectionStatus(course) === 'unselected').map((course) => course.name));
   assert.deepEqual(Array.from(unselectedNames).sort(), [
@@ -180,12 +182,22 @@ test('live status reports current class, next class and remaining time', () => {
   assert.equal(next.countdownLabel, '还有');
 });
 
-test('non-selected reference courses never become current or next-class reminders', () => {
-  const nonSelectedOnly = api.currentStatus(localDate(2026, 9, 6, 10, 30));
-  assert.equal(nonSelectedOnly.type, 'free');
-  assert.equal(nonSelectedOnly.course, '今天没有课程安排');
+test('experience week requires every scheduled class, then personal filtering starts in week three', () => {
+  const experienceOnly = api.currentStatus(localDate(2026, 9, 6, 10, 30));
+  assert.equal(experienceOnly.type, 'active');
+  assert.equal(experienceOnly.course, '农业面源污染控制工程（农生方向）');
+  assert.equal(experienceOnly.experience, true);
 
-  const afterPersonalClasses = api.currentStatus(localDate(2026, 8, 31, 14, 0));
+  const experienceAfternoon = api.currentStatus(localDate(2026, 8, 31, 14, 0));
+  assert.equal(experienceAfternoon.type, 'active');
+  assert.equal(experienceAfternoon.course, '农业生态与环境工程');
+  assert.equal(experienceAfternoon.experience, true);
+
+  const nonSelectedAfterExperience = api.currentStatus(localDate(2026, 9, 13, 10, 30));
+  assert.equal(nonSelectedAfterExperience.type, 'free');
+  assert.equal(nonSelectedAfterExperience.course, '今天没有课程安排');
+
+  const afterPersonalClasses = api.currentStatus(localDate(2026, 9, 7, 14, 0));
   assert.equal(afterPersonalClasses.type, 'finished');
   assert.notEqual(afterPersonalClasses.course, '农业生态与环境工程');
 
@@ -239,6 +251,12 @@ test('desktop matrix renders all seven days, six time bands and mentor warning',
   assert.match(matrix.innerHTML, /16:10—17:45/);
   assert.match(css, /\.matrix-card\.is-unselected/);
   assert.match(css, /\.week-list > \.week-row\.is-pending-drop/);
+
+  api.state.viewWeek = 2;
+  api.renderWeekMatrix(localDate(2026, 8, 31, 14, 0));
+  assert.match(matrix.innerHTML, /体验课 · 必须参加/);
+  assert.match(matrix.innerHTML, /class="matrix-card[^"\n]*is-unselected[^"\n]*is-experience/);
+  assert.match(css, /\.matrix-card\.is-experience\.is-unselected/);
 });
 
 test('course editor validation matches the cloud contract', () => {
@@ -559,7 +577,7 @@ test('foldable and phone breakpoints avoid narrow side columns', () => {
   assert.doesNotMatch(css, /\.dock-item\.dock-manage \{[^}]*background: var\(--kust-red-soft\)/);
   assert.match(css, /\.week-list > \.week-row\.off[\s\S]*?border: 1px dashed/);
   assert.match(css, /\.on-label[\s\S]*?background: var\(--kust-red-soft\)/);
-  assert.match(html, /if \(on && selection !== 'unselected'\) labels\.push\('<span class="on-label">本周上课<\/span>'\)/);
+  assert.match(html, /if \(on && !experienceCourse && selection !== 'unselected'\) labels\.push\('<span class="on-label">本周上课<\/span>'\)/);
   assert.match(css, /\.week-list \{[\s\S]*?grid-auto-rows: 1fr/);
   assert.match(css, /\.matrix-cell \{[\s\S]*?grid-auto-rows: 1fr/);
   assert.match(css, /\.timeline \{ display: grid; grid-auto-rows: 1fr; \}/);

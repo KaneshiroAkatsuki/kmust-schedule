@@ -510,6 +510,25 @@ body {
 .slot-label { border-radius: 5px; color: var(--kust-red); background: var(--kust-red-soft); }
 .mentor-label, .mentor-badge { border-radius: 5px; color: var(--kust-red); background: var(--kust-red-soft); }
 
+.experience-label,
+.experience-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 7px;
+  border: 1px solid #d6ad51;
+  border-radius: 6px;
+  color: #765009;
+  background: #fff1c6;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.experience-label { margin-left: 6px; }
+.experience-badge { margin: 7px 0 3px; }
+.status-card.active .experience-badge { color: #742f00; border-color: rgba(255,255,255,.58); background: #fff0b9; }
+
 .pending-drop-label,
 .unselected-label {
   display: inline-flex;
@@ -534,6 +553,11 @@ body {
 .timeline-item.is-unselected .timeline-time > span:first-child,
 .timeline-item.is-unselected .timeline-name,
 .timeline-item.is-unselected .row-meta { color: #69747c; }
+.timeline-item.is-experience { opacity: 1; }
+.timeline-item.is-experience .timeline-body { border: 1px solid #d6ad51; background: #fff9e8; box-shadow: 0 6px 18px rgba(154,103,16,.07); }
+.timeline-item.is-experience .timeline-dot { border-color: #bd7b12; background: #ffe29a; }
+.timeline-item.is-experience .timeline-time > span:first-child,
+.timeline-item.is-experience .timeline-name { color: #80530a; }
 
 .mentor-reminder {
   border-radius: 10px;
@@ -591,6 +615,11 @@ body {
 .week-row.is-unselected .week-name,
 .week-row.is-unselected .week-time,
 .week-row.is-unselected .week-detail { color: #68737a; }
+.week-list > .week-row.is-experience { opacity: 1; border: 1px solid #d6ad51; background: #fff9e8; box-shadow: 0 7px 18px rgba(154,103,16,.065); }
+.week-list > .week-row.is-experience::before { background: #b8730f; }
+.week-row.is-experience .week-name,
+.week-row.is-experience .week-time,
+.week-row.is-experience .week-detail { color: #5d471d; }
 .week-time { color: var(--kust-red); }
 .on-label,
 .off-label { border: 1px solid transparent; }
@@ -711,6 +740,7 @@ body {
 .matrix-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; font-style: normal; }
 .legend-live { background: var(--kust-red); }
 .legend-active { border: 1px solid rgba(178,12,37,.42); background: #fff4f5; }
+.legend-experience { border: 1px solid #c98a20; background: #ffe8a8; }
 .legend-off { border: 1px dashed #aaa49b; background: #e5e1da; }
 .legend-pending { border: 1px dashed #c88738; background: #fff0d6; }
 .legend-unselected { border: 1px dashed #8d9aa3; background: #dfe5e8; }
@@ -896,6 +926,20 @@ body {
   .matrix-card.is-unselected::before { background: #7f8d96; }
   .matrix-card.is-unselected .matrix-name,
   .matrix-card.is-unselected .matrix-meta { color: #657179; }
+  .matrix-card.is-experience,
+  .matrix-card.is-experience.is-unselected {
+    opacity: 1;
+    border: 1px solid #d2a13e;
+    background: #fff8df;
+    box-shadow: 0 4px 12px rgba(154,103,16,.08);
+  }
+  .matrix-card.is-experience::before { background: #b8730f; }
+  .matrix-card.is-experience .matrix-name { color: #60410b; }
+  .matrix-card.is-experience .matrix-meta { color: #746038; }
+  .matrix-card.is-experience.is-live { color: #fff; border-color: #9f650d; background: #a96a0c; }
+  .matrix-card.is-experience.is-live::before { background: #fff; }
+  .matrix-card.is-experience.is-live .matrix-name,
+  .matrix-card.is-experience.is-live .matrix-meta { color: #fff; }
 
   .matrix-name {
     overflow-wrap: anywhere;
@@ -909,10 +953,12 @@ body {
   .matrix-badge { display: inline-block; margin-bottom: 5px; color: var(--kust-red); font-size: 8px; font-weight: 900; line-height: 1.3; }
   .matrix-badge.is-on-status,
   .matrix-badge.is-off-status,
+  .matrix-badge.is-experience-status,
   .matrix-badge.is-pending-status,
   .matrix-badge.is-unselected-status { padding: 2px 4px; border-radius: 4px; }
   .matrix-badge.is-on-status { background: var(--kust-red-soft); }
   .matrix-badge.is-off-status { color: #625e58; background: #d8d4cd; }
+  .matrix-badge.is-experience-status { color: #714a08; background: #ffe6a3; }
   .matrix-badge.is-pending-status { color: #8b4a08; background: #ffe9c6; }
   .matrix-badge.is-unselected-status { color: #4f5d68; background: #d4dce0; }
   .matrix-card.is-live .matrix-badge { color: #fff; }
@@ -1159,8 +1205,8 @@ body {
   .week-name-row { display: block; }
   .week-name { font-size: 14px; line-height: 1.4; }
   .week-badges { justify-content: flex-start; margin-top: 6px; }
-  .daypart-badge, .on-label, .off-label, .live-label, .mentor-schedule-label, .pending-drop-label, .unselected-label { padding: 2px 6px; font-size: 10px; }
-  .pending-drop-label, .unselected-label { margin-top: 4px; margin-left: 0; }
+  .daypart-badge, .on-label, .off-label, .live-label, .mentor-schedule-label, .experience-label, .pending-drop-label, .unselected-label { padding: 2px 6px; font-size: 10px; }
+  .experience-label, .pending-drop-label, .unselected-label { margin-top: 4px; margin-left: 0; }
   .week-detail { margin-top: 5px; font-size: 11px; line-height: 1.55; overflow-wrap: anywhere; }
   .week-detail .segments { margin-top: 3px; overflow-wrap: anywhere; }
   .calendar-card summary { padding: 14px 13px; font-size: 12px; }
