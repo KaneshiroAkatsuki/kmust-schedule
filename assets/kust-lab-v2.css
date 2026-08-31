@@ -1294,7 +1294,7 @@ body.app-locked > :not(.login-gate) { visibility: hidden; }
 .login-card { position: relative; width: min(440px,100%); padding: clamp(24px,5vw,44px); border: 1px solid rgba(57,45,35,.13); border-radius: 28px; background: rgba(255,253,249,.9); box-shadow: 0 30px 90px rgba(55,37,26,.14); backdrop-filter: blur(20px); }
 .login-brand { display: flex; align-items: center; gap: clamp(13px,3vw,18px); padding-bottom: 22px; border-bottom: 1px solid var(--line); }
 .login-brand > span:last-child { min-width: 0; }
-.login-brand .brand-logo { width: clamp(104px,25vw,132px); height: auto; flex: 0 0 clamp(104px,25vw,132px); aspect-ratio: 311 / 72; }
+.login-brand .brand-logo { width: clamp(148px,28vw,180px); height: auto; flex: 0 0 clamp(148px,28vw,180px); aspect-ratio: 311 / 72; }
 .login-brand strong { display: block; color: var(--mentor); font-family: var(--display-font); font-size: 21px; letter-spacing: .02em; }
 .login-brand small { display: block; margin-top: 4px; color: var(--muted); font-size: 8px; line-height: 1.45; letter-spacing: .07em; overflow-wrap: anywhere; }
 .login-copy { margin: 27px 0 24px; }
@@ -1429,7 +1429,7 @@ body.app-locked > :not(.login-gate) { visibility: hidden; }
   .course-actions { grid-template-columns: 1fr; }
   .course-actions button { min-height: 62px; }
   .login-brand { gap: 11px; }
-  .login-brand .brand-logo { width: clamp(92px,28vw,104px); flex-basis: clamp(92px,28vw,104px); }
+  .login-brand .brand-logo { width: clamp(108px,31vw,122px); flex-basis: clamp(108px,31vw,122px); }
   .login-brand strong { font-size: 19px; }
   .login-brand small { max-width: 160px; font-size: 7px; letter-spacing: .045em; }
   .makeup-head { display: block; }

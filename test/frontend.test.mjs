@@ -360,6 +360,8 @@ test('login gate, card actions and cloud recycle bin are available on every layo
   assert.match(html, /method: 'POST'[\s\S]*?auth: secret/);
   assert.equal(api.normalizeNumericSecret(' １１４ ５１４ '), '114514');
   assert.match(html, /window\.addEventListener\('online'/);
+  assert.match(html, /const SYNC_ENDPOINT = 'https:\/\/kmust-schedule-cn-gateway\.pages\.dev'/);
+  assert.doesNotMatch(html, /const SYNC_ENDPOINT = 'https:\/\/kmust-schedule-sync\.kaneshiroakatsuki\.workers\.dev'/);
   assert.match(css, /@media \(max-width: 800px\)[\s\S]*?\.tool-dialog \{ width: 100vw/);
 });
 
@@ -584,7 +586,7 @@ test('weather is readable, cached locally and refreshed automatically or on dema
   };
   assert.equal(await api.loadWeather({ force: true }), true);
   assert.match(fetchCalls.at(-2), /^data\/weather\.json\?v=/);
-  assert.match(fetchCalls.at(-1), /workers\.dev\/api\/weather$/, 'Worker should remain a fallback when the same-origin snapshot is unavailable');
+  assert.match(fetchCalls.at(-1), /kmust-schedule-cn-gateway\.pages\.dev\/api\/weather$/, 'the mainland-accessible gateway should remain a fallback when the same-origin snapshot is unavailable');
 
   api.state.weatherBusy = true;
   api.state.weatherData = {
@@ -734,9 +736,9 @@ test('manager password is numeric, hidden by default and optionally remembered',
 });
 
 test('login school mark keeps its wide official proportion and scales across phone and desktop', () => {
-  assert.match(css, /\.login-brand \.brand-logo \{[^}]*width: clamp\(104px,25vw,132px\);[^}]*height: auto;[^}]*aspect-ratio: 311 \/ 72;/);
+  assert.match(css, /\.login-brand \.brand-logo \{[^}]*width: clamp\(148px,28vw,180px\);[^}]*height: auto;[^}]*aspect-ratio: 311 \/ 72;/);
   assert.doesNotMatch(css, /\.login-brand \.brand-logo \{[^}]*width: 48px;[^}]*height: 48px;/);
-  assert.match(css, /@media \(max-width: 420px\)[\s\S]*?\.login-brand \.brand-logo \{[^}]*width: clamp\(92px,28vw,104px\);/);
+  assert.match(css, /@media \(max-width: 420px\)[\s\S]*?\.login-brand \.brand-logo \{[^}]*width: clamp\(108px,31vw,122px\);/);
   assert.match(css, /\.login-brand > span:last-child \{ min-width: 0; \}/);
 });
 

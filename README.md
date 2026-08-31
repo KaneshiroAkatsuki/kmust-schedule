@@ -5,7 +5,8 @@
 ## 在线访问
 
 - 网页：[https://kaneshiroakatsuki.github.io/kmust-schedule/](https://kaneshiroakatsuki.github.io/kmust-schedule/)
-- 同步接口：`https://kmust-schedule-sync.kaneshiroakatsuki.workers.dev`
+- 手机与网页同步入口：`https://kmust-schedule-cn-gateway.pages.dev`
+- 数据服务：`https://kmust-schedule-sync.kaneshiroakatsuki.workers.dev`（由同步入口转发，网页不再要求设备直接连接此域名）
 
 公开查看不需要登录。页面始终内置一份基础课表；云端或网络暂时不可用时，会自动使用最近一次缓存或内置数据，不影响查看时间和课程。
 
@@ -13,7 +14,7 @@
 
 ## 天气更新
 
-呈贡区天气由 Cloudflare Worker 每小时整点自动向百度地图天气更新，并保存到云端 D1；GitHub Actions 随后把经过校验的天气快照更新到本站 `data/weather.json`。手机和电脑优先读取这个同域文件，不需要直接连接可能受网络影响的 `workers.dev`，同域文件不可用时才尝试 Worker。即使所有设备都没有打开网页，两个定时任务仍会继续运行。天气入口位于首页数字时钟旁，点击后可查看当前指标、未来 24 小时和未来 7 日天气，也可以手动检查最新快照；接口临时失败时会保留上次成功结果并标注“缓存”。
+呈贡区天气由 Cloudflare Worker 每小时整点自动向百度地图天气更新，并保存到云端 D1；GitHub Actions 随后把经过校验的天气快照更新到本站 `data/weather.json`。手机和电脑优先读取这个同域文件，同域文件不可用时再通过大陆可直连的 Pages 网关读取，不要求设备直接连接 `workers.dev`。即使所有设备都没有打开网页，两个定时任务仍会继续运行。天气入口位于首页数字时钟旁，点击后可查看当前指标、未来 24 小时和未来 7 日天气，也可以手动检查最新快照；接口临时失败时会保留上次成功结果并标注“缓存”。
 
 ## 管理课表
 
