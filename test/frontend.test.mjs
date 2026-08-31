@@ -349,6 +349,10 @@ test('login gate, card actions and cloud recycle bin are available on every layo
   assert.match(html, /id="trashDialog"/);
   assert.match(html, /trash: state\.workingTrash/);
   assert.match(html, /第5周起清理非本人课程/);
+  assert.match(html, /function enterOfflineAfterLoginFailure\(secret, error\)/);
+  assert.match(html, /setSyncStatus\('error', '离线进入'/);
+  assert.match(html, /Cloud writes still require the Worker/);
+  assert.match(html, /window\.addEventListener\('online'/);
   assert.match(css, /@media \(max-width: 800px\)[\s\S]*?\.tool-dialog \{ width: 100vw/);
 });
 
