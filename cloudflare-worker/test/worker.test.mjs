@@ -200,7 +200,8 @@ test('public read reports an uninitialized schedule', async () => {
     revision: 0,
     updatedAt: null,
     courses: [],
-    trash: []
+    trash: [],
+    mentorCourseNames: ['设施农业与装备', '设施农业与装备（专硕）', '农业节水与供水工程']
   });
 });
 
@@ -286,13 +287,14 @@ test('courses and recycle bin share one cross-device revision', async () => {
   const save = await app.fetch(request('/api/schedule', {
     method: 'PUT',
     headers: adminHeaders(),
-    body: JSON.stringify({ baseRevision: 0, courses: [sampleCourse()], trash })
+    body: JSON.stringify({ baseRevision: 0, courses: [sampleCourse()], trash, mentorCourseNames: ['设施农业与装备', '农业节水与供水工程'] })
   }));
   assert.equal(save.status, 200);
   const saved = (await save.json()).data;
   assert.equal(saved.schemaVersion, 2);
   assert.equal(saved.trash.length, 1);
   assert.equal(saved.trash[0].course.课程, '已删除课程');
+  assert.deepEqual(saved.mentorCourseNames, ['设施农业与装备', '农业节水与供水工程']);
   const read = await app.fetch(request('/api/schedule'));
   assert.deepEqual((await read.json()).data, saved);
 });

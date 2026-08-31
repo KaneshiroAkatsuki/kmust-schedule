@@ -2,6 +2,8 @@ const SCHEMA_VERSION = 2;
 const MAX_BODY_BYTES = 256 * 1024;
 const MAX_COURSES = 200;
 const MAX_TRASH_ITEMS = 400;
+const MAX_MENTOR_COURSE_NAMES = 20;
+const DEFAULT_MENTOR_COURSE_NAMES = ['设施农业与装备', '设施农业与装备（专硕）', '农业节水与供水工程'];
 const WEATHER_PROVIDER_CACHE_MS = 15 * 60 * 1000;
 const WEATHER_REFRESH_MS = 60 * 60 * 1000;
 const BAIDU_WEATHER_ENDPOINT = 'https://api.map.baidu.com/weather/v1/';
@@ -32,7 +34,8 @@ function publicState(state) {
       revision: 0,
       updatedAt: null,
       courses: [],
-      trash: []
+      trash: [],
+      mentorCourseNames: clone(DEFAULT_MENTOR_COURSE_NAMES)
     };
   }
   return {
@@ -41,7 +44,8 @@ function publicState(state) {
     revision: state.revision,
     updatedAt: state.updatedAt,
     courses: clone(state.courses),
-    trash: clone(state.trash || [])
+    trash: clone(state.trash || []),
+    mentorCourseNames: clone(state.mentorCourseNames || DEFAULT_MENTOR_COURSE_NAMES)
   };
 }
 
@@ -190,10 +194,15 @@ function cleanPayload(payload) {
       course: cleanCourse(item.course, index)
     };
   });
+  if (!Array.isArray(payload.mentorCourseNames || []) || (payload.mentorCourseNames || []).length > MAX_MENTOR_COURSE_NAMES) {
+    throw new ValidationError(`导师课程名称不能超过 ${MAX_MENTOR_COURSE_NAMES} 个`);
+  }
+  const mentorCourseNames = [...new Set((payload.mentorCourseNames || DEFAULT_MENTOR_COURSE_NAMES).map((name) => cleanText(name, '导师课程名称', 80)))];
   return {
     baseRevision: payload.baseRevision,
     courses,
     trash,
+    mentorCourseNames,
     confirmTriple: payload.confirmTriple === true
   };
 }
@@ -413,7 +422,8 @@ export function createMemoryStore(seed = null) {
         revision: currentRevision + 1,
         updatedAt,
         courses: clone(document.courses || []),
-        trash: clone(document.trash || [])
+        trash: clone(document.trash || []),
+        mentorCourseNames: clone(document.mentorCourseNames || DEFAULT_MENTOR_COURSE_NAMES)
       };
       return { ok: true, current: clone(state) };
     }
@@ -430,7 +440,8 @@ export function createD1Store(database) {
         revision: Number(documentRow.revision),
         updatedAt: documentRow.updated_at,
         courses: document.courses || [],
-        trash: document.trash || []
+        trash: document.trash || [],
+        mentorCourseNames: document.mentorCourseNames || DEFAULT_MENTOR_COURSE_NAMES
       };
     }
     const legacyRow = await database.prepare('SELECT revision, updated_at, courses_json FROM schedule_state WHERE id = 1').first();
@@ -440,13 +451,14 @@ export function createD1Store(database) {
       updatedAt: legacyRow.updated_at,
       courses: JSON.parse(legacyRow.courses_json),
       trash: [],
+      mentorCourseNames: clone(DEFAULT_MENTOR_COURSE_NAMES),
       legacy: true
     };
   };
   return {
     get,
     async put(expectedRevision, document, updatedAt) {
-      const encoded = JSON.stringify({ courses: document.courses || [], trash: document.trash || [] });
+      const encoded = JSON.stringify({ courses: document.courses || [], trash: document.trash || [], mentorCourseNames: document.mentorCourseNames || DEFAULT_MENTOR_COURSE_NAMES });
       const current = await get();
       if (!current) {
         if (expectedRevision !== 0) return { ok: false, current: null };
@@ -592,7 +604,7 @@ export function createApp({ store, adminSecret, allowedOrigin, now = () => new D
           return json({ ok: false, error: { code: 'INVALID_JSON', message: 'JSON格式无效' } }, 400, origin, allowedOrigin);
         }
         const payload = cleanPayload(parsed);
-        const saved = await store.put(payload.baseRevision, { courses: payload.courses, trash: payload.trash }, now());
+        const saved = await store.put(payload.baseRevision, { courses: payload.courses, trash: payload.trash, mentorCourseNames: payload.mentorCourseNames }, now());
         if (!saved.ok) {
           return json({
             ok: false,

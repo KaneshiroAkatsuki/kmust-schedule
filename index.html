@@ -1633,7 +1633,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=1.9">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=2.0">
 </head>
 <body class="app-locked">
   <section class="login-gate" id="loginGate" aria-labelledby="loginTitle">
@@ -1828,7 +1828,7 @@
 
       <div class="footer-bottom">
         <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">1.9</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">2.0</span></span>
       </div>
     </div>
   </footer>
@@ -2146,8 +2146,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '1.9';
-    const SITE_UPDATED_AT = '2026-08-31T15:20:00+08:00';
+    const SITE_VERSION = '2.0';
+    const SITE_UPDATED_AT = '2026-08-31T15:35:00+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -2272,6 +2272,7 @@
       editingIndex: -1,
       workingData: [],
       trash: [],
+      mentorCourseNames: Array.from(MENTOR_COURSE_NAMES),
       workingTrash: [],
       confirmedTriple: false,
       actionCourseIndex: -1,
@@ -2404,7 +2405,8 @@
 
     function isMentorCourseName(name) {
       const normalized = String(name || '').replace(/\s+/g, '').trim();
-      return MENTOR_COURSE_NAMES.has(normalized) || normalized.indexOf('设施农业与装备') === 0;
+      const cloudNames = new Set((state.mentorCourseNames || []).map(function (item) { return String(item || '').replace(/\s+/g, '').trim(); }));
+      return MENTOR_COURSE_NAMES.has(normalized) || cloudNames.has(normalized) || normalized.indexOf('设施农业与装备') === 0;
     }
 
     function isMentorCourse(course, week) {
@@ -3085,6 +3087,7 @@
       state.updatedAt = metadata && metadata.updatedAt || null;
       state.dataSource = metadata && metadata.source || 'fallback';
       state.trash = cloneData(metadata && metadata.trash || []);
+      state.mentorCourseNames = cloneData(metadata && metadata.mentorCourseNames || Array.from(MENTOR_COURSE_NAMES));
       state.lastMinuteKey = '';
       const count = document.getElementById('footerCourseCount');
       if (count) count.textContent = '第一学期 ' + runtimeData.length + ' 门次课程';
@@ -3102,7 +3105,8 @@
           revision: state.revision,
           updatedAt: state.updatedAt,
           courses: runtimeData,
-          trash: state.trash
+          trash: state.trash,
+          mentorCourseNames: state.mentorCourseNames
         }));
       } catch (_) {}
     }
@@ -3111,7 +3115,7 @@
       try {
         const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
         if (!cached || cached.schemaVersion !== 1 || !Number.isInteger(cached.revision)) return false;
-        applyRuntimeData(cached.courses, { revision: cached.revision, updatedAt: cached.updatedAt, source: 'cache', trash: cached.trash || [] });
+        applyRuntimeData(cached.courses, { revision: cached.revision, updatedAt: cached.updatedAt, source: 'cache', trash: cached.trash || [], mentorCourseNames: cached.mentorCourseNames || [] });
         setModifiedSyncStatus(cached.updatedAt, cached.revision, '当前使用本机缓存');
         return true;
       } catch (_) {
@@ -3513,7 +3517,7 @@
           }
           return false;
         }
-        applyRuntimeData(clean, { revision: Number(cloud.revision), updatedAt: cloud.updatedAt, source: 'cloud', trash: cloud.trash || [] });
+        applyRuntimeData(clean, { revision: Number(cloud.revision), updatedAt: cloud.updatedAt, source: 'cloud', trash: cloud.trash || [], mentorCourseNames: cloud.mentorCourseNames || [] });
         saveCache();
         const managerEditor = document.getElementById('managerEditor');
         if (managerEditor && !managerEditor.hidden && !state.managerDirty) {
@@ -3869,7 +3873,7 @@
         const response = await fetchWithTimeout(SYNC_ENDPOINT + '/api/schedule', {
           method: 'PUT',
           headers: { 'Authorization': 'Bearer ' + secret, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ baseRevision: state.revision, courses: clean, trash: state.workingTrash, confirmTriple: state.confirmedTriple })
+          body: JSON.stringify({ baseRevision: state.revision, courses: clean, trash: state.workingTrash, mentorCourseNames: state.mentorCourseNames, confirmTriple: state.confirmedTriple })
         });
         const payload = await response.json().catch(function () { return null; });
         if (response.status === 401) {
@@ -3887,7 +3891,7 @@
           return false;
         }
         if (!response.ok || !payload || !payload.ok || !payload.data) throw new Error(payload && payload.error ? payload.error.message : '保存失败');
-        applyRuntimeData(payload.data.courses, { revision: Number(payload.data.revision), updatedAt: payload.data.updatedAt, source: 'cloud', trash: payload.data.trash || [] });
+        applyRuntimeData(payload.data.courses, { revision: Number(payload.data.revision), updatedAt: payload.data.updatedAt, source: 'cloud', trash: payload.data.trash || [], mentorCourseNames: payload.data.mentorCourseNames || [] });
         saveCache();
         state.workingData = cloneData(runtimeData);
         state.workingTrash = cloneData(state.trash);

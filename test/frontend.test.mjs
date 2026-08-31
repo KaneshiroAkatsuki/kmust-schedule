@@ -353,6 +353,7 @@ test('login gate, card actions and cloud recycle bin are available on every layo
   assert.match(html, /data-course-action="delete"/);
   assert.match(html, /id="trashDialog"/);
   assert.match(html, /trash: state\.workingTrash/);
+  assert.match(html, /mentorCourseNames: state\.mentorCourseNames/);
   assert.match(html, /第5周起清理非本人课程/);
   assert.match(html, /function enterOfflineAfterLoginFailure\(secret, error\)/);
   assert.match(html, /setSyncStatus\('error', '离线进入'/);
