@@ -233,7 +233,26 @@ test('mentor class is specially marked only during mentor teaching weeks', () =>
   assert.equal(live.teacher, '喻黎明');
   assert.equal(live.room, '公教楼247');
   assert.equal(live.mentor, true);
-  assert.match(html, /导师课 · 不可缺席/);
+  assert.match(html, /导师\/带教课 · 不可缺席/);
+});
+
+test('Li Na teaching segment is mandatory without turning other teachers segments into selected classes', () => {
+  const meeting = api.COURSES.find((course) => course.name === '土壤水分溶质动力学');
+  assert.ok(meeting);
+  assert.equal(api.courseSelectionStatus(meeting), 'unselected', 'the course is still not part of the submitted selection');
+  assert.equal(api.isMentorCourse(meeting, 9), false);
+  assert.equal(api.requiresAttendance(meeting, 9), false, 'the Chen Shaomin segment remains optional');
+  assert.equal(api.isMentorCourse(meeting, 10), true);
+  assert.equal(api.courseSelectionStatus(meeting, 10), 'selected');
+  assert.equal(api.requiresAttendance(meeting, 10), true, 'the Li Na segment must be attended');
+  assert.equal(api.requiresAttendance(meeting, 13), true);
+
+  const live = api.currentStatus(localDate(2026, 10, 26, 16, 30));
+  assert.equal(live.course, '土壤水分溶质动力学');
+  assert.equal(live.teacher, '李娜');
+  assert.equal(live.room, '公教楼248');
+  assert.equal(live.mentor, true);
+  assert.match(html, /李娜授课分段 · 不可缺席/);
 });
 
 test('desktop matrix renders all seven days, six time bands and mentor warning', () => {
@@ -245,7 +264,7 @@ test('desktop matrix renders all seven days, six time bands and mentor warning',
   assert.equal((matrix.innerHTML.match(/class="matrix-slot/g) || []).length, 6);
   assert.equal((matrix.innerHTML.match(/class="matrix-cell/g) || []).length, 42);
   assert.match(matrix.innerHTML, /设施农业与装备（专硕）/);
-  assert.match(matrix.innerHTML, /导师课 · 不可缺席/);
+  assert.match(matrix.innerHTML, /导师\/带教课 · 不可缺席/);
   assert.match(matrix.innerHTML, /非选课 · 无需上课/);
   assert.match(matrix.innerHTML, /待退选 · 请确认/);
   assert.match(matrix.innerHTML, /本周上课/);
@@ -325,7 +344,7 @@ test('course deletion requires a second confirmation before it enters the pendin
   const deleteIndex = html.indexOf('state.workingData = stageCourseDelete(state.workingData, index)');
   assert.ok(confirmationIndex > 0, 'delete confirmation should exist');
   assert.ok(deleteIndex > confirmationIndex, 'course should only be staged for deletion after confirmation');
-  assert.match(html, /这是导师课，标记为“不可缺席”/);
+  assert.match(html, /这是导师\/带教课，标记为“不可缺席”/);
   assert.match(html, /删除后还需要回到主页点击“立即上传云端”才会生效/);
 });
 
@@ -764,7 +783,9 @@ test('login school mark keeps its wide official proportion and scales across pho
 });
 
 test('modification sync status uses the latest page or schedule change in China time', () => {
-  assert.match(html, /const SITE_UPDATED_AT = '2026-08-31T\d{2}:\d{2}:\d{2}\+08:00'/);
+  const siteUpdatedAt = html.match(/const SITE_UPDATED_AT = '([^']+)'/)[1];
+  assert.match(siteUpdatedAt, /^2026-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+08:00$/);
+  assert.ok(Number.isFinite(new Date(siteUpdatedAt).getTime()));
   assert.match(html, /function latestModifiedAt\(scheduleUpdatedAt\)/);
   assert.match(html, /getUTC(?:Month|Date|Hours|Minutes)/);
   assert.match(html, /修改同步时间/);
@@ -777,7 +798,7 @@ test('China time formatting and remembered-secret storage behave deterministical
   const siteUpdatedAt = html.match(/const SITE_UPDATED_AT = '([^']+)'/)[1];
   assert.equal(api.latestModifiedAt(null), siteUpdatedAt);
   assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), api.formatUpdatedAt(siteUpdatedAt));
-  assert.equal(api.latestModifiedAt('2026-09-01T00:00:00.000Z'), '2026-09-01T00:00:00.000Z');
+  assert.equal(api.latestModifiedAt('2026-09-02T00:00:00.000Z'), '2026-09-02T00:00:00.000Z');
 
   const remembered = new Map();
   context.localStorage = {
