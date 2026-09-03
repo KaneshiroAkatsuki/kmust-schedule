@@ -353,6 +353,16 @@ test('invalid and oversized schedules are rejected', async () => {
     body: JSON.stringify({ baseRevision: 0, courses: [sampleCourse({ 课程: 'x'.repeat(270000) })] })
   }));
   assert.equal(oversized.status, 413);
+
+  const mixedDurations = await makeApp().fetch(request('/api/schedule', {
+    method: 'PUT',
+    headers: adminHeaders(),
+    body: JSON.stringify({ baseRevision: 0, courses: [
+      sampleCourse({ 节次: '第3-4节', 时间: '09:50-11:25' }),
+      sampleCourse({ 星期: '星期二', 节次: '第9-11节', 时间: '16:10-18:35', 课程: '下午长课' })
+    ] })
+  }));
+  assert.equal(mixedDurations.status, 200);
 });
 
 test('duplicates are rejected, two courses may overlap, and a third requires confirmation', async () => {
@@ -392,6 +402,14 @@ test('duplicates are rejected, two courses may overlap, and a third requires con
     })
   }));
   assert.equal(separated.status, 200);
+
+  const longPeriod = sampleCourse({ 星期: '星期四', 节次: '第9-11节', 时间: '16:10-18:35', 课程: '长课' });
+  const eleventhPeriod = sampleCourse({ 星期: '星期四', 节次: '第11节', 时间: '17:50-18:35', 课程: '第十一节课' });
+  const crossSlotTriple = await makeApp().fetch(request('/api/schedule', {
+    method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ baseRevision: 0, courses: [longPeriod, eleventhPeriod, { ...eleventhPeriod, 课程: '第三门重叠课' }] })
+  }));
+  assert.equal(crossSlotTriple.status, 422);
+  assert.match((await crossSlotTriple.json()).error.message, /第11节/);
 });
 
 test('overlapping teacher segments inside one course are rejected', async () => {

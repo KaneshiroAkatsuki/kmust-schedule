@@ -11,11 +11,18 @@ const CHENGGONG_DISTRICT_ID = '530114';
 const DAYS = new Set(['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']);
 const SLOTS = new Map([
   ['第1-2节', '08:00-09:35'],
+  ['第3-4节', '09:50-11:25'],
   ['第3-5节', '09:50-12:15'],
   ['第6-8节', '13:30-15:55'],
   ['第9-10节', '16:10-17:45'],
+  ['第9-11节', '16:10-18:35'],
   ['第11节', '17:50-18:35'],
   ['第12-13节', '19:30-21:05']
+]);
+const SLOT_PERIODS = new Map([
+  ['第1-2节', [1, 2]], ['第3-4节', [3, 4]], ['第3-5节', [3, 4, 5]],
+  ['第6-8节', [6, 7, 8]], ['第9-10节', [9, 10]], ['第9-11节', [9, 10, 11]],
+  ['第11节', [11]], ['第12-13节', [12, 13]]
 ]);
 
 class ValidationError extends Error {}
@@ -56,6 +63,15 @@ function cleanText(value, label, maxLength) {
   return text;
 }
 
+function timeToMinutes(value) {
+  const [hours, minutes] = String(value).split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+function minutesToTime(value) {
+  return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
+}
+
 function cleanWeekRange(value) {
   const text = cleanText(value, '周次', 12);
   const match = text.match(/^(\d{1,2})(?:-(\d{1,2}))?$/);
@@ -85,7 +101,9 @@ function assertNoCourseConflicts(courses, allowTripleSlots = false) {
     for (let rightIndex = leftIndex + 1; rightIndex < courses.length; rightIndex += 1) {
       const left = courses[leftIndex];
       const right = courses[rightIndex];
-      if (left.星期 !== right.星期 || left.节次 !== right.节次) continue;
+      const leftTime = left.时间.split('-').map(timeToMinutes);
+      const rightTime = right.时间.split('-').map(timeToMinutes);
+      if (left.星期 !== right.星期 || leftTime[0] >= rightTime[1] || rightTime[0] >= leftTime[1]) continue;
 
       let overlap = null;
       left.授课分段.some((leftPart) => {
@@ -101,7 +119,8 @@ function assertNoCourseConflicts(courses, allowTripleSlots = false) {
       });
       if (!overlap) continue;
 
-      const where = `${left.星期} ${left.时间}（${left.节次}）第${overlap}周`;
+      const overlapTime = `${minutesToTime(Math.max(leftTime[0], rightTime[0]))}-${minutesToTime(Math.min(leftTime[1], rightTime[1]))}`;
+      const where = `${left.星期} ${overlapTime}（节次重叠）第${overlap}周`;
       if (left.课程.toLowerCase() === right.课程.toLowerCase()) {
         throw new ValidationError(`重复课程：“${left.课程}”在${where}已经存在`);
       }
@@ -115,10 +134,12 @@ function assertNoCourseConflicts(courses, allowTripleSlots = false) {
   const occupancy = new Map();
   courses.forEach((course) => {
     courseWeeks(course).forEach((week) => {
-      const key = `${course.星期}|${course.节次}|${week}`;
-      const names = occupancy.get(key) || new Set();
-      names.add(course.课程.toLocaleLowerCase('zh-CN'));
-      occupancy.set(key, names);
+      for (const period of SLOT_PERIODS.get(course.节次) || []) {
+        const key = `${course.星期}|第${period}节|${week}`;
+        const names = occupancy.get(key) || new Set();
+        names.add(course.课程.toLocaleLowerCase('zh-CN'));
+        occupancy.set(key, names);
+      }
     });
   });
   for (const [key, names] of occupancy) {

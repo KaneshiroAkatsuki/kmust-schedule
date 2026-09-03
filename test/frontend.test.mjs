@@ -16,7 +16,7 @@ const scriptMatch = html.match(/<script>\s*([\s\S]*?)<\/script>\s*<\/body>/);
 assert.ok(scriptMatch, 'inline application script should exist');
 
 const exposedNames = [
-  'RAW_DATA', 'FALLBACK_DATA', 'DAYS_FULL', 'SLOT_TIMES', 'state', 'COURSES',
+  'RAW_DATA', 'FALLBACK_DATA', 'DAYS_FULL', 'SLOT_TIMES', 'MATRIX_BANDS', 'state', 'COURSES',
   'dayPartForMinutes',
   'teachingWeek', 'academicPhase', 'dateForWeekDay', 'dayIndex', 'isActive',
   'scheduleTermForDate',
@@ -77,6 +77,36 @@ test('fallback data is immutable and contains all 37 course meetings', () => {
   assert.ok(Object.isFrozen(api.FALLBACK_DATA));
   assert.ok(Object.isFrozen(api.FALLBACK_DATA[0]));
   assert.ok(Object.isFrozen(api.FALLBACK_DATA[0]['授课分段']));
+});
+
+test('merged source cells preserve shorter and longer real class periods', () => {
+  const ideology = api.RAW_DATA.find((course) => course['课程'] === '硕士研究生思政课程（一）');
+  assert.equal(ideology['节次'], '第3-4节');
+  assert.equal(ideology['时间'], '09:50-11:25');
+
+  const lateMorning = api.RAW_DATA.filter((course) => course['节次'] === '第3-5节');
+  const longAfternoon = api.RAW_DATA.filter((course) => course['节次'] === '第9-11节');
+  const shortAfternoon = api.RAW_DATA.filter((course) => course['节次'] === '第9-10节');
+  assert.equal(lateMorning.length, 8);
+  assert.equal(longAfternoon.length, 8);
+  assert.equal(shortAfternoon.length, 2);
+  assert.ok(longAfternoon.every((course) => course['时间'] === '16:10-18:35'));
+  assert.ok(shortAfternoon.every((course) => course['星期'] === '星期三' && course['时间'] === '16:10-17:45'));
+
+  const standaloneEleventh = api.RAW_DATA.find((course) => course['节次'] === '第11节');
+  assert.equal(standaloneEleventh['星期'], '星期三');
+  assert.equal(standaloneEleventh['课程'], '农业生物环境控制工程');
+  assert.equal(api.MATRIX_BANDS.length, 6, 'mixed durations should not create duplicate desktop rows');
+
+  const ideologyActive = api.currentStatus(localDate(2026, 9, 3, 11, 20));
+  assert.equal(ideologyActive.course, '硕士研究生思政课程（一）');
+  assert.equal(ideologyActive.type, 'active');
+  const afterIdeology = api.currentStatus(localDate(2026, 9, 3, 11, 30));
+  assert.equal(afterIdeology.type, 'next');
+  assert.equal(afterIdeology.label, '下一节 13:30');
+  const longClassActive = api.currentStatus(localDate(2026, 8, 31, 18, 0));
+  assert.equal(longClassActive.course, '土壤水分溶质动力学');
+  assert.equal(longClassActive.type, 'active');
 });
 
 test('course selection marks match the submitted plan without hiding timetable reference rows', () => {
@@ -273,6 +303,8 @@ test('desktop matrix renders all seven days, six time bands and mentor warning',
   assert.match(matrix.innerHTML, />下午</);
   assert.match(matrix.innerHTML, />晚上</);
   assert.match(matrix.innerHTML, /16:10—17:45/);
+  assert.match(matrix.innerHTML, /16:10—18:35/);
+  assert.match(matrix.innerHTML, /第9–11节 · 16:10—18:35/);
   assert.match(css, /\.matrix-card\.is-unselected/);
   assert.match(css, /\.week-list > \.week-row\.is-pending-drop/);
 
@@ -298,9 +330,13 @@ test('course editor validation matches the cloud contract', () => {
   const parallel = api.validateCoursesInput([good[0], { ...good[0], '课程': '另一门课程' }]);
   assert.equal(parallel.length, 2, 'two different courses may share one period');
   assert.equal(api.tripleSlotConflicts(parallel).length, 0);
-  assert.equal(api.tripleSlotConflicts(parallel.concat({ ...good[0], '课程': '第三门课程' })).length, 3);
+  assert.equal(api.tripleSlotConflicts(parallel.concat({ ...good[0], '课程': '第三门课程' })).length, 6);
   const separated = api.validateCoursesInput([good[0], { ...good[0], '授课分段': [{ '周次': '5-6', '教师': '测试教师' }] }]);
   assert.equal(separated.length, 2, 'same course in non-overlapping weeks remains valid');
+  const longPeriod = { ...good[0], '星期': '星期四', '节次': '第9-11节', '时间': '16:10-18:35', '课程': '长课' };
+  const eleventhPeriod = { ...good[0], '星期': '星期四', '节次': '第11节', '时间': '17:50-18:35', '课程': '第十一节课' };
+  assert.equal(api.validateCoursesInput([longPeriod, eleventhPeriod]).length, 2, 'two overlapping durations may be displayed together');
+  assert.equal(api.tripleSlotConflicts([longPeriod, eleventhPeriod, { ...eleventhPeriod, '课程': '第三门重叠课' }]).length, 3);
 });
 
 test('course staging really adds, edits and deletes without mutating the previous list', () => {
@@ -447,8 +483,8 @@ test('course editor groups class periods and explains week-and-teacher ranges cl
   assert.match(html, /data-week-start/);
   assert.match(html, /data-week-end/);
   assert.match(html, /data-date-hint/);
-  assert.match(html, /\{ label: '上午', slots: \['第1-2节', '第3-5节'\] \}/);
-  assert.match(html, /\{ label: '下午', slots: \['第6-8节', '第9-10节', '第11节'\] \}/);
+  assert.match(html, /\{ label: '上午', slots: \['第1-2节', '第3-4节', '第3-5节'\] \}/);
+  assert.match(html, /\{ label: '下午', slots: \['第6-8节', '第9-10节', '第9-11节', '第11节'\] \}/);
   assert.match(html, /\{ label: '晚上', slots: \['第12-13节'\] \}/);
   assert.match(html, /<optgroup label="' \+ group\.label \+ '">/);
   assert.match(html, /normalizeSegmentWeekRange\(select\.closest\('\.segment-row'\)/);
@@ -798,7 +834,7 @@ test('China time formatting and remembered-secret storage behave deterministical
   const siteUpdatedAt = html.match(/const SITE_UPDATED_AT = '([^']+)'/)[1];
   assert.equal(api.latestModifiedAt(null), siteUpdatedAt);
   assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), api.formatUpdatedAt(siteUpdatedAt));
-  assert.equal(api.latestModifiedAt('2026-09-02T00:00:00.000Z'), '2026-09-02T00:00:00.000Z');
+  assert.equal(api.latestModifiedAt('2026-09-04T00:00:00.000Z'), '2026-09-04T00:00:00.000Z');
 
   const remembered = new Map();
   context.localStorage = {
