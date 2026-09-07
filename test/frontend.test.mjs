@@ -28,6 +28,7 @@ const exposedNames = [
   'classPeriodCount', 'classLengthBadge',
   'cloudSaveButtonView', 'loadCloudSchedule', 'populateCourseDetail',
   'weatherKind', 'weatherNumber', 'weatherSummary', 'visibleWeatherHours', 'weatherHourLabel', 'weatherDayLabel',
+  'formatWeatherUpdatedAt', 'weatherUpdateMessage', 'renderWeatherUpdateStatus',
   'renderWeatherDialog', 'readWeatherCache', 'weatherDataIsStale', 'fetchWeatherData', 'fetchWeatherWithFallback', 'loadWeather', 'setupWeatherDialog', 'openWeatherDialog', 'closeWeatherDialog',
   'setupMobileMoreMenu', 'chinaTimeParts', 'chinaHourStart', 'formatUpdatedAt', 'formatUpdatedDateTime', 'latestModifiedAt',
   'getRememberedSecret', 'setRememberedSecret', 'clearRememberedSecret', 'normalizeNumericSecret'
@@ -203,6 +204,37 @@ test('no decorative animations loop and countdown progress uses transforms', () 
   assert.ok(html.includes('function tick() {\n      if (document.hidden) return;') || html.includes('function tick() {\r\n      if (document.hidden) return;'));
 });
 
+test('weather update labels distinguish today, yesterday, older dates and invalid clocks in China time', () => {
+  const now = new Date('2026-09-07T17:30:00+08:00');
+  assert.equal(api.formatWeatherUpdatedAt('2026-09-07T09:20:00Z', now), '今天 17:20');
+  assert.equal(api.formatWeatherUpdatedAt('2026-09-07T09:20:00Z', now, true), '17:20');
+  assert.equal(api.formatWeatherUpdatedAt('2026-09-06T09:20:00Z', now), '昨天 17:20');
+  assert.equal(api.formatWeatherUpdatedAt('2026-09-05T09:20:00Z', now), '09/05 17:20');
+  assert.equal(api.formatWeatherUpdatedAt('2025-09-05T09:20:00Z', now), '2025/09/05 17:20');
+  assert.equal(api.formatWeatherUpdatedAt('', now), '时间未知');
+  assert.equal(api.formatWeatherUpdatedAt('not-a-date', now), '时间未知');
+  assert.equal(api.formatWeatherUpdatedAt('2026-09-08T09:20:00Z', now), '时间异常');
+  const midnight = new Date('2027-01-01T00:05:00+08:00');
+  assert.equal(api.formatWeatherUpdatedAt('2026-12-31T15:59:00Z', midnight), '昨天 23:59');
+});
+
+test('weather feedback always uses observation time rather than fetch or click time', () => {
+  const now = new Date('2026-09-07T17:30:00+08:00');
+  const data = { current: { temperature: 20 }, observedAt: '2026-09-07T17:20:00+08:00', fetchedAt: now.toISOString() };
+  assert.equal(api.weatherUpdateMessage('updated', data, now).text, '最近更新：今天 17:20');
+  assert.equal(api.weatherUpdateMessage('unchanged', data, now).text, '已检查 · 数据更新于 今天 17:20');
+  assert.equal(api.weatherUpdateMessage('error', data, now).text, '更新失败 · 保留 今天 17:20 的天气');
+  assert.equal(api.weatherUpdateMessage('loading', data, now).text, '正在更新天气…');
+  assert.equal(api.weatherUpdateMessage('stale', data, now).kind, 'warning');
+  assert.equal(api.weatherUpdateMessage('error', null, now).text, '更新失败，请稍后重试');
+  assert.equal(api.weatherUpdateMessage('updated', { ...data, observedAt: '' }, now).kind, 'error');
+  const header = html.slice(html.indexOf('<header class="weather-dialog-head">'), html.indexOf('<div class="weather-dialog-body">'));
+  assert.ok(header.includes('id="weatherDialogUpdated" role="status"'));
+  assert.ok(header.includes('id="refreshWeatherText"'));
+  assert.ok(css.includes('.weather-dialog-updated { grid-column: 1 / -1;'));
+  assert.ok(!/\.weather-dialog-updated\s*\{[^}]*max-width/.test(css));
+});
+
 test('page keeps its identity, local assets and responsive layout system', () => {
   assert.match(html, /<title>KUST·Lab<\/title>/);
   assert.doesNotMatch(html, /<script\b[^>]*\bsrc=/i);
@@ -222,7 +254,7 @@ test('required interactive ids exist exactly once', () => {
     'clock', 'dateLine', 'statusCard', 'todayList', 'weekList', 'weekMatrix', 'dayTabs',
     'prevWeek', 'nextWeek', 'weekCurrent', 'openManager', 'openManagerTop', 'openManagerMobile', 'managerDialog',
     'managerCourseList', 'managerSearch', 'courseForm', 'saveCloud', 'syncPill',
-    'weatherChip', 'weatherIcon', 'weatherPrimary', 'weatherSecondary',
+    'weatherChip', 'weatherIcon', 'weatherPrimary', 'weatherSecondary', 'weatherUpdated', 'refreshWeatherText',
     'weatherDialog', 'weatherShell', 'weatherDialogTitle', 'weatherDialogUpdated', 'refreshWeather', 'closeWeather',
     'weatherDialogTemperature', 'weatherDialogCondition', 'weatherDialogRange', 'weatherDialogIcon', 'weatherMetrics',
     'hourlyWeatherTitle', 'hourlyWeather', 'dailyWeatherTitle', 'dailyWeather', 'weatherDialogStatus'
@@ -792,7 +824,7 @@ test('weather is readable, cached locally and refreshed automatically or on dema
   }
 
   const elements = Object.fromEntries([
-    'weatherChip', 'weatherIcon', 'weatherPrimary', 'weatherSecondary',
+    'weatherChip', 'weatherIcon', 'weatherPrimary', 'weatherSecondary', 'weatherUpdated', 'refreshWeatherText',
     'weatherDialog', 'weatherShell', 'weatherDialogUpdated', 'refreshWeather', 'closeWeather',
     'weatherDialogTemperature', 'weatherDialogCondition', 'weatherDialogRange', 'weatherDialogIcon',
     'weatherMetrics', 'hourlyWeather', 'dailyWeather', 'weatherDialogStatus'
@@ -872,18 +904,44 @@ test('weather is readable, cached locally and refreshed automatically or on dema
   await elements.refreshWeather.emitAsync('click');
   assert.match(fetchCalls[manualStart], /kmust-schedule-cn-gateway\.pages\.dev\/api\/weather$/, 'manual refresh should request the live mainland gateway first');
   assert.equal(elements.refreshWeather.attributes['aria-busy'], 'false');
-  assert.match(elements.refreshWeather.className, /is-error/);
-  assert.match(elements.weatherDialogStatus.textContent, /暂未获取新天气/);
+  assert.match(elements.refreshWeather.className, /is-warning/);
+  assert.match(elements.weatherDialogUpdated.textContent, /暂无新数据 · 保留 .* 的天气/);
   context.fetch = async () => ({ ok: true, json: async () => ({ ok: true, data: { ...cachedData, fetchedAt: new Date().toISOString() } }) });
   await elements.refreshWeather.emitAsync('click');
   assert.match(elements.refreshWeather.className, /is-success/);
-  assert.match(elements.weatherDialogStatus.textContent, /已检查|天气已更新/);
+  assert.match(elements.weatherDialogUpdated.textContent, /已检查 · 数据更新于|最近更新：/);
+  assert.match(elements.weatherUpdated.textContent, /更新$/);
+  assert.equal(elements.refreshWeatherText.textContent, '更新');
+
+  let finishFetch;
+  context.fetch = () => new Promise(resolve => { finishFetch = resolve; });
+  const refreshing = elements.refreshWeather.emitAsync('click');
+  assert.equal(elements.refreshWeatherText.textContent, '更新中');
+  assert.equal(elements.refreshWeather.disabled, true);
+  assert.equal(elements.weatherDialogUpdated.textContent, '正在更新天气…');
+  assert.equal(await api.loadWeather({ force: true }), false, 'concurrent refresh must not start another request');
+  finishFetch({ ok: true, json: async () => ({ ok: true, data: { ...cachedData, fetchedAt: new Date().toISOString(), observedAt: new Date(Date.now() - 600000).toISOString() } }) });
+  await refreshing;
+  const retainedLabel = api.formatWeatherUpdatedAt(api.state.weatherData.observedAt);
+  assert.equal(elements.weatherDialogUpdated.textContent, '最近更新：' + retainedLabel);
+  assert.equal(elements.refreshWeather.disabled, false);
+  const retainedTime = api.state.weatherData.observedAt;
+  // Storage may be unavailable on mobile; keep the in-memory weather as well.
+  storage.clear();
+  context.fetch = async () => { throw new Error('simulated network failure'); };
+  await elements.refreshWeather.emitAsync('click');
+  assert.equal(api.state.weatherData.observedAt, retainedTime);
+  assert.equal(elements.weatherDialogUpdated.textContent, '更新失败 · 保留 ' + retainedLabel + ' 的天气');
+  api.state.weatherData = null;
+  await elements.refreshWeather.emitAsync('click');
+  assert.equal(elements.weatherDialogUpdated.textContent, '更新失败，请稍后重试');
+  assert.equal(elements.weatherUpdated.textContent, '暂无更新');
 
   assert.match(html, /class="clock-weather-row"[\s\S]*?id="clock"[\s\S]*?id="weatherChip"/);
   assert.match(html, /function setupWeatherDialog\(\)/);
   assert.match(html, /chip\.addEventListener\('click', openWeatherDialog\)/);
   assert.match(html, /refreshButton\.addEventListener\('click',[\s\S]*?loadWeather\(\{ force: true, preferLive: true, feedback: true \}\)/);
-  assert.match(html, /function setWeatherFeedback\(kind, message\)/);
+  assert.match(html, /function setWeatherFeedback\(mode, animate\)/);
   assert.match(css, /\.weather-dialog-button\.is-success/);
   assert.match(css, /\.weather-dialog-button\.is-error/);
   assert.match(css, /Unified tactile feedback/);

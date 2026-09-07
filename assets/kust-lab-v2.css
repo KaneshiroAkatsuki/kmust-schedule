@@ -178,7 +178,8 @@ body {
 .clock-weather-row .clock-wrap { min-width: 0; }
 
 .weather-chip {
-  display: inline-flex;
+  display: inline-grid;
+  grid-template-columns: auto minmax(0,1fr);
   width: clamp(108px, 9vw, 130px);
   min-width: 0;
   min-height: 58px;
@@ -220,7 +221,8 @@ body {
 .weather-copy small { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .weather-copy strong { font-size: 18px; font-weight: 820; line-height: 1.05; letter-spacing: -.02em; }
 .weather-copy small { margin-top: 4px; color: #736d66; font-size: 10px; font-weight: 700; line-height: 1.2; }
-.weather-chevron { flex: 0 0 12px; width: 12px; height: 12px; color: #8d867f; }
+.weather-chevron { display: none; }
+.weather-chip-updated { grid-column: 1 / -1; min-width: 0; min-height: 13px; color: #665f57; font-size: 9px; line-height: 1.4; text-align: center; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 
 @keyframes weather-sun-spin { to { transform: rotate(360deg); } }
 
@@ -263,12 +265,13 @@ body {
   position: sticky;
   z-index: 4;
   top: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
   min-height: 86px;
   padding: 18px 22px 16px;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 8px 18px;
   border-bottom: 1px solid rgba(211,204,194,.84);
   background: rgba(255,254,250,.9);
   -webkit-backdrop-filter: blur(18px) saturate(1.1);
@@ -277,8 +280,14 @@ body {
 .weather-dialog-location { margin: 0 0 2px; color: var(--kust-red); font-size: 10px; font-weight: 850; letter-spacing: .06em; }
 .weather-dialog-head > div:first-child { min-width: 0; }
 .weather-dialog-head h2 { margin: 0; font-family: var(--display-font); font-size: 24px; line-height: 1.2; }
-.weather-dialog-updated { margin: 4px 0 0; overflow: hidden; color: #77716a; font-size: 10px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.weather-dialog-updated { grid-column: 1 / -1; min-width: 0; min-height: 3em; margin: 0; color: #635c54; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.weather-dialog-updated[data-state="loading"] { color: #8b611d; }
+.weather-dialog-updated[data-state="success"] { color: #23704b; }
+.weather-dialog-updated[data-state="warning"] { color: #8b611d; }
+.weather-dialog-updated[data-state="error"] { color: #a0142c; }
 .weather-dialog-actions { display: flex; gap: 8px; }
+#refreshWeather { display: inline-flex; width: 96px; min-width: 96px; height: 44px; align-items: center; justify-content: center; gap: 6px; border-radius: 11px; font: inherit; font-size: 12px; font-weight: 650; white-space: nowrap; }
+#closeWeather { width: 44px; height: 44px; }
 .weather-dialog-button {
   display: grid;
   width: 42px;
@@ -296,6 +305,7 @@ body {
 .weather-dialog-button:disabled { opacity: .5; cursor: wait; }
 .weather-dialog-button.is-success { color: #23704b; border-color: rgba(35,112,75,.32); background: #eef8f2; animation: control-feedback .26s cubic-bezier(.2,.8,.2,1); }
 .weather-dialog-button.is-error { color: #a0142c; border-color: rgba(160,20,44,.3); background: #fff1f3; animation: control-feedback .26s cubic-bezier(.2,.8,.2,1); }
+.weather-dialog-button.is-warning { color: #8b611d; border-color: #d9c59f; background: #fff9ed; }
 .weather-dialog-button[aria-busy="true"] svg { animation: weather-sun-spin .5s cubic-bezier(.2,.8,.2,1); }
 .weather-dialog-button svg { width: 19px; height: 19px; }
 
@@ -1236,7 +1246,6 @@ body {
   .weather-dialog-head { min-height: 76px; padding-right: max(12px, env(safe-area-inset-right)); padding-left: max(13px, env(safe-area-inset-left)); gap: 10px; }
   .weather-dialog-location { font-size: 8px; }
   .weather-dialog-head h2 { font-size: 20px; }
-  .weather-dialog-updated { max-width: 190px; font-size: 9px; }
   .weather-dialog-actions { flex: 0 0 auto; }
   .weather-dialog-button { width: 36px; height: 36px; }
   .weather-dialog-body { padding-top: 10px; }
@@ -1279,7 +1288,6 @@ body {
   .segment-week-range { gap: 5px; }
 
   .weather-dialog-location { display: none; }
-  .weather-dialog-updated { max-width: 150px; }
   .weather-current { min-height: 164px; padding: 17px 14px; }
   .weather-current-copy { padding-right: 48px; }
   .weather-current-temperature { font-size: 59px; }

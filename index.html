@@ -1621,7 +1621,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=3.2">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=3.3">
 </head>
 <body class="app-locked">
   <section class="login-gate" id="loginGate" aria-labelledby="loginTitle">
@@ -1695,6 +1695,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.3 1.4A3.4 3.4 0 0 0 7 18Z"/></svg>
             </span>
             <span class="weather-copy"><strong id="weatherPrimary">--°</strong><small id="weatherSecondary">天气更新中</small></span>
+            <span class="weather-chip-updated" id="weatherUpdated">时间待更新</span>
             <svg class="weather-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
           </button>
         </div>
@@ -1828,7 +1829,7 @@
 
       <div class="footer-bottom">
         <p>个人课表，非学校官方系统。上课安排以学院和任课教师通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">3.2</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">3.3</span></span>
       </div>
     </div>
   </footer>
@@ -1900,16 +1901,17 @@
         <div>
           <p class="weather-dialog-location">昆明理工大学 · 呈贡校区</p>
           <h2 id="weatherDialogTitle">呈贡天气</h2>
-          <p class="weather-dialog-updated" id="weatherDialogUpdated">正在读取云端天气…</p>
         </div>
         <div class="weather-dialog-actions">
           <button class="weather-dialog-button" id="refreshWeather" type="button" aria-label="更新天气" title="重新读取云端天气">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 8.7A7 7 0 0 1 18.6 7L20 12M4 12l1.4 5A7 7 0 0 0 18 15.3"/></svg>
+            <span id="refreshWeatherText">更新</span>
           </button>
           <button class="weather-dialog-button" id="closeWeather" type="button" aria-label="关闭天气">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
           </button>
         </div>
+        <p class="weather-dialog-updated" id="weatherDialogUpdated" role="status" aria-live="polite" aria-atomic="true">暂无天气数据</p>
       </header>
 
       <div class="weather-dialog-body">
@@ -1944,7 +1946,7 @@
         </section>
 
         <footer class="weather-dialog-footer">
-          <span id="weatherDialogStatus" role="status" aria-live="polite">每小时由云端自动更新</span>
+          <span id="weatherDialogStatus">天气每小时自动更新</span>
           <a href="https://lbsyun.baidu.com/docs/webapi?title=weatherinquiry/weather/base" target="_blank" rel="noopener noreferrer">数据来源：百度地图天气</a>
         </footer>
       </div>
@@ -2176,8 +2178,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '3.2';
-    const SITE_UPDATED_AT = '2026-09-07T17:04:12+08:00';
+    const SITE_VERSION = '3.3';
+    const SITE_UPDATED_AT = '2026-09-07T17:35:59+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -2337,6 +2339,7 @@
       syncBusy: false,
       weatherBusy: false,
       weatherData: null,
+      weatherFeedbackMode: 'idle',
       cloudSaveBusy: false,
       managerDirty: false,
       formDirty: false,
@@ -3389,6 +3392,45 @@
       return '<div class="weather-metric"><span>' + esc(label) + '</span><strong>' + esc(value) + '</strong></div>';
     }
 
+    function formatWeatherUpdatedAt(value, now, compact) {
+      const current = now || new Date();
+      const time = value ? new Date(value).getTime() : NaN;
+      if (!Number.isFinite(time)) return '时间未知';
+      if (time > current.getTime() + 5 * 60 * 1000) return '时间异常';
+      const parts = chinaTimeParts(value);
+      const today = chinaTimeParts(current);
+      const days = (Date.UTC(today.year, today.month - 1, today.day) - Date.UTC(parts.year, parts.month - 1, parts.day)) / 86400000;
+      const clock = pad(parts.hour) + ':' + pad(parts.minute);
+      if (days === 0) return (compact ? '' : '今天 ') + clock;
+      if (days === 1) return '昨天 ' + clock;
+      return (parts.year === today.year ? '' : parts.year + '/') + pad(parts.month) + '/' + pad(parts.day) + ' ' + clock;
+    }
+
+    function weatherUpdateMessage(mode, data, now) {
+      if (mode === 'loading') return { kind: 'loading', text: '正在更新天气…' };
+      if (!data || !data.current) return { kind: 'error', text: mode === 'error' ? '更新失败，请稍后重试' : '暂无天气数据' };
+      const time = formatWeatherUpdatedAt(data.observedAt, now);
+      if (time === '时间未知' || time === '时间异常') return { kind: 'error', text: '天气数据' + time + '，请稍后重试' };
+      if (mode === 'error') return { kind: 'error', text: '更新失败 · 保留 ' + time + ' 的天气' };
+      if (mode === 'stale' || data.stale || weatherDataIsStale(data, now)) return { kind: 'warning', text: '暂无新数据 · 保留 ' + time + ' 的天气' };
+      if (mode === 'unchanged') return { kind: 'success', text: '已检查 · 数据更新于 ' + time };
+      return { kind: mode === 'updated' ? 'success' : 'idle', text: '最近更新：' + time };
+    }
+
+    function renderWeatherUpdateStatus(data) {
+      const weather = data === undefined ? state.weatherData : data;
+      const now = new Date();
+      const message = weatherUpdateMessage(state.weatherFeedbackMode, weather, now);
+      const status = document.getElementById('weatherDialogUpdated');
+      if (status) {
+        setText(status, message.text);
+        status.setAttribute('data-state', message.kind);
+      }
+      const homeTime = document.getElementById('weatherUpdated');
+      const time = weather && weather.current ? formatWeatherUpdatedAt(weather.observedAt, now, true) : '';
+      setText(homeTime, time ? (/^时间/.test(time) ? time : time + ' 更新') : '暂无更新');
+    }
+
     function renderWeatherDialog(data) {
       const shell = document.getElementById('weatherShell');
       const temperature = document.getElementById('weatherDialogTemperature');
@@ -3409,18 +3451,16 @@
         range.textContent = '请检查网络后点击更新';
         icon.className = 'weather-current-symbol weather-symbol is-cloud';
         icon.innerHTML = WEATHER_ICONS.cloud;
-        updated.textContent = '尚未取得天气数据';
+        renderWeatherUpdateStatus(data);
         metrics.innerHTML = '';
         hourly.innerHTML = '<p class="weather-empty">逐小时天气暂不可用，稍后点击更新重试。</p>';
         daily.innerHTML = '<p class="weather-empty">未来天气暂不可用。</p>';
-        status.textContent = '天气服务暂时不可用';
         return;
       }
 
       const summary = weatherSummary(data);
       const current = data.current;
       const today = data.today || {};
-      const stale = Boolean(data.stale);
       shell.className = 'weather-shell weather-kind-' + summary.kind;
       temperature.textContent = summary.temperature;
       condition.textContent = summary.condition;
@@ -3433,9 +3473,7 @@
       range.textContent = rangeParts.join(' · ') || '呈贡区当前天气';
       icon.className = 'weather-current-symbol weather-symbol is-' + summary.kind;
       icon.innerHTML = WEATHER_ICONS[summary.kind] || WEATHER_ICONS.cloud;
-      const observed = formatUpdatedDateTime(data.observedAt);
-      updated.textContent = (observed || '更新时间未知') + (stale ? ' · 当前显示缓存' : ' 更新');
-      status.textContent = stale ? '天气接口暂时不可用，当前显示上次成功结果' : '每小时由云端自动更新';
+      renderWeatherUpdateStatus(data);
 
       const metricItems = [];
       const humidity = weatherNumber(current.humidity);
@@ -3549,24 +3587,23 @@
         renderWeatherDialog(null);
         return;
       }
-      state.weatherData = data;
       const summary = weatherSummary(data);
       const stale = Boolean(settings.stale || data.stale);
+      state.weatherData = Object.assign({}, data, { stale: stale });
       chip.className = 'weather-chip' + (stale ? ' is-stale' : '');
       chip.setAttribute('aria-busy', 'false');
       primary.textContent = summary.temperature;
       secondary.textContent = summary.condition + (stale ? ' · 缓存' : '');
       icon.className = 'weather-icon weather-symbol is-' + summary.kind;
       icon.innerHTML = WEATHER_ICONS[summary.kind] || WEATHER_ICONS.cloud;
-      const observed = formatUpdatedAt(data.observedAt);
+      const observed = formatWeatherUpdatedAt(data.observedAt);
       chip.title = summary.primary + (observed ? ' · ' + observed + '更新' : '') + (stale ? ' · 当前显示缓存，点击查看' : ' · 点击查看逐小时天气');
-      renderWeatherDialog(data);
+      renderWeatherDialog(state.weatherData);
     }
 
     function setWeatherBusy(busy) {
       const chip = document.getElementById('weatherChip');
       const refresh = document.getElementById('refreshWeather');
-      const status = document.getElementById('weatherDialogStatus');
       if (!chip) return;
       chip.setAttribute('aria-busy', busy ? 'true' : 'false');
       if (busy) chip.classList.add('is-loading');
@@ -3577,22 +3614,29 @@
         if (busy) {
           refresh.classList.remove('is-success');
           refresh.classList.remove('is-error');
+          refresh.classList.remove('is-warning');
           refresh.title = '正在更新天气';
         }
       }
-      if (busy && status) status.textContent = '正在读取云端天气…';
+      setText(document.getElementById('refreshWeatherText'), busy ? '更新中' : '更新');
+      if (busy) state.weatherFeedbackMode = 'loading';
+      renderWeatherUpdateStatus();
     }
 
-    function setWeatherFeedback(kind, message) {
+    function setWeatherFeedback(mode, animate) {
+      state.weatherFeedbackMode = mode;
+      const message = weatherUpdateMessage(mode, state.weatherData);
       const refresh = document.getElementById('refreshWeather');
-      const status = document.getElementById('weatherDialogStatus');
       if (refresh) {
         refresh.classList.remove('is-success');
         refresh.classList.remove('is-error');
-        if (kind) refresh.classList.add('is-' + kind);
-        refresh.title = message;
+        refresh.classList.remove('is-warning');
+        if (animate && message.kind !== 'idle') refresh.classList.add('is-' + message.kind);
+        refresh.title = message.text;
       }
-      if (status) status.textContent = message;
+      renderWeatherUpdateStatus();
+      const dialog = document.getElementById('weatherDialog');
+      if (animate && dialog && dialog.open) revealElement(document.getElementById('weatherDialogUpdated'));
     }
 
     async function loadWeather(options) {
@@ -3600,6 +3644,7 @@
       if (state.weatherBusy) return false;
       const previousObservedAt = state.weatherData && state.weatherData.observedAt || '';
       const cached = readWeatherCache();
+      const retainedWeather = cached ? cached.data : state.weatherData;
       const cacheFresh = cached && Date.now() - cached.savedAt < WEATHER_REFRESH_MS;
       if (cached) renderWeather(cached.data, { stale: !cacheFresh || weatherDataIsStale(cached.data) });
       if (cacheFresh && !settings.force) return true;
@@ -3610,18 +3655,12 @@
         const stale = Boolean(weatherData.stale || weatherDataIsStale(weatherData));
         saveWeatherCache(weatherData);
         renderWeather(weatherData, { stale: stale });
-        if (settings.feedback) {
-          const observed = formatUpdatedAt(weatherData.observedAt);
-          const message = stale ? '暂未获取新天气，显示上次记录' : (previousObservedAt && previousObservedAt === weatherData.observedAt
-            ? '已检查，数据未变化'
-            : '天气已更新' + (observed ? ' · ' + observed : ''));
-          setWeatherFeedback(stale ? 'error' : 'success', message);
-        }
+        setWeatherFeedback(stale ? 'stale' : (previousObservedAt && previousObservedAt === weatherData.observedAt ? 'unchanged' : 'updated'), Boolean(settings.feedback));
         return true;
       } catch (_) {
-        if (cached) renderWeather(cached.data, { stale: true });
+        if (retainedWeather) renderWeather(retainedWeather, { stale: true });
         else renderWeather(null);
-        if (settings.feedback) setWeatherFeedback('error', cached ? '更新失败，显示上次天气' : '更新失败，请稍后重试');
+        setWeatherFeedback('error', Boolean(settings.feedback));
         return false;
       } finally {
         state.weatherBusy = false;
@@ -3641,6 +3680,7 @@
       if (refresh) {
         refresh.classList.remove('is-success');
         refresh.classList.remove('is-error');
+        refresh.classList.remove('is-warning');
         refresh.title = '重新读取云端天气';
       }
       renderWeatherDialog(state.weatherData);
@@ -4823,6 +4863,7 @@
 
       const minuteKey = now.getFullYear() + '-' + now.getMonth() + '-' + now.getDate() + '-' + now.getHours() + '-' + now.getMinutes();
       if (minuteKey !== state.lastMinuteKey) {
+        renderWeatherUpdateStatus();
         renderToday(now);
         renderWeek(now);
         state.lastMinuteKey = minuteKey;
