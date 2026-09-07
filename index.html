@@ -1633,7 +1633,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=2.8">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=2.9">
 </head>
 <body class="app-locked">
   <section class="login-gate" id="loginGate" aria-labelledby="loginTitle">
@@ -1828,7 +1828,7 @@
 
       <div class="footer-bottom">
         <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">2.8</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">2.9</span></span>
       </div>
     </div>
   </footer>
@@ -2156,6 +2156,8 @@
       '生态水文原理及应用（专硕）',
       '农业水土环境'
     ]);
+    const PENDING_DROP_REMOVE_WEEK = 4;
+    const UNSELECTED_REMOVE_WEEK = 5;
     const UNSELECTED_COURSE_NAMES = new Set([
       '土壤微生物学',
       '农业生态与环境工程',
@@ -2174,8 +2176,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '2.8';
-    const SITE_UPDATED_AT = '2026-09-07T15:06:23+08:00';
+    const SITE_VERSION = '2.9';
+    const SITE_UPDATED_AT = '2026-09-07T15:18:16+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -4312,23 +4314,31 @@
       }).join('') : '<div class="editor-empty"><strong>暂无课程</strong><span>当前分类没有可推荐内容</span></div>';
     }
 
+    function automaticCleanupReason(course, week) {
+      const status = courseSelectionStatus(course);
+      if (status === 'pending-drop' && Number(week) >= PENDING_DROP_REMOVE_WEEK) return '保留一周后移除待退选课程';
+      if (status === 'unselected' && Number(week) >= UNSELECTED_REMOVE_WEEK && !rawCourseHasMentor(course)) return '第5周起清理非本人课程';
+      return '';
+    }
+
     async function runAutomaticUnselectedCleanup() {
-      if (teachingWeek(new Date()) < 5 || state.managerDirty) return false;
-      const targets = runtimeData.map(function (course, index) { return { course: course, index: index }; }).filter(function (entry) {
-        return courseSelectionStatus(entry.course) === 'unselected' && !rawCourseHasMentor(runtimeData[entry.index]);
-      });
+      const week = teachingWeek(new Date());
+      if (week < PENDING_DROP_REMOVE_WEEK || state.managerDirty) return false;
+      const targets = runtimeData.map(function (course, index) {
+        return { course: course, index: index, reason: automaticCleanupReason(course, week) };
+      }).filter(function (entry) { return Boolean(entry.reason); });
       if (!targets.length) return false;
       ensureWorkingDocument();
       targets.slice().reverse().forEach(function (entry) {
         const course = state.workingData[entry.index];
         const weeks = Array.from(rawCourseWeekMap(course).keys());
-        state.workingTrash.unshift(createTrashItem(course, weeks, '第5周起清理非本人课程'));
+        state.workingTrash.unshift(createTrashItem(course, weeks, entry.reason));
         state.workingData.splice(entry.index, 1);
       });
       state.workingData = validateCoursesInput(state.workingData);
       setManagerDirty(true);
       previewWorkingData();
-      setManagerStatus('已按规则将第5周后的非本人课程移入回收站，正在同步。', 'warning');
+      setManagerStatus('已按保留期限将无需上课的课程移入回收站，正在同步。', 'warning');
       return saveWorkingDataToCloud();
     }
 

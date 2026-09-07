@@ -24,6 +24,7 @@ const exposedNames = [
   'normalizeWeekRange', 'weekDateRangeLabel', 'segmentDateHint', 'weekRangeValue', 'weekOptions',
   'isMentorCourseName', 'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput', 'tripleSlotConflicts',
   'stageCourseUpsert', 'stageCourseDelete', 'rawCourseSubset', 'rawCourseWithoutWeeks', 'weeksLabel',
+  'automaticCleanupReason',
   'cloudSaveButtonView',
   'weatherKind', 'weatherNumber', 'weatherSummary', 'visibleWeatherHours', 'weatherHourLabel', 'weatherDayLabel',
   'renderWeatherDialog', 'readWeatherCache', 'weatherDataIsStale', 'fetchWeatherData', 'fetchWeatherWithFallback', 'loadWeather', 'setupWeatherDialog', 'openWeatherDialog', 'closeWeatherDialog',
@@ -123,6 +124,14 @@ test('course selection marks match the submitted plan without hiding timetable r
   const unselectedNames = new Set(api.COURSES.filter((course) => api.courseSelectionStatus(course) === 'unselected').map((course) => course.name));
   assert.deepEqual(Array.from(unselectedNames), ['土壤水分溶质动力学']);
   assert.equal(api.COURSES.some((course) => course.name === '农业水土环境'), false, 'the latest printout still has no scheduled meeting for this pending-drop course');
+});
+
+test('pending-drop courses remain visible for week three and move to trash from week four', () => {
+  const pending = api.RAW_DATA.find((course) => course['课程'] === '生态水文原理及应用（专硕）');
+  const protectedCourse = api.RAW_DATA.find((course) => course['课程'] === '土壤水分溶质动力学');
+  assert.equal(api.automaticCleanupReason(pending, 3), '');
+  assert.equal(api.automaticCleanupReason(pending, 4), '保留一周后移除待退选课程');
+  assert.equal(api.automaticCleanupReason(protectedCourse, 5), '', 'Li Na teaching data must not be removed');
 });
 
 test('latest printout teacher and week changes are preserved exactly', () => {
