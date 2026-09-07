@@ -1633,7 +1633,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=3.0">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=3.1">
 </head>
 <body class="app-locked">
   <section class="login-gate" id="loginGate" aria-labelledby="loginTitle">
@@ -1828,7 +1828,7 @@
 
       <div class="footer-bottom">
         <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">3.0</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">3.1</span></span>
       </div>
     </div>
   </footer>
@@ -2176,8 +2176,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '3.0';
-    const SITE_UPDATED_AT = '2026-09-07T16:34:17+08:00';
+    const SITE_VERSION = '3.1';
+    const SITE_UPDATED_AT = '2026-09-07T16:50:45+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -2884,7 +2884,7 @@
         if (experienceCourse) labels.push('<span class="experience-label">体验课 · 必须参加</span>');
         else if (selection === 'unselected') labels.push('<span class="unselected-label">非选课内容 · 无需上课</span>');
         else if (selection === 'pending-drop') labels.push('<span class="pending-drop-label">待退选 · 无需上课</span>');
-        if (on && !experienceCourse && selection !== 'unselected') labels.push('<span class="on-label">本周上课</span>');
+        if (on && !experienceCourse && requiresAttendance(course, state.viewWeek)) labels.push('<span class="on-label">本周上课</span>');
         if (live) labels.push('<span class="live-label">上课中</span>');
         if (!on) labels.push('<span class="off-label">此时间段无课</span>');
         const label = labels.length ? '<div class="week-badges">' + labels.join('') + '</div>' : '';
@@ -3632,7 +3632,8 @@
         setSyncStatus('error', '云同步待启用', '云端服务尚未部署，当前使用' + (state.dataSource === 'cache' ? '本机缓存' : '内置课表'));
         return false;
       }
-      if (state.syncBusy) return false;
+      if (state.syncBusy || state.cloudSaveBusy) return false;
+      const revisionAtStart = state.revision;
       state.syncBusy = true;
       setSyncStatus('loading', '正在同步', '正在从云端读取最新课表…');
       try {
@@ -3645,21 +3646,29 @@
           return false;
         }
         const clean = validateCoursesInput(cloud.courses);
-        if (state.managerDirty && !settings.force) {
+        // A GET started before an upload must never roll the page back afterwards.
+        if (state.cloudSaveBusy || state.revision !== revisionAtStart) return false;
+        const courseForm = document.getElementById('courseForm');
+        const editorOpen = courseForm && !courseForm.hidden;
+        if ((state.managerDirty || state.formDirty || editorOpen) && !settings.force) {
           if (Number(cloud.revision) !== state.revision) {
             state.conflictData = cloud;
             setManagerStatus('另一台设备已有更新。当前未保存修改未被覆盖，请重新载入云端后再编辑。', 'warning');
             setSyncStatus('error', '发现新版本', '云端已有新修订，当前未保存修改未被覆盖');
           } else {
             const unchangedTime = formatUpdatedAt(cloud.updatedAt);
-            setSyncStatus('pending', '有修改待上传', '主页顶部可立即上传 · 云端修订 ' + state.revision + (unchangedTime ? ' · ' + unchangedTime : ''));
+            if (state.managerDirty) {
+              setSyncStatus('pending', '有修改待上传', '主页顶部可立即上传 · 云端修订 ' + state.revision + (unchangedTime ? ' · ' + unchangedTime : ''));
+            } else {
+              setSyncStatus('pending', '正在编辑课程', '编辑内容已保留；保存到待上传列表后，再从主页上传云端');
+            }
           }
           return false;
         }
         applyRuntimeData(clean, { revision: Number(cloud.revision), updatedAt: cloud.updatedAt, source: 'cloud', trash: cloud.trash || [], mentorCourseNames: cloud.mentorCourseNames || [] });
         saveCache();
         const managerEditor = document.getElementById('managerEditor');
-        if (managerEditor && !managerEditor.hidden && !state.managerDirty) {
+        if (managerEditor && !managerEditor.hidden && !state.managerDirty && !state.formDirty && !editorOpen) {
           state.workingData = cloneData(runtimeData);
           state.workingTrash = cloneData(state.trash);
           renderManagerList();
@@ -4159,8 +4168,9 @@
         unselected: '非选课内容'
       };
       const status = document.getElementById('detailWeekStatus');
-      status.textContent = '第' + state.viewWeek + '周 · ' + (activeThisWeek ? '本周上课' : '本周不上课');
-      status.parentElement.classList.toggle('is-off', !activeThisWeek);
+      const attendanceThisWeek = activeThisWeek && requiresAttendance(course, state.viewWeek);
+      status.textContent = '第' + state.viewWeek + '周 · ' + (activeThisWeek ? (attendanceThisWeek ? '本周上课' : '无需上课') : '本周不上课');
+      status.parentElement.classList.toggle('is-off', !attendanceThisWeek);
       document.getElementById('detailSelection').textContent = selectionLabels[selection] || '我的课程';
       document.getElementById('detailTime').textContent = rawCourse['星期'] + ' · ' + rawCourse['时间'] + ' · ' + rawCourse['节次'];
       document.getElementById('detailRoom').textContent = info.rooms || '教室待定';
@@ -4345,7 +4355,7 @@
 
     async function runAutomaticUnselectedCleanup() {
       const week = teachingWeek(new Date());
-      if (week < PENDING_DROP_REMOVE_WEEK || state.managerDirty) return false;
+      if (week < PENDING_DROP_REMOVE_WEEK || state.managerDirty || state.formDirty) return false;
       const targets = runtimeData.map(function (course, index) {
         return { course: course, index: index, reason: automaticCleanupReason(course, week) };
       }).filter(function (entry) { return Boolean(entry.reason); });
@@ -4387,6 +4397,9 @@
       document.getElementById('loginGate').hidden = false;
       const remembered = getRememberedSecret();
       document.getElementById('loginPassword').value = remembered;
+      document.getElementById('loginPassword').type = 'password';
+      document.getElementById('toggleLoginPassword').textContent = '显示';
+      document.getElementById('toggleLoginPassword').setAttribute('aria-label', '显示密码');
       document.getElementById('rememberLogin').checked = Boolean(remembered);
       document.getElementById('loginStatus').textContent = '';
     }
@@ -4418,7 +4431,7 @@
           if (!valid) { status.textContent = '密码错误，请重新输入。'; return; }
           rememberLoginSecret(secret);
           unlockApplication();
-          await loadCloudSchedule({ force: true });
+          await loadCloudSchedule();
           await runAutomaticUnselectedCleanup();
         } catch (error) {
           status.textContent = error.name === 'AbortError' ? '云端连接超时，请检查手机网络后重试。' : '无法连接云端：' + error.message;
@@ -4810,7 +4823,7 @@
       });
       window.addEventListener('online', function () {
         tick();
-        loadCloudSchedule({ force: true });
+        loadCloudSchedule();
         loadWeather();
       });
     }

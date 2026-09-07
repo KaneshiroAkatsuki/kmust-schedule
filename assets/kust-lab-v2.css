@@ -750,7 +750,7 @@ body {
 
 @media (min-width: 1160px) {
   .app {
-    grid-template-columns: minmax(360px, .72fr) minmax(720px, 1.55fr);
+    grid-template-columns: minmax(0, .72fr) minmax(0, 1.55fr);
     grid-template-areas: "left week";
     align-items: start;
   }
@@ -1308,11 +1308,11 @@ body {
 /* v1.7 authenticated editing and responsive course tools */
 body.app-locked { overflow: hidden; }
 body.app-locked > :not(.login-gate) { visibility: hidden; }
-.login-gate { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; overflow: auto; padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); color: #211d19; background: #f4f0e9; }
+.login-gate { position: fixed; inset: 0; z-index: 10000; display: flex; flex-direction: column; overflow: auto; padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); color: #211d19; background: #f4f0e9; }
 .login-gate[hidden] { display: none; }
 .login-atmosphere { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(circle at 16% 16%, rgba(158,27,50,.16), transparent 31%), radial-gradient(circle at 88% 82%, rgba(189,147,74,.16), transparent 28%), linear-gradient(135deg, rgba(255,255,255,.94), rgba(242,236,226,.88)); }
 .login-atmosphere::after { content: "KUST"; position: absolute; right: -3vw; bottom: -10vw; color: rgba(158,27,50,.035); font-family: Georgia,serif; font-size: clamp(180px,34vw,580px); font-weight: 900; line-height: .8; }
-.login-card { position: relative; width: min(440px,100%); padding: clamp(24px,5vw,44px); border: 1px solid rgba(57,45,35,.13); border-radius: 28px; background: rgba(255,253,249,.9); box-shadow: 0 30px 90px rgba(55,37,26,.14); backdrop-filter: blur(20px); }
+.login-card { position: relative; flex: 0 0 auto; margin: auto; width: min(440px,100%); padding: clamp(24px,5vw,44px); border: 1px solid rgba(57,45,35,.13); border-radius: 28px; background: rgba(255,253,249,.9); box-shadow: 0 30px 90px rgba(55,37,26,.14); backdrop-filter: blur(20px); }
 .login-brand { display: flex; align-items: center; gap: clamp(13px,3vw,18px); padding-bottom: 22px; border-bottom: 1px solid var(--line); }
 .login-brand > span:last-child { min-width: 0; }
 .login-brand .brand-logo { width: clamp(148px,28vw,180px); height: auto; flex: 0 0 clamp(148px,28vw,180px); aspect-ratio: 311 / 72; }
@@ -1336,7 +1336,7 @@ body.app-locked > :not(.login-gate) { visibility: hidden; }
 .login-submit:disabled { opacity: .58; cursor: wait; }
 .login-status { min-height: 20px; margin: 10px 0 -8px; color: var(--mentor); font-size: 12px; text-align: center; }
 .account-button { min-width: 126px; }
-.tool-dialog { width: min(520px,calc(100vw - 24px)); max-height: min(780px,calc(100dvh - 24px)); padding: 0; border: 0; border-radius: 24px; color: var(--ink); background: #fffdf9; box-shadow: 0 28px 80px rgba(35,27,20,.3); }
+.tool-dialog { width: min(520px,calc(100vw - 24px)); max-width: none; max-height: min(780px,calc(100dvh - 24px)); overflow: hidden; padding: 0; border: 0; border-radius: 24px; color: var(--ink); background: #fffdf9; box-shadow: 0 28px 80px rgba(35,27,20,.3); }
 .tool-dialog::backdrop { background: rgba(31,27,23,.52); backdrop-filter: blur(5px); }
 .tool-dialog[open] { animation: tool-in .2s ease-out both; }
 @keyframes tool-in { from { opacity: 0; transform: translateY(10px) scale(.985); } }
@@ -1456,9 +1456,6 @@ body.app-locked > :not(.login-gate) { visibility: hidden; }
   .makeup-head { display: block; }
   .makeup-head .makeup-pending { display: inline-block; max-width: none; margin-top: 8px; text-align: left; }
 }
-@media (min-width: 801px) and (max-width: 1250px) {
-  .app { grid-template-columns: minmax(300px,.8fr) minmax(520px,1.2fr); }
-}
 
 /* Unified tactile feedback: short compositor-friendly motion for mouse and touch. */
 :where(button,summary,[role="button"],.scope-picker label span,.scope-weeks span) {
@@ -1515,11 +1512,31 @@ body.app-locked > :not(.login-gate) { visibility: hidden; }
 .status-card.active .class-length,
 .matrix-card.is-live .class-length { border-color: rgba(255,255,255,.38); background: rgba(255,255,255,.12); color: #fff; }
 .timeline-body > div:first-child > .class-length { margin-right: 2px; }
-@media (min-width: 641px) and (max-width: 979px) {
+@media (min-width: 641px) and (max-width: 1159px) {
   .week-row { grid-template-columns: 112px minmax(0,1fr); }
 }
 @media (max-width: 640px) {
+  .week-row { grid-template-columns: minmax(0,1fr); }
   .week-time { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+}
+
+/* Controls follow available space, including unfolded phones and short landscape views. */
+.hero-content { container-type: inline-size; }
+@container (max-width: 360px) {
+  .clock-weather-row .clock { font-size: clamp(40px, 17cqi, 60px); }
+}
+@media (max-width: 1159px) {
+  .manager-grid { grid-template-columns: minmax(0,1fr); }
+}
+@media (pointer: coarse) {
+  .nav-button, .week-current, .day-tab, .icon-button,
+  .mini-button, .pane-add-course, .secondary-button,
+  .password-option, .login-remember, .weather-dialog-button { min-height: 44px; }
+  .nav-button, .icon-button, .mini-button { min-width: 44px; }
+  .scope-weeks { grid-template-columns: repeat(auto-fit, minmax(44px,1fr)); }
+  .scope-weeks span { min-height: 44px; }
+  .text-input, .select-input, .login-field input, .manager-search input { font-size: 16px; }
+  .login-password button { top: 2px; height: 44px; }
 }
 
 @media (prefers-contrast: more) {

@@ -26,7 +26,7 @@ const exposedNames = [
   'stageCourseUpsert', 'stageCourseDelete', 'rawCourseSubset', 'rawCourseWithoutWeeks', 'weeksLabel',
   'automaticCleanupReason',
   'classPeriodCount', 'classLengthBadge',
-  'cloudSaveButtonView',
+  'cloudSaveButtonView', 'loadCloudSchedule', 'populateCourseDetail',
   'weatherKind', 'weatherNumber', 'weatherSummary', 'visibleWeatherHours', 'weatherHourLabel', 'weatherDayLabel',
   'renderWeatherDialog', 'readWeatherCache', 'weatherDataIsStale', 'fetchWeatherData', 'fetchWeatherWithFallback', 'loadWeather', 'setupWeatherDialog', 'openWeatherDialog', 'closeWeatherDialog',
   'setupMobileMoreMenu', 'chinaTimeParts', 'chinaHourStart', 'formatUpdatedAt', 'formatUpdatedDateTime', 'latestModifiedAt',
@@ -42,6 +42,119 @@ const api = context.__kustTest;
 function localDate(year, month, day, hour = 12, minute = 0) {
   return new Date(year, month - 1, day, hour, minute, 0, 0);
 }
+
+// Each sync test gets a separate application state and an in-memory, read-only server.
+function syncFixture() {
+  const nodes = new Map();
+  for (const id of ['syncPill', 'syncText', 'footerSyncText', 'managerStatus', 'courseForm']) {
+    nodes.set(id, { hidden: true, textContent: '', className: '' });
+  }
+  const sandbox = {
+    console, AbortController,
+    document: { getElementById: id => nodes.get(id) || null },
+    window: { setTimeout, clearTimeout },
+    localStorage: { setItem() {} }
+  };
+  vm.runInNewContext(testSource, sandbox, { filename: 'index-inline-sync.js' });
+  const app = sandbox.__kustTest;
+  app.state.revision = 4;
+  const cloud = { initialized: true, revision: 4, updatedAt: '2026-09-07T08:00:00Z', courses: app.RAW_DATA, trash: [] };
+  sandbox.fetch = async (_url, options) => {
+    assert.equal(options.method, 'GET', 'UI regression tests never write to any service');
+    return { ok: true, json: async () => ({ ok: true, data: cloud }) };
+  };
+  return { app, cloud, nodes, sandbox };
+}
+
+test('background cloud reads preserve typed, staged and newly opened course editors', async () => {
+  for (const mode of ['formDirty', 'managerDirty', 'pristineEditor']) {
+    const { app, nodes } = syncFixture();
+    if (mode === 'pristineEditor') nodes.get('courseForm').hidden = false;
+    else app.state[mode] = true;
+    const working = app.state.workingData;
+    assert.equal(await app.loadCloudSchedule(), false, mode);
+    assert.equal(app.state.revision, 4);
+    assert.equal(app.state.workingData, working);
+    if (mode !== 'pristineEditor') assert.equal(app.state[mode], true);
+    assert.match(nodes.get('syncText').textContent, /正在编辑课程|有修改待上传/);
+  }
+});
+
+test('cloud conflicts preserve unsaved form state until an explicit reload', async () => {
+  const { app, cloud, nodes } = syncFixture();
+  app.state.formDirty = true;
+  cloud.revision = 5;
+  assert.equal(await app.loadCloudSchedule(), false);
+  assert.equal(app.state.formDirty, true);
+  assert.equal(app.state.revision, 4);
+  assert.equal(app.state.conflictData, cloud);
+  assert.equal(nodes.get('syncText').textContent, '发现新版本');
+  // reloadManagerFromCloud owns confirmation; only that explicit path uses force.
+  assert.equal(await app.loadCloudSchedule({ force: true, fromManager: true }), true);
+  assert.equal(app.state.revision, 5);
+});
+
+test('an in-flight cloud read checks editing state again after the response', async () => {
+  const { app, cloud, sandbox } = syncFixture();
+  let respond;
+  sandbox.fetch = () => new Promise(resolve => { respond = resolve; });
+  const pending = app.loadCloudSchedule();
+  app.state.formDirty = true;
+  respond({ ok: true, json: async () => ({ ok: true, data: cloud }) });
+  assert.equal(await pending, false);
+  assert.equal(app.state.formDirty, true);
+  assert.equal(app.state.syncBusy, false);
+});
+
+test('background reads cannot roll back a revision committed during their request', async () => {
+  const { app, cloud, sandbox } = syncFixture();
+  let respond;
+  sandbox.fetch = () => new Promise(resolve => { respond = resolve; });
+  const pending = app.loadCloudSchedule();
+  app.state.revision = 5;
+  respond({ ok: true, json: async () => ({ ok: true, data: cloud }) });
+  assert.equal(await pending, false);
+  assert.equal(app.state.revision, 5);
+  app.state.cloudSaveBusy = true;
+  sandbox.fetch = () => { throw new Error('must not fetch while uploading'); };
+  assert.equal(await app.loadCloudSchedule(), false);
+});
+
+test('reconnect and re-login never force a destructive cloud reload', () => {
+  const online = html.slice(html.indexOf("window.addEventListener('online'"));
+  assert.match(online, /loadCloudSchedule\(\)/);
+  assert.doesNotMatch(online, /force: true/);
+  const login = html.slice(html.indexOf('function setupLogin()'), html.indexOf('function setupCourseTools()'));
+  assert.doesNotMatch(login, /force: true/);
+});
+
+test('course detail attendance agrees with selected and pending-drop labels', () => {
+  const { app, nodes } = syncFixture();
+  for (const id of ['detailWeekStatus', 'detailSelection', 'detailTime', 'detailRoom', 'detailTeacher', 'detailWeeks', 'detailSegments', 'detailMentor']) {
+    nodes.set(id, { textContent: '', parentElement: { classList: { toggle() {} } } });
+  }
+  app.state.workingData = app.RAW_DATA;
+  app.state.viewWeek = 3;
+  const index = app.RAW_DATA.findIndex(course => course['课程'] === '生态水文原理及应用（专硕）' && course['星期'] === '星期二');
+  app.populateCourseDetail(index);
+  assert.match(nodes.get('detailWeekStatus').textContent, /无需上课/);
+  assert.equal(nodes.get('detailSelection').textContent, '待退选课程');
+  app.state.viewWeek = 2;
+  app.populateCourseDetail(index);
+  assert.match(nodes.get('detailWeekStatus').textContent, /本周不上课/);
+  app.state.viewWeek = 3;
+  const selected = app.COURSES.find(course => app.isActive(course, 3) && app.requiresAttendance(course, 3));
+  app.populateCourseDetail(selected.id);
+  assert.match(nodes.get('detailWeekStatus').textContent, /本周上课/);
+});
+
+test('mobile layout patches cover intermediate widths, safe modal scrolling and touch targets', () => {
+  assert.match(css, /@media \(max-width: 640px\)\s*\{\s*\.week-row \{ grid-template-columns: minmax\(0,1fr\)/);
+  assert.doesNotMatch(css, /minmax\(300px,\.8fr\) minmax\(520px,1\.2fr\)/);
+  assert.match(css, /\.tool-dialog \{[^}]*max-width: none;[^}]*overflow: hidden;/);
+  assert.match(css, /\.login-card \{[^}]*flex: 0 0 auto; margin: auto;/);
+  assert.match(css, /@media \(pointer: coarse\)/);
+});
 
 test('page keeps its identity, local assets and responsive layout system', () => {
   assert.match(html, /<title>KUST·Lab<\/title>/);
@@ -759,7 +872,7 @@ test('foldable and phone breakpoints avoid narrow side columns', () => {
   assert.doesNotMatch(css, /\.dock-item\.dock-manage \{[^}]*background: var\(--kust-red-soft\)/);
   assert.match(css, /\.week-list > \.week-row\.off[\s\S]*?border: 1px dashed/);
   assert.match(css, /\.on-label[\s\S]*?background: var\(--kust-red-soft\)/);
-  assert.match(html, /if \(on && !experienceCourse && selection !== 'unselected'\) labels\.push\('<span class="on-label">本周上课<\/span>'\)/);
+  assert.match(html, /if \(on && !experienceCourse && requiresAttendance\(course, state\.viewWeek\)\) labels\.push\('<span class="on-label">本周上课<\/span>'\)/);
   assert.match(css, /\.week-list \{[\s\S]*?grid-auto-rows: 1fr/);
   assert.match(css, /\.matrix-cell \{[\s\S]*?grid-auto-rows: 1fr/);
   assert.match(css, /\.timeline \{ display: grid; grid-auto-rows: 1fr; \}/);
