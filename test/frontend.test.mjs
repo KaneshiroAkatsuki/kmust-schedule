@@ -17,7 +17,7 @@ assert.ok(scriptMatch, 'inline application script should exist');
 
 const exposedNames = [
   'RAW_DATA', 'FALLBACK_DATA', 'DAYS_FULL', 'SLOT_TIMES', 'MATRIX_BANDS', 'state', 'COURSES',
-  'dayPartForMinutes',
+  'dayPartForMinutes', 'setMarkup', 'revealElement', 'renderClock', 'renderStatus',
   'teachingWeek', 'academicPhase', 'dateForWeekDay', 'dayIndex', 'isActive',
   'scheduleTermForDate',
   'courseSelectionStatus', 'isPersonalCourse', 'requiresAttendance',
@@ -152,8 +152,55 @@ test('mobile layout patches cover intermediate widths, safe modal scrolling and 
   assert.match(css, /@media \(max-width: 640px\)\s*\{\s*\.week-row \{ grid-template-columns: minmax\(0,1fr\)/);
   assert.doesNotMatch(css, /minmax\(300px,\.8fr\) minmax\(520px,1\.2fr\)/);
   assert.match(css, /\.tool-dialog \{[^}]*max-width: none;[^}]*overflow: hidden;/);
-  assert.match(css, /\.login-card \{[^}]*flex: 0 0 auto; margin: auto;/);
+  assert.match(css, /\.login-shell \{[^}]*flex: 0 0 auto; margin: auto;/);
   assert.match(css, /@media \(pointer: coarse\)/);
+});
+
+test('unchanged markup is reused instead of destroying existing content on every tick', () => {
+  let writes = 0;
+  let value = '';
+  const element = { get innerHTML() { return value; }, set innerHTML(next) { value = next; writes++; } };
+  assert.equal(api.setMarkup(element, '<span>课程</span>'), true);
+  for (let tick = 0; tick < 60; tick++) assert.equal(api.setMarkup(element, '<span>课程</span>'), false);
+  assert.equal(writes, 1);
+  assert.equal(api.setMarkup(element, '<span>下一节课</span>'), true);
+  assert.equal(writes, 2);
+});
+
+test('motion runs once, cancels overlapping transitions and respects reduced motion', async () => {
+  const { app, sandbox } = syncFixture();
+  let reduce = false;
+  let calls = 0;
+  let cancellations = 0;
+  const completions = [];
+  sandbox.window.matchMedia = () => ({ matches: reduce });
+  const element = { animate(frames, options) {
+    calls++;
+    assert.equal(options.iterations, 1);
+    assert.ok(options.duration <= 240);
+    assert.deepEqual(Object.keys(frames[0]).sort(), ['opacity', 'transform']);
+    return { cancel() { cancellations++; }, finished: new Promise(resolve => completions.push(resolve)) };
+  } };
+  app.revealElement(element);
+  app.revealElement(element);
+  assert.equal(calls, 2);
+  assert.equal(cancellations, 1);
+  completions[0]();
+  await Promise.resolve();
+  reduce = true;
+  app.revealElement(element);
+  assert.equal(calls, 2, 'reduced motion must skip the new animation');
+  assert.equal(cancellations, 2, 'finishing an older animation must not lose track of the current one');
+  app.revealElement({}); // Browsers without Web Animations still perform the actual action.
+});
+
+test('no decorative animations loop and countdown progress uses transforms', () => {
+  const styles = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)].map(match => match[1]).join('\n') + css;
+  assert.ok(!/\binfinite\b|will-change\s*:/.test(styles));
+  assert.ok(styles.includes('transform: scaleX(var(--progress-scale, 0))'));
+  assert.ok(styles.includes('html { scroll-behavior: auto; }'));
+  assert.ok(html.includes("behavior: reducedMotion() ? 'auto' : 'smooth'"));
+  assert.ok(html.includes('function tick() {\n      if (document.hidden) return;') || html.includes('function tick() {\r\n      if (document.hidden) return;'));
 });
 
 test('page keeps its identity, local assets and responsive layout system', () => {
@@ -627,13 +674,14 @@ test('homepage owns the immediate cloud upload action and preserves staged edits
 });
 
 test('footer description is direct and functional rather than promotional', () => {
-  assert.match(html, /昆明理工大学呈贡校区研究生课表，集中查看当前课程、每周安排和校历节点，并支持多设备同步。/);
-  assert.doesNotMatch(html, /抬眼看时间|真正重要的事/);
+  assert.ok(html.includes('昆明理工大学 · 呈贡校区 · 研究生课表'));
+  assert.ok(!/抬眼看时间|真正重要的事|从容|安全地保存在这里|正在安全验证/.test(html));
+  assert.ok(html.includes('其他设备才会收到修改'));
 });
 
 test('course editor groups class periods and explains week-and-teacher ranges clearly', () => {
   assert.match(html, />上课周次与教师</);
-  assert.match(html, /一行表示哪些周由哪位教师上课；如果整门课都是同一位教师，只填一行。/);
+  assert.ok(html.includes('同一位教师填一行；中途换教师，再加一行。'));
   assert.match(html, /data-week-start/);
   assert.match(html, /data-week-end/);
   assert.match(html, /data-date-hint/);
@@ -824,6 +872,10 @@ test('weather is readable, cached locally and refreshed automatically or on dema
   await elements.refreshWeather.emitAsync('click');
   assert.match(fetchCalls[manualStart], /kmust-schedule-cn-gateway\.pages\.dev\/api\/weather$/, 'manual refresh should request the live mainland gateway first');
   assert.equal(elements.refreshWeather.attributes['aria-busy'], 'false');
+  assert.match(elements.refreshWeather.className, /is-error/);
+  assert.match(elements.weatherDialogStatus.textContent, /暂未获取新天气/);
+  context.fetch = async () => ({ ok: true, json: async () => ({ ok: true, data: { ...cachedData, fetchedAt: new Date().toISOString() } }) });
+  await elements.refreshWeather.emitAsync('click');
   assert.match(elements.refreshWeather.className, /is-success/);
   assert.match(elements.weatherDialogStatus.textContent, /已检查|天气已更新/);
 
@@ -836,7 +888,7 @@ test('weather is readable, cached locally and refreshed automatically or on dema
   assert.match(css, /\.weather-dialog-button\.is-error/);
   assert.match(css, /Unified tactile feedback/);
   assert.match(css, /touch-action: manipulation/);
-  assert.match(css, /transform: translate3d\(0,1px,0\) scale\(\.97\)/);
+  assert.match(css, /transform: translate3d\(0,1px,0\) scale\(\.985\)/);
   assert.match(css, /@keyframes control-feedback/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.weather-dialog-button\.is-success[\s\S]*?animation: none !important/);
   assert.match(html, /window\.setInterval\(function \(\) \{\s*if \(!document\.hidden\) loadWeather\(\);\s*\}, WEATHER_REFRESH_MS\)/);
@@ -966,10 +1018,11 @@ test('manager password is numeric, hidden by default and optionally remembered',
 });
 
 test('login school mark keeps its wide official proportion and scales across phone and desktop', () => {
-  assert.match(css, /\.login-brand \.brand-logo \{[^}]*width: clamp\(148px,28vw,180px\);[^}]*height: auto;[^}]*aspect-ratio: 311 \/ 72;/);
-  assert.doesNotMatch(css, /\.login-brand \.brand-logo \{[^}]*width: 48px;[^}]*height: 48px;/);
-  assert.match(css, /@media \(max-width: 420px\)[\s\S]*?\.login-brand \.brand-logo \{[^}]*width: clamp\(108px,31vw,122px\);/);
-  assert.match(css, /\.login-brand > span:last-child \{ min-width: 0; \}/);
+  assert.match(css, /\.login-masthead \.brand-logo \{[^}]*width: clamp\(180px,22vw,230px\);[^}]*height: auto;[^}]*aspect-ratio: 311 \/ 72;/);
+  assert.match(css, /\.login-masthead \.brand-logo \{ width: clamp\(168px,40vw,214px\); \}/);
+  assert.ok(html.includes('.hero::before, .login-campus {'), 'reuse the existing campus photo, not a different university');
+  assert.match(css, /\.login-layout \{ display: grid; grid-template-columns: minmax\(0,\.95fr\) minmax\(0,1fr\);/);
+  assert.match(css, /@media \(max-width: 800px\)[\s\S]*?\.login-layout \{ grid-template-columns: minmax\(0,1fr\);/);
 });
 
 test('modification sync status uses the latest page or schedule change in China time', () => {
@@ -1022,6 +1075,6 @@ test('admin secret persistence is explicit and revision conflicts remain recover
   assert.match(html, /if \(!state\.managerDirty && !state\.formDirty\) return/);
   assert.match(html, /暂无待上传/);
   assert.match(html, /重新载入会放弃当前未保存的修改/);
-  assert.match(html, /课程“' \+ course\['课程'\] \+ '”已从待上传列表删除/);
-  assert.match(html, /editingCourse \? '课程修改已暂存/);
+  assert.ok(html.includes("'已删除“' + course['课程'] + '”，待上传。'"));
+  assert.ok(html.includes("editingCourse ? '已修改“' : '已新增“'"));
 });

@@ -108,7 +108,7 @@ body {
 .nav-cloud-save[aria-busy="true"] { border-color: #b77b1c; color: #78500f; background: #fff3db; opacity: 1; }
 .cloud-save-alert { position: absolute; top: -3px; right: -3px; display: none; width: 9px; height: 9px; border: 2px solid #fff; border-radius: 50%; background: var(--kust-red); }
 .nav-cloud-save.has-pending .cloud-save-alert { display: block; }
-.nav-cloud-save[aria-busy="true"] .cloud-save-alert { background: #b77b1c; animation: sync-pulse 1.1s ease-in-out infinite; }
+.nav-cloud-save[aria-busy="true"] .cloud-save-alert { background: #b77b1c; }
 .sync-pill.pending .sync-dot { background: #b77b1c; box-shadow: 0 0 0 3px rgba(183,123,28,.12); }
 
 .sync-pill { min-height: 36px; border-radius: 10px; }
@@ -202,7 +202,7 @@ body {
 .weather-chip.is-loading { opacity: .8; }
 .weather-chip.is-stale { border-color: #cba467; background: #fffaf0; }
 .weather-chip.is-error { border-color: rgba(178,12,37,.34); background: #fff1f2; }
-.weather-chip[aria-busy="true"] .weather-icon { animation: weather-pulse 1.1s ease-in-out infinite; }
+.weather-chip[aria-busy="true"] .weather-icon { opacity: .65; }
 
 .weather-icon {
   display: grid;
@@ -222,21 +222,9 @@ body {
 .weather-copy small { margin-top: 4px; color: #736d66; font-size: 10px; font-weight: 700; line-height: 1.2; }
 .weather-chevron { flex: 0 0 12px; width: 12px; height: 12px; color: #8d867f; }
 
-@keyframes weather-pulse { 50% { opacity: .48; transform: scale(.92); } }
 @keyframes weather-sun-spin { to { transform: rotate(360deg); } }
-@keyframes weather-cloud-float { 50% { transform: translate3d(0,-1.8px,0); } }
-@keyframes weather-rain-fall { 0%,20% { opacity: .25; transform: translateY(-1px); } 70%,100% { opacity: 1; transform: translateY(2px); } }
-@keyframes weather-storm-flash { 0%,76%,100% { opacity: .42; } 80%,88% { opacity: 1; } }
-@keyframes weather-fog-drift { 50% { transform: translateX(2px); } }
 
 .weather-symbol svg { transform-origin: 50% 50%; }
-.weather-symbol.is-sun svg { animation: weather-sun-spin 18s linear infinite; }
-.weather-symbol.is-cloud svg { animation: weather-cloud-float 3s ease-in-out infinite; }
-.weather-symbol.is-rain svg { animation: weather-cloud-float 3s ease-in-out infinite; }
-.weather-symbol.is-rain svg path:last-child { animation: weather-rain-fall 1.1s ease-in-out infinite alternate; }
-.weather-symbol.is-storm svg path:last-child { animation: weather-storm-flash 2.5s ease-in-out infinite; }
-.weather-symbol.is-snow svg { animation: weather-sun-spin 20s linear infinite; }
-.weather-symbol.is-fog svg { animation: weather-fog-drift 3s ease-in-out infinite; }
 
 .weather-dialog {
   width: min(900px, calc(100vw - 32px));
@@ -253,8 +241,6 @@ body {
 }
 
 .weather-dialog::backdrop { background: rgba(31,27,23,.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-.weather-dialog[open] { animation: weather-dialog-in .24s cubic-bezier(.2,.8,.2,1) both; }
-@keyframes weather-dialog-in { from { opacity: 0; transform: translateY(12px) scale(.985); } }
 
 .weather-shell {
   --weather-accent: var(--kust-red);
@@ -310,7 +296,7 @@ body {
 .weather-dialog-button:disabled { opacity: .5; cursor: wait; }
 .weather-dialog-button.is-success { color: #23704b; border-color: rgba(35,112,75,.32); background: #eef8f2; animation: control-feedback .26s cubic-bezier(.2,.8,.2,1); }
 .weather-dialog-button.is-error { color: #a0142c; border-color: rgba(160,20,44,.3); background: #fff1f3; animation: control-feedback .26s cubic-bezier(.2,.8,.2,1); }
-.weather-dialog-button[aria-busy="true"] svg { animation: weather-sun-spin 1s linear infinite; }
+.weather-dialog-button[aria-busy="true"] svg { animation: weather-sun-spin .5s cubic-bezier(.2,.8,.2,1); }
 .weather-dialog-button svg { width: 19px; height: 19px; }
 
 .weather-dialog-body { padding: 22px; }
@@ -1310,17 +1296,21 @@ body.app-locked { overflow: hidden; }
 body.app-locked > :not(.login-gate) { visibility: hidden; }
 .login-gate { position: fixed; inset: 0; z-index: 10000; display: flex; flex-direction: column; overflow: auto; padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); color: #211d19; background: #f4f0e9; }
 .login-gate[hidden] { display: none; }
-.login-atmosphere { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(circle at 16% 16%, rgba(158,27,50,.16), transparent 31%), radial-gradient(circle at 88% 82%, rgba(189,147,74,.16), transparent 28%), linear-gradient(135deg, rgba(255,255,255,.94), rgba(242,236,226,.88)); }
-.login-atmosphere::after { content: "KUST"; position: absolute; right: -3vw; bottom: -10vw; color: rgba(158,27,50,.035); font-family: Georgia,serif; font-size: clamp(180px,34vw,580px); font-weight: 900; line-height: .8; }
-.login-card { position: relative; flex: 0 0 auto; margin: auto; width: min(440px,100%); padding: clamp(24px,5vw,44px); border: 1px solid rgba(57,45,35,.13); border-radius: 28px; background: rgba(255,253,249,.9); box-shadow: 0 30px 90px rgba(55,37,26,.14); backdrop-filter: blur(20px); }
-.login-brand { display: flex; align-items: center; gap: clamp(13px,3vw,18px); padding-bottom: 22px; border-bottom: 1px solid var(--line); }
-.login-brand > span:last-child { min-width: 0; }
-.login-brand .brand-logo { width: clamp(148px,28vw,180px); height: auto; flex: 0 0 clamp(148px,28vw,180px); aspect-ratio: 311 / 72; }
-.login-brand strong { display: block; color: var(--mentor); font-family: var(--display-font); font-size: 21px; letter-spacing: .02em; }
-.login-brand small { display: block; margin-top: 4px; color: var(--muted); font-size: 8px; line-height: 1.45; letter-spacing: .07em; overflow-wrap: anywhere; }
-.login-copy { margin: 27px 0 24px; }
-.login-copy p { margin: 0 0 7px; color: var(--mentor); font-size: 12px; font-weight: 800; letter-spacing: .08em; }
-.login-copy h1 { margin: 0 0 10px; font-family: var(--display-font); font-size: clamp(32px,7vw,44px); line-height: 1; }
+.login-atmosphere { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 12% 8%, #fffdf8, transparent 62%), #eeeae3; }
+.login-shell { position: relative; flex: 0 0 auto; margin: auto; width: min(1040px,100%); }
+.login-masthead { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 2px 22px; }
+.login-masthead .brand-logo { width: clamp(180px,22vw,230px); height: auto; flex: 0 0 auto; aspect-ratio: 311 / 72; background-color: var(--kust-red); }
+.login-masthead > span:last-child { color: #776f66; font-size: 12px; letter-spacing: .12em; white-space: nowrap; }
+.login-layout { display: grid; grid-template-columns: minmax(0,.95fr) minmax(0,1fr); overflow: hidden; border: 1px solid #dcd5cb; border-radius: 24px; background: #fffdf9; box-shadow: 0 24px 64px rgba(58,41,27,.09); }
+.login-campus { position: relative; inset: auto; z-index: auto; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; min-height: 550px; height: auto; padding: 34px; isolation: isolate; color: #fff; background-color: #654139; background-position: center 58%; }
+.login-campus::after { content: ""; position: absolute; z-index: -1; inset: 0; background: linear-gradient(180deg, rgba(44,28,27,.25), rgba(48,24,27,.08) 35%, rgba(49,19,25,.88)); }
+.login-campus-label { font-size: 10px; font-weight: 650; letter-spacing: .18em; }
+.login-campus-caption h2 { margin: 0; font-family: Georgia, "Songti SC", serif; font-size: clamp(42px,5vw,64px); font-weight: 400; letter-spacing: -.04em; line-height: 1.15; }
+.login-campus-caption p { margin: 12px 0 0; font-size: 13px; letter-spacing: .09em; }
+.login-card { position: relative; min-width: 0; display: flex; flex-direction: column; justify-content: center; margin: 0; padding: clamp(30px,4vw,54px); background: #fffdf9; }
+.login-copy { margin: 0 0 22px; }
+.login-copy p { margin: 0 0 12px; color: var(--kust-red); font-size: 11px; font-weight: 700; letter-spacing: .12em; }
+.login-copy h1 { margin: 0 0 12px; color: #24211d; font-family: var(--display-font); font-size: clamp(30px,3vw,38px); line-height: 1.2; }
 .login-copy span,.login-note { color: var(--muted); font-size: 12px; line-height: 1.7; }
 .login-field { display: block; margin-top: 14px; }
 .login-field > span:first-child { display: block; margin: 0 0 6px; font-size: 12px; font-weight: 800; }
@@ -1329,17 +1319,16 @@ body.app-locked > :not(.login-gate) { visibility: hidden; }
 .login-password { position: relative; display: block; }
 .login-password input { padding-right: 62px; }
 .login-password button { position: absolute; top: 6px; right: 6px; height: 36px; padding: 0 10px; border: 0; border-radius: 8px; color: var(--mentor); background: var(--mentor-soft); font-weight: 800; cursor: pointer; }
-.login-remember { display: flex; align-items: center; gap: 8px; margin: 15px 0 4px; font-size: 12px; font-weight: 700; }
+.login-remember { display: flex; align-items: center; gap: 8px; margin: 14px 0 0; min-height: 36px; font-size: 12px; font-weight: 500; cursor: pointer; }
 .login-remember input { accent-color: var(--mentor); }
-.login-note { margin: 8px 0 18px; }
+.login-note { margin: 8px 0 20px; font-size: 11px; }
 .login-submit { width: 100%; min-height: 50px; border: 0; border-radius: 13px; color: #fff; background: var(--mentor); font-size: 14px; font-weight: 900; box-shadow: 0 10px 26px rgba(158,27,50,.22); cursor: pointer; }
 .login-submit:disabled { opacity: .58; cursor: wait; }
 .login-status { min-height: 20px; margin: 10px 0 -8px; color: var(--mentor); font-size: 12px; text-align: center; }
+.login-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 18px; padding: 18px 2px 0; color: #746c63; font-size: 10px; line-height: 1.5; }
 .account-button { min-width: 126px; }
 .tool-dialog { width: min(520px,calc(100vw - 24px)); max-width: none; max-height: min(780px,calc(100dvh - 24px)); overflow: hidden; padding: 0; border: 0; border-radius: 24px; color: var(--ink); background: #fffdf9; box-shadow: 0 28px 80px rgba(35,27,20,.3); }
 .tool-dialog::backdrop { background: rgba(31,27,23,.52); backdrop-filter: blur(5px); }
-.tool-dialog[open] { animation: tool-in .2s ease-out both; }
-@keyframes tool-in { from { opacity: 0; transform: translateY(10px) scale(.985); } }
 .tool-sheet { max-height: min(780px,calc(100dvh - 24px)); overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(158,27,50,.25) transparent; }
 .tool-sheet::-webkit-scrollbar { width: 5px; }
 .tool-sheet::-webkit-scrollbar-track { background: transparent; }
@@ -1443,16 +1432,26 @@ body.app-locked > :not(.login-gate) { visibility: hidden; }
   .course-actions button { min-height: 82px; }
   .course-detail-view { padding: 15px; }
   .course-detail-grid > div { padding: 12px; }
-  .login-card { border-radius: 22px; }
+  .login-layout { grid-template-columns: minmax(0,1fr); border-radius: 20px; }
+  .login-campus { min-height: 150px; padding: 20px 24px; background-position: center 52%; }
+  .login-campus-caption h2 { font-size: 32px; }
+  .login-campus-caption p { margin-top: 6px; font-size: 11px; }
+  .login-card { padding: 26px clamp(22px,6vw,48px) 30px; }
+  .login-copy { margin-bottom: 12px; }
+  .login-copy p { display: none; }
+  .login-copy h1 { font-size: 28px; }
+  .login-masthead { padding-bottom: 16px; }
+  .login-masthead .brand-logo { width: clamp(168px,40vw,214px); }
+  .login-footer { padding-top: 14px; }
 }
 @media (max-width: 420px) {
   .scope-picker { grid-template-columns: 1fr 1fr; }
   .course-actions { grid-template-columns: 1fr; }
   .course-actions button { min-height: 62px; }
-  .login-brand { gap: 11px; }
-  .login-brand .brand-logo { width: clamp(108px,31vw,122px); flex-basis: clamp(108px,31vw,122px); }
-  .login-brand strong { font-size: 19px; }
-  .login-brand small { max-width: 160px; font-size: 7px; letter-spacing: .045em; }
+  .login-campus { min-height: 126px; padding: 16px 22px; }
+  .login-campus-label { font-size: 8px; }
+  .login-campus-caption h2 { font-size: 28px; }
+  .login-footer { font-size: 9px; }
   .makeup-head { display: block; }
   .makeup-head .makeup-pending { display: inline-block; max-width: none; margin-top: 8px; text-align: left; }
 }
@@ -1461,20 +1460,28 @@ body.app-locked > :not(.login-gate) { visibility: hidden; }
 :where(button,summary,[role="button"],.scope-picker label span,.scope-weeks span) {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  transition: transform .16s cubic-bezier(.2,.8,.2,1), border-color .16s ease, background-color .16s ease, color .16s ease, box-shadow .16s ease, opacity .16s ease;
+  transition: transform .16s cubic-bezier(.2,.8,.2,1), border-color .16s ease, background-color .16s ease, color .16s ease, opacity .16s ease;
 }
 :where(button,summary,[role="button"]):active:not(:disabled),
 :where(.scope-picker label span,.scope-weeks span):active {
-  transform: translate3d(0,1px,0) scale(.97);
-  transition-duration: .06s;
+  transform: translate3d(0,1px,0) scale(.985);
+  transition-duration: .1s;
 }
 :where(.matrix-card,.week-row,.timeline-item):active {
   transform: translate3d(0,1px,0) scale(.99);
 }
-.weather-dialog[open],.tool-dialog[open],.manager-dialog[open],
-.weather-dialog-button[aria-busy="true"] svg { will-change: transform,opacity; }
 @keyframes control-feedback {
-  50% { transform: scale(1.08); }
+  50% { transform: scale(1.025); }
+}
+
+/* One short entrance; no persistent layers or decorative loops. */
+@keyframes surface-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.weather-dialog[open], .tool-dialog[open], .manager-dialog[open],
+.mobile-more-dialog[open], .login-gate:not([hidden]) .login-layout {
+  animation: surface-in .22s cubic-bezier(.2,.8,.2,1);
 }
 
 /* A fixed-size length signature replaces long period labels on course cards. */
@@ -1545,6 +1552,10 @@ body.app-locked > :not(.login-gate) { visibility: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .progress-bar { transition: none; }
+  .tool-dialog[open], .manager-dialog[open], .mobile-more-dialog[open],
+  .login-gate:not([hidden]) .login-layout { animation: none; }
   .nav-manage, .nav-cloud-save { transition: none; }
   .nav-cloud-save[aria-busy="true"] .cloud-save-alert { animation: none; }
   .weather-dialog[open],
