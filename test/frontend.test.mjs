@@ -25,6 +25,7 @@ const exposedNames = [
   'isMentorCourseName', 'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput', 'tripleSlotConflicts',
   'stageCourseUpsert', 'stageCourseDelete', 'rawCourseSubset', 'rawCourseWithoutWeeks', 'weeksLabel',
   'automaticCleanupReason',
+  'classPeriodCount', 'classLengthBadge',
   'cloudSaveButtonView',
   'weatherKind', 'weatherNumber', 'weatherSummary', 'visibleWeatherHours', 'weatherHourLabel', 'weatherDayLabel',
   'renderWeatherDialog', 'readWeatherCache', 'weatherDataIsStale', 'fetchWeatherData', 'fetchWeatherWithFallback', 'loadWeather', 'setupWeatherDialog', 'openWeatherDialog', 'closeWeatherDialog',
@@ -145,6 +146,25 @@ test('latest printout teacher and week changes are preserved exactly', () => {
   assert.equal(JSON.stringify(experiment['授课分段'].at(-1)), JSON.stringify({ '周次': '12-13', '教师': '董建华' }));
   const lecture = api.RAW_DATA.find((course) => course['课程'] === '学科前沿讲座');
   assert.equal(lecture['授课分段'].map((part) => part['教师']).join('|'), '杨启良|李加念|彭红波|朱惠斌|张付杰|苏有勇|刘小刚|王卫华|张兆国');
+});
+
+test('length signatures count actual teaching periods rather than wall-clock hours', () => {
+  const cases = [
+    ['第1-2节', 2], ['第3-4节', 2], ['第3-5节', 3], ['第6-8节', 3],
+    ['第9-10节', 2], ['第9-11节', 3], ['第11节', 1], ['第12-13节', 2]
+  ];
+  for (const [slot, count] of cases) {
+    const raw = { '节次': slot };
+    const normalized = { slot: slot.replace('-', '–') };
+    assert.equal(api.classPeriodCount(raw), count);
+    assert.equal(api.classPeriodCount(normalized), count);
+    const badge = api.classLengthBadge(normalized);
+    assert.equal((badge.match(/<rect /g) || []).length, count);
+    assert.ok(badge.includes('aria-label="共' + count + '节，' + normalized.slot + '"'));
+    assert.ok(badge.includes('<b>' + count + '</b>节'));
+  }
+  assert.equal(api.classLengthBadge({ slot: '待定' }), '', 'missing periods should never be guessed');
+  assert.equal(api.classPeriodCount(null), 0);
 });
 
 test('first teaching week begins on Monday August 24 and Sunday stays day seven', () => {
@@ -323,7 +343,9 @@ test('desktop matrix renders all seven days, six time bands and mentor warning',
   assert.match(matrix.innerHTML, />晚上</);
   assert.match(matrix.innerHTML, /16:10—17:45/);
   assert.match(matrix.innerHTML, /16:10—18:35/);
-  assert.match(matrix.innerHTML, /第9–11节 · 16:10—18:35/);
+  assert.match(matrix.innerHTML, /class="meeting-clock">16:10—18:35<\/span>/);
+  assert.match(matrix.innerHTML, /aria-label="共3节，第9–11节"/);
+  assert.match(matrix.innerHTML, /aria-label="共2节，第9–10节"/);
   assert.match(css, /\.matrix-card\.is-unselected/);
   assert.match(css, /\.week-list > \.week-row\.is-pending-drop/);
 

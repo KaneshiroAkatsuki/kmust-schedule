@@ -1633,7 +1633,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=2.9">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=3.0">
 </head>
 <body class="app-locked">
   <section class="login-gate" id="loginGate" aria-labelledby="loginTitle">
@@ -1828,7 +1828,7 @@
 
       <div class="footer-bottom">
         <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">2.9</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">3.0</span></span>
       </div>
     </div>
   </footer>
@@ -2176,8 +2176,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '2.9';
-    const SITE_UPDATED_AT = '2026-09-07T15:18:16+08:00';
+    const SITE_VERSION = '3.0';
+    const SITE_UPDATED_AT = '2026-09-07T16:34:17+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -2267,6 +2267,23 @@
     }
 
     function cloneData(value) { return JSON.parse(JSON.stringify(value)); }
+
+    function classPeriodCount(course) {
+      const slot = String(course && (course.slot || course['节次']) || '').replace(/[–—]/g, '-');
+      const periods = SLOT_PERIODS.get(slot);
+      return periods ? periods.length : 0;
+    }
+
+    function classLengthBadge(course) {
+      const count = classPeriodCount(course);
+      if (!count) return '';
+      const slot = String(course.slot || course['节次']);
+      const label = '共' + count + '节，' + slot;
+      const bars = Array.from({ length: count }, function (_, index) {
+        return '<rect x="' + (index * 7) + '" y="0" width="5" height="10" rx="1.5"/>';
+      }).join('');
+      return '<span class="class-length" role="img" aria-label="' + esc(label) + '" title="' + esc(label) + '"><span class="class-length-text" aria-hidden="true"><b>' + count + '</b>节</span><svg viewBox="0 0 19 10" aria-hidden="true" focusable="false">' + bars + '</svg></span>';
+    }
 
     function buildCourses(data) {
       return data.map(function (item, index) {
@@ -2595,6 +2612,7 @@
           mentor: isMentorCourse(current, week),
           experience: week === EXPERIENCE_WEEK,
           period: current.start + '–' + current.end + ' · ' + current.slot,
+          meeting: current,
           countdownLabel: '距离下课',
           countdown: left,
           progress: Math.max(0, Math.min(100, (currentMinute - current.startMin) / (current.endMin - current.startMin) * 100))
@@ -2614,6 +2632,7 @@
           mentor: isMentorCourse(next, week),
           experience: week === EXPERIENCE_WEEK,
           period: next.start + '–' + next.end + ' · ' + next.slot,
+          meeting: next,
           countdownLabel: '还有',
           countdown: until,
           progress: Math.max(0, Math.min(100, (90 - (next.startMin - currentMinute)) / 90 * 100))
@@ -2650,10 +2669,13 @@
         : '';
       const mentorBadge = info.mentor ? '<span class="mentor-badge">导师/带教课 · 不可缺席</span>' : '';
       const experienceBadge = info.experience ? '<span class="experience-badge">第2周体验课 · 必须参加</span>' : '';
+      const periodMarkup = info.meeting
+        ? '<span class="meeting-clock">' + esc(info.meeting.start + '—' + info.meeting.end) + '</span>' + classLengthBadge(info.meeting)
+        : esc(info.period || '');
 
       card.className = 'status-card ' + info.type + (info.mentor ? ' mentor' : '');
       card.style.setProperty('--progress', (info.progress || 0).toFixed(2) + '%');
-      card.innerHTML = '<div class="status-grid"><div class="status-copy"><div class="status-time">' + ICONS.clock + '<span>' + esc(info.label) + '</span></div>' + experienceBadge + mentorBadge + '<div class="status-course">' + esc(info.course) + '</div>' + meta + '<div class="status-period">' + esc(info.period || '') + '</div></div>' + countdown + '</div>' + (info.type === 'next' || info.type === 'active' ? '<div class="progress-track" aria-hidden="true"><div class="progress-bar"></div></div>' : '');
+      card.innerHTML = '<div class="status-grid"><div class="status-copy"><div class="status-time">' + ICONS.clock + '<span>' + esc(info.label) + '</span></div>' + experienceBadge + mentorBadge + '<div class="status-course">' + esc(info.course) + '</div>' + meta + '<div class="status-period">' + periodMarkup + '</div></div>' + countdown + '</div>' + (info.type === 'next' || info.type === 'active' ? '<div class="progress-track" aria-hidden="true"><div class="progress-bar"></div></div>' : '');
 
       const spoken = info.label + '，' + info.course + (info.experience ? '，第2周体验课必须参加' : '') + (info.mentor ? '，导师或带教课程不可缺席' : '') + (info.countdown ? '，' + info.countdown.text : '');
       const spokenKey = info.type + '|' + info.course + '|' + Math.floor(nowMinuteFloat(now));
@@ -2723,7 +2745,7 @@
           ? '<span class="unselected-label">非选课内容 · 无需上课</span>'
           : (selection === 'pending-drop' ? '<span class="pending-drop-label">待退选 · 无需上课</span>' : '');
         const partLabel = '<span class="daypart-label part-' + part.key + '">' + part.label + '</span>';
-        return '<article class="timeline-item ' + status + ' part-' + part.key + (mentor ? ' mentor-course' : '') + (selection === 'unselected' ? ' is-unselected' : '') + (selection === 'pending-drop' ? ' is-pending-drop' : '') + (experienceCourse ? ' is-experience' : '') + '" tabindex="0" role="button" data-course-index="' + course.id + '"><div class="timeline-time"><span>' + course.start + '</span><span class="time-end">' + course.end + '</span></div><span class="timeline-dot" aria-hidden="true"></span><div class="timeline-body"><div>' + partLabel + '<span class="slot-label">' + esc(course.slot) + '</span>' + stateLabel + mentorLabel + selectionLabel + '</div><div class="timeline-name">' + esc(course.name) + '</div><div class="row-meta">' + ICONS.user + '<span>' + esc(info.teachers) + '</span><span>·</span>' + ICONS.pin + '<span>' + esc(info.rooms) + '</span></div></div></article>';
+        return '<article class="timeline-item ' + status + ' part-' + part.key + (mentor ? ' mentor-course' : '') + (selection === 'unselected' ? ' is-unselected' : '') + (selection === 'pending-drop' ? ' is-pending-drop' : '') + (experienceCourse ? ' is-experience' : '') + '" tabindex="0" role="button" data-course-index="' + course.id + '"><div class="timeline-time"><span>' + course.start + '</span><span class="time-end">' + course.end + '</span></div><span class="timeline-dot" aria-hidden="true"></span><div class="timeline-body"><div>' + partLabel + classLengthBadge(course) + stateLabel + mentorLabel + selectionLabel + '</div><div class="timeline-name">' + esc(course.name) + '</div><div class="row-meta">' + ICONS.user + '<span>' + esc(info.teachers) + '</span><span>·</span>' + ICONS.pin + '<span>' + esc(info.rooms) + '</span></div></div></article>';
       }).join('');
     }
 
@@ -2809,7 +2831,7 @@
               ? active.teachers + ' · ' + active.rooms
               : course.rooms.join(' / ') + ' · ' + allSegments(course);
             const className = 'matrix-card' + (on ? '' : ' is-off') + (mentor ? ' is-mentor' : '') + (live ? ' is-live' : '') + (selection === 'unselected' ? ' is-unselected' : '') + (selection === 'pending-drop' ? ' is-pending-drop' : '') + (experienceCourse ? ' is-experience' : '');
-            return '<article class="' + className + '" tabindex="0" role="button" data-course-index="' + course.id + '" title="点击查看｜' + esc(course.name + '｜' + course.start + '—' + course.end + '｜' + details) + '">' + badge + '<div class="matrix-course-time">' + esc(course.slot + ' · ' + course.start + '—' + course.end) + '</div><div class="matrix-name">' + esc(course.name) + '</div><div class="matrix-meta">' + esc(details) + '</div></article>';
+            return '<article class="' + className + '" tabindex="0" role="button" data-course-index="' + course.id + '" title="点击查看｜' + esc(course.name + '｜' + course.start + '—' + course.end + '｜' + details) + '">' + badge + '<div class="matrix-course-time"><span class="meeting-clock">' + esc(course.start + '—' + course.end) + '</span>' + classLengthBadge(course) + '</div><div class="matrix-name">' + esc(course.name) + '</div><div class="matrix-meta">' + esc(details) + '</div></article>';
           }).join('');
           html += '<div class="matrix-cell part-' + part.key + '">' + cards + '</div>';
         });
@@ -2869,7 +2891,7 @@
         const details = on
           ? '<span>' + esc(active.teachers) + ' · ' + esc(active.rooms) + '</span>'
           : '<span>' + esc(course.rooms.join(' / ')) + '</span><span class="segments">' + esc(allSegments(course)) + '</span>';
-        return '<article class="week-row part-' + part.key + (on ? '' : ' off') + (mentor ? ' mentor-course' : '') + (selection === 'unselected' ? ' is-unselected' : '') + (selection === 'pending-drop' ? ' is-pending-drop' : '') + (experienceCourse ? ' is-experience' : '') + '" style="order:' + (course.startMin * 2000 + course.endMin) + '" tabindex="0" role="button" data-course-index="' + course.id + '"><div class="week-time">' + course.start + '–<br>' + course.end + '<span class="period">' + esc(course.slot) + '</span></div><div class="week-main"><div class="week-name-row"><div class="week-name">' + esc(course.name) + '</div>' + label + '</div><div class="week-detail">' + details + '</div></div></article>';
+        return '<article class="week-row part-' + part.key + (on ? '' : ' off') + (mentor ? ' mentor-course' : '') + (selection === 'unselected' ? ' is-unselected' : '') + (selection === 'pending-drop' ? ' is-pending-drop' : '') + (experienceCourse ? ' is-experience' : '') + '" style="order:' + (course.startMin * 2000 + course.endMin) + '" tabindex="0" role="button" data-course-index="' + course.id + '"><div class="week-time"><span class="meeting-clock">' + course.start + '—' + course.end + '</span>' + classLengthBadge(course) + '</div><div class="week-main"><div class="week-name-row"><div class="week-name">' + esc(course.name) + '</div>' + label + '</div><div class="week-detail">' + details + '</div></div></article>';
       });
       const emptyRows = MATRIX_BANDS.map(function (band, index) {
         const exists = list.some(function (course) { return course.startMin < band.endMin && course.endMin > band.startMin; });
