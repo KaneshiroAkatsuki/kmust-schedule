@@ -1621,7 +1621,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=3.3">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=3.4">
 </head>
 <body class="app-locked">
   <section class="login-gate" id="loginGate" aria-labelledby="loginTitle">
@@ -1714,6 +1714,29 @@
         <span class="section-note" id="todayCount"></span>
       </div>
       <div id="todayList"></div>
+      <button class="calendar-entry" id="openCalendar" type="button" aria-haspopup="dialog" aria-controls="calendarPage" aria-expanded="false">
+        <span class="calendar-entry-icon" aria-hidden="true"><span>日历</span><b id="calendarEntryDay">--</b></span>
+        <span class="calendar-entry-copy"><strong>日历</strong><small id="calendarEntryHint">假期 · 调休安排</small></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+      </button>
+      <div class="calendar-inline-host" id="calendarInlineHost">
+        <section class="month-calendar" id="monthCalendar" aria-labelledby="monthCalendarHeading">
+          <div class="month-calendar-heading"><h3 id="monthCalendarHeading">日历</h3><span>假期与调休</span></div>
+          <div class="month-calendar-toolbar">
+            <h4 id="calendarMonthLabel" aria-live="polite" aria-atomic="true"></h4>
+            <div class="month-calendar-controls">
+              <button type="button" id="calendarToday">今天</button>
+              <button type="button" id="calendarPrev" aria-label="上个月"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
+              <button type="button" id="calendarNext" aria-label="下个月"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
+            </div>
+          </div>
+          <div class="month-calendar-weekdays" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+          <div class="month-calendar-grid" id="calendarGrid" role="group" aria-label="日期"></div>
+          <div class="month-calendar-legend"><span><i class="calendar-rest-mark">休</i>放假</span><span><i class="calendar-work-mark">班</i>调休上班</span><span><i class="calendar-today-mark"></i>今天</span></div>
+          <div class="month-calendar-detail" id="calendarDetail" role="status" aria-live="polite" aria-atomic="true"></div>
+          <p class="month-calendar-source" id="calendarSource"></p>
+        </section>
+      </div>
     </section>
     </div>
 
@@ -1829,7 +1852,7 @@
 
       <div class="footer-bottom">
         <p>个人课表，非学校官方系统。上课安排以学院和任课教师通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">3.3</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">3.4</span></span>
       </div>
     </div>
   </footer>
@@ -1852,6 +1875,14 @@
       <span>更多</span>
     </button>
   </nav>
+
+  <dialog class="calendar-page" id="calendarPage" aria-labelledby="calendarPageTitle">
+    <header class="calendar-page-header">
+      <button type="button" id="closeCalendar" aria-label="返回课表" autofocus><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg><span>课表</span></button>
+      <h2 id="calendarPageTitle">日历</h2><span class="calendar-page-brand">KUST·Lab</span>
+    </header>
+    <div class="calendar-mobile-host" id="calendarMobileHost"></div>
+  </dialog>
 
   <dialog class="mobile-more-dialog" id="mobileMoreDialog" aria-labelledby="mobileMoreTitle">
     <section class="mobile-more-sheet">
@@ -2178,8 +2209,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '3.3';
-    const SITE_UPDATED_AT = '2026-09-07T17:35:59+08:00';
+    const SITE_VERSION = '3.4';
+    const SITE_UPDATED_AT = '2026-09-07T17:52:08+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -2231,6 +2262,22 @@
       summerStart: new Date(2027, 6, 12, 12, 0, 0, 0),
       summerEnd: new Date(2027, 7, 20, 12, 0, 0, 0)
     };
+
+    // Official national arrangements only; these do not move or suppress university courses.
+    const HOLIDAY_YEARS = deepFreeze({
+      2026: {
+        source: 'https://www.gov.cn/zhengce/content/202511/content_7047090.htm',
+        holidays: [
+          { name: '元旦', short: '元旦', start: '2026-01-01', end: '2026-01-03', workdays: ['2026-01-04'] },
+          { name: '春节', short: '春节', start: '2026-02-15', end: '2026-02-23', workdays: ['2026-02-14', '2026-02-28'] },
+          { name: '清明节', short: '清明', start: '2026-04-04', end: '2026-04-06', workdays: [] },
+          { name: '劳动节', short: '劳动', start: '2026-05-01', end: '2026-05-05', workdays: ['2026-05-09'] },
+          { name: '端午节', short: '端午', start: '2026-06-19', end: '2026-06-21', workdays: [] },
+          { name: '中秋节', short: '中秋', start: '2026-09-25', end: '2026-09-27', workdays: [] },
+          { name: '国庆节', short: '国庆', start: '2026-10-01', end: '2026-10-07', workdays: ['2026-09-20', '2026-10-10'] }
+        ]
+      }
+    });
 
     const ROOM_OVERRIDES = {
       '星期一|13:30-15:55|生态水文原理及应用（专硕）|彭小瑜|9-11': '公教楼454',
@@ -2331,6 +2378,9 @@
       currentWeek: 1,
       viewWeek: 1,
       selectedDay: 0,
+      calendarSelected: '',
+      calendarMonth: '',
+      calendarTodayKey: '',
       lastMinuteKey: '',
       lastSpokenKey: '',
       revision: 0,
@@ -2437,6 +2487,192 @@
     function shortDate(date) { return (date.getMonth() + 1) + '/' + date.getDate(); }
 
     function longDate(date) { return (date.getMonth() + 1) + '月' + date.getDate() + '日'; }
+
+    function calendarDateKey(date) {
+      return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+    }
+
+    function calendarChinaDate(now) {
+      const parts = chinaTimeParts(now);
+      return new Date(parts.year, parts.month - 1, parts.day, 12);
+    }
+
+    function calendarDateFromKey(key) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(key))) return null;
+      const parts = key.split('-').map(Number);
+      const date = new Date(parts[0], parts[1] - 1, parts[2], 12);
+      return calendarDateKey(date) === key ? date : null;
+    }
+
+    function calendarDayInfo(date) {
+      const key = calendarDateKey(date);
+      const year = HOLIDAY_YEARS[date.getFullYear()];
+      const holidays = year ? year.holidays : [];
+      const holiday = holidays.find(function (item) { return key >= item.start && key <= item.end; });
+      const makeup = holidays.find(function (item) { return item.workdays.includes(key); });
+      if (holiday) return { key: key, known: true, kind: 'holiday', label: holiday.name + ' · 放假', short: holiday.short, holiday: holiday };
+      if (makeup) return { key: key, known: true, kind: 'workday', label: makeup.name + ' · 调休上班', short: '调休', holiday: makeup };
+      const weekend = dayIndex(date) >= 5;
+      return { key: key, known: Boolean(year), kind: weekend ? 'weekend' : 'weekday', label: weekend ? '周末' : '普通日期', short: weekend ? '周末' : '', holiday: null };
+    }
+
+    function monthCalendarCells(year, month) {
+      const first = new Date(year, month, 1, 12);
+      const offset = dayIndex(first);
+      return Array.from({ length: 42 }, function (_, index) {
+        const date = new Date(year, month, 1 - offset + index, 12);
+        return { date: date, key: calendarDateKey(date), inMonth: date.getFullYear() === year && date.getMonth() === month, info: calendarDayInfo(date) };
+      });
+    }
+
+    function selectCalendarDate(key) {
+      if (!calendarDateFromKey(key)) return false;
+      state.calendarSelected = key;
+      state.calendarMonth = key.slice(0, 7);
+      return true;
+    }
+
+    function shiftCalendarMonth(delta) {
+      const selected = calendarDateFromKey(state.calendarSelected);
+      if (!selected) return;
+      const month = new Date(selected.getFullYear(), selected.getMonth() + delta, 1, 12);
+      if (month.getFullYear() < 1900 || month.getFullYear() > 2199) return;
+      const lastDay = new Date(month.getFullYear(), month.getMonth() + 1, 0, 12).getDate();
+      month.setDate(Math.min(selected.getDate(), lastDay));
+      selectCalendarDate(calendarDateKey(month));
+    }
+
+    function renderMonthCalendar(now) {
+      const grid = document.getElementById('calendarGrid');
+      if (!grid) return;
+      const today = calendarChinaDate(now || new Date());
+      const todayKey = calendarDateKey(today);
+      // Follow real midnight only when the user was still viewing today, not a browsed date.
+      if (!state.calendarSelected || (state.calendarTodayKey && state.calendarSelected === state.calendarTodayKey && todayKey !== state.calendarTodayKey)) selectCalendarDate(todayKey);
+      state.calendarTodayKey = todayKey;
+      const selected = calendarDateFromKey(state.calendarSelected);
+      const year = selected.getFullYear(), month = selected.getMonth();
+      const todayInfo = calendarDayInfo(today);
+      setText(document.getElementById('calendarEntryDay'), today.getDate());
+      setText(document.getElementById('calendarEntryHint'), longDate(today) + ' · ' + (todayInfo.holiday ? todayInfo.label : '假期与调休'));
+      setText(document.getElementById('calendarMonthLabel'), year + '年 ' + (month + 1) + '月');
+      grid.setAttribute('aria-label', year + '年' + (month + 1) + '月日期');
+      document.getElementById('calendarPrev').disabled = year <= 1900 && month === 0;
+      document.getElementById('calendarNext').disabled = year >= 2199 && month === 11;
+      const focusedKey = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.calendarDate;
+      const changed = setMarkup(grid, monthCalendarCells(year, month).map(function (cell) {
+        const info = cell.info, isToday = cell.key === todayKey, isSelected = cell.key === state.calendarSelected;
+        const mark = info.kind === 'holiday' ? '休' : info.kind === 'workday' ? '班' : '';
+        const accessible = cell.date.getFullYear() + '年' + longDate(cell.date) + ' ' + DAYS_FULL[dayIndex(cell.date)] + ' ' + info.label + (isToday ? ' 今天' : '') + (!info.known ? '，当年放假调休安排待更新' : '');
+        return '<button type="button" class="month-calendar-day is-' + info.kind + (cell.inMonth ? '' : ' is-adjacent') + (isToday ? ' is-today' : '') + '" data-calendar-date="' + cell.key + '" aria-label="' + esc(accessible) + '" aria-pressed="' + isSelected + '"' + (isToday ? ' aria-current="date"' : '') + ' tabindex="' + (isSelected ? '0' : '-1') + '">' +
+          (mark ? '<span class="calendar-day-mark" aria-hidden="true">' + mark + '</span>' : '') + '<span class="calendar-day-number" aria-hidden="true">' + cell.date.getDate() + '</span><span class="calendar-day-note" aria-hidden="true">' + esc(info.short || '\u00a0') + '</span></button>';
+      }).join(''));
+      if (changed && focusedKey) {
+        const target = grid.querySelector('[data-calendar-date="' + state.calendarSelected + '"]');
+        if (target) target.focus({ preventScroll: true });
+      }
+      const info = calendarDayInfo(selected);
+      let detail = '';
+      if (info.holiday) {
+        const holiday = info.holiday;
+        const dateLabel = function (key) { return longDate(calendarDateFromKey(key)); };
+        detail = dateLabel(holiday.start) + '—' + dateLabel(holiday.end) + '放假';
+        if (holiday.workdays.length) detail += '；' + holiday.workdays.map(dateLabel).join('、') + '调休上班。';
+        else detail += '，不另调休。';
+      } else detail = info.kind === 'weekend' ? '是否上课以课表为准。' : '课程按课表安排。';
+      const disclaimer = info.known ? '学校停课、补课以通知为准。' : year + '年放假调休安排待更新。';
+      setMarkup(document.getElementById('calendarDetail'), '<div class="calendar-detail-top"><time datetime="' + info.key + '">' + longDate(selected) + ' · ' + DAYS_FULL[dayIndex(selected)] + '</time><strong class="calendar-detail-label is-' + info.kind + '">' + esc(info.label) + '</strong></div><p>' + esc(detail) + '</p><small>' + esc(disclaimer) + '</small>');
+      const source = HOLIDAY_YEARS[year];
+      setMarkup(document.getElementById('calendarSource'), source ? '依据 <a href="' + source.source + '" target="_blank" rel="noopener noreferrer">国务院' + year + '年放假通知 ↗</a>' : '暂未收录' + year + '年官方安排，未标记法定假期与调休。');
+    }
+
+    function setupMonthCalendar() {
+      const panel = document.getElementById('monthCalendar');
+      const dialog = document.getElementById('calendarPage');
+      const entry = document.getElementById('openCalendar');
+      const grid = document.getElementById('calendarGrid');
+      const mobile = window.matchMedia('(max-width: 800px)');
+      const history = window.history;
+      let historyPending = false;
+      let historyTimer = null;
+      function releaseHistory() {
+        historyPending = false;
+        entry.disabled = false;
+        if (historyTimer) window.clearTimeout(historyTimer);
+        historyTimer = null;
+      }
+      // A page reload starts from the timetable, without changing its address.
+      if (history.state && history.state.kustCalendarOpen) {
+        const reset = Object.assign({}, history.state); delete reset.kustCalendarOpen;
+        history.replaceState(reset, '');
+      }
+      function openPage(addHistory) {
+        if (!mobile.matches || dialog.open || historyPending) return;
+        renderMonthCalendar(new Date());
+        dialog.showModal();
+        document.body.classList.add('calendar-page-open');
+        document.documentElement.classList.add('calendar-page-open');
+        entry.setAttribute('aria-expanded', 'true');
+        if (addHistory) {
+          try { history.pushState(Object.assign({}, history.state, { kustCalendarOpen: true }), ''); } catch (_) { /* Calendar still works without history access. */ }
+        }
+        revealElement(document.getElementById('calendarMobileHost'));
+      }
+      function closePage() {
+        if (!dialog.open) return;
+        dialog.close();
+        if (history.state && history.state.kustCalendarOpen) {
+          // Do not push a second page while a very fast close/reopen is still going back.
+          historyPending = true;
+          entry.disabled = true;
+          historyTimer = window.setTimeout(releaseHistory, 500);
+          history.back();
+        }
+      }
+      function placeCalendar() {
+        if (!mobile.matches) closePage();
+        const host = document.getElementById(mobile.matches ? 'calendarMobileHost' : 'calendarInlineHost');
+        if (panel.parentElement !== host) host.appendChild(panel);
+      }
+      placeCalendar();
+      if (mobile.addEventListener) mobile.addEventListener('change', placeCalendar);
+      else mobile.addListener(placeCalendar);
+      entry.addEventListener('click', function () { openPage(true); });
+      document.getElementById('closeCalendar').addEventListener('click', closePage);
+      dialog.addEventListener('cancel', function (event) { event.preventDefault(); closePage(); });
+      dialog.addEventListener('close', function () {
+        if (dialog.open) return;
+        document.body.classList.remove('calendar-page-open');
+        document.documentElement.classList.remove('calendar-page-open');
+        entry.setAttribute('aria-expanded', 'false');
+        if (!dialog.open) (mobile.matches ? entry : document.getElementById('calendarToday')).focus({ preventScroll: true });
+      });
+      window.addEventListener('popstate', function () {
+        releaseHistory();
+        if (history.state && history.state.kustCalendarOpen && mobile.matches) openPage(false);
+        else if (dialog.open) dialog.close();
+        else if (mobile.matches) entry.focus({ preventScroll: true });
+      });
+      document.getElementById('calendarPrev').addEventListener('click', function () { shiftCalendarMonth(-1); renderMonthCalendar(new Date()); });
+      document.getElementById('calendarNext').addEventListener('click', function () { shiftCalendarMonth(1); renderMonthCalendar(new Date()); });
+      document.getElementById('calendarToday').addEventListener('click', function () { selectCalendarDate(calendarDateKey(calendarChinaDate(new Date()))); renderMonthCalendar(new Date()); });
+      grid.addEventListener('click', function (event) {
+        const button = event.target.closest('[data-calendar-date]');
+        if (button && selectCalendarDate(button.dataset.calendarDate)) renderMonthCalendar(new Date());
+      });
+      grid.addEventListener('keydown', function (event) {
+        const button = event.target.closest('[data-calendar-date]');
+        if (!button) return;
+        const date = calendarDateFromKey(button.dataset.calendarDate);
+        const offsets = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7, Home: -dayIndex(date), End: 6 - dayIndex(date) };
+        if (!Object.prototype.hasOwnProperty.call(offsets, event.key)) return;
+        event.preventDefault();
+        date.setDate(date.getDate() + offsets[event.key]);
+        if (date.getFullYear() < 1900 || date.getFullYear() > 2199) return;
+        selectCalendarDate(calendarDateKey(date));
+        renderMonthCalendar(new Date());
+      });
+    }
 
     function normalizeWeekRange(startWeek, endWeek, changedSide) {
       let start = Math.max(1, Math.min(MAX_WEEK, Number(startWeek) || 1));
@@ -3249,6 +3485,7 @@
       if (document.getElementById('todayList')) {
         const now = new Date();
         renderToday(now);
+        renderMonthCalendar(now);
         renderWeek(now);
       }
     }
@@ -4909,6 +5146,7 @@
       });
       setupMobileMoreMenu();
       setupWeatherDialog();
+      setupMonthCalendar();
 
       tick();
       window.setInterval(tick, 1000);

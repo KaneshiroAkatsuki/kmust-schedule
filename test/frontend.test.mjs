@@ -20,6 +20,8 @@ const exposedNames = [
   'dayPartForMinutes', 'setMarkup', 'revealElement', 'renderClock', 'renderStatus',
   'teachingWeek', 'academicPhase', 'dateForWeekDay', 'dayIndex', 'isActive',
   'scheduleTermForDate',
+  'HOLIDAY_YEARS', 'calendarDateKey', 'calendarChinaDate', 'calendarDayInfo', 'monthCalendarCells',
+  'shiftCalendarMonth', 'selectCalendarDate', 'renderMonthCalendar', 'setupMonthCalendar',
   'courseSelectionStatus', 'isPersonalCourse', 'requiresAttendance',
   'normalizeWeekRange', 'weekDateRangeLabel', 'segmentDateHint', 'weekRangeValue', 'weekOptions',
   'isMentorCourseName', 'isMentorCourse', 'activeInfo', 'currentStatus', 'renderWeekMatrix', 'validateCoursesInput', 'tripleSlotConflicts',
@@ -43,6 +45,130 @@ const api = context.__kustTest;
 function localDate(year, month, day, hour = 12, minute = 0) {
   return new Date(year, month - 1, day, hour, minute, 0, 0);
 }
+
+test('calendar exactly matches all 2026 official holidays and makeup workdays', () => {
+  const holidayKeys = new Set();
+  for (const [month, first, last] of [[1,1,3],[2,15,23],[4,4,6],[5,1,5],[6,19,21],[9,25,27],[10,1,7]]) {
+    for (let day = first; day <= last; day++) holidayKeys.add(api.calendarDateKey(localDate(2026,month,day)));
+  }
+  const workKeys = new Set(['2026-01-04','2026-02-14','2026-02-28','2026-05-09','2026-09-20','2026-10-10']);
+  for (let offset = 0; offset < 365; offset++) {
+    const date = localDate(2026,1,1 + offset), key = api.calendarDateKey(date);
+    const info = api.calendarDayInfo(date);
+    assert.equal(info.known, true, key);
+    assert.equal(info.kind, holidayKeys.has(key) ? 'holiday' : workKeys.has(key) ? 'workday' : date.getDay() % 6 === 0 ? 'weekend' : 'weekday', key);
+  }
+  assert.equal(api.calendarDayInfo(localDate(2026,9,20)).holiday.name, '国庆节');
+  assert.equal(api.calendarDayInfo(localDate(2026,9,25)).holiday.name, '中秋节');
+  assert.match(api.HOLIDAY_YEARS[2026].source, /gov.cn\/zhengce\/content\/202511\/content_7047090.htm$/);
+});
+
+test('calendar unknown years do not fabricate holiday or makeup information', () => {
+  for (const year of [2025,2027,2028]) {
+    const info = api.calendarDayInfo(localDate(year,1,1));
+    assert.equal(info.known, false);
+    assert.equal(info.holiday, null);
+    assert.ok(['weekend','weekday'].includes(info.kind));
+  }
+});
+
+test('calendar months have six complete Monday-first rows, including leap and year boundaries', () => {
+  for (const [year,month,count] of [[2026,9,30],[2026,1,31],[2026,2,28],[2028,2,29],[2026,12,31]]) {
+    const cells = api.monthCalendarCells(year,month - 1);
+    assert.equal(cells.length,42);
+    assert.equal(cells[0].date.getDay(),1);
+    assert.equal(cells[41].date.getDay(),0);
+    assert.equal(cells.filter(cell => cell.inMonth).length,count);
+    assert.equal(new Set(cells.map(cell => cell.key)).size,42);
+    for (let i=1;i<cells.length;i++) {
+      const previous = cells[i-1].date, next = localDate(previous.getFullYear(),previous.getMonth()+1,previous.getDate()+1);
+      assert.equal(cells[i].key,api.calendarDateKey(next));
+    }
+  }
+});
+
+test('calendar today uses China midnight, independent of the device timezone', () => {
+  assert.equal(api.calendarDateKey(api.calendarChinaDate(new Date('2026-09-07T15:59:59Z'))),'2026-09-07');
+  assert.equal(api.calendarDateKey(api.calendarChinaDate(new Date('2026-09-07T16:00:00Z'))),'2026-09-08');
+});
+
+test('calendar month navigation clamps month-end and does not alter course selection or dates', () => {
+  api.state.calendarSelected = '2026-01-31';
+  api.state.calendarMonth = '2026-01';
+  const courses = JSON.stringify(api.RAW_DATA), week = api.state.viewWeek, day = api.state.selectedDay;
+  api.shiftCalendarMonth(1);
+  assert.equal(api.state.calendarSelected,'2026-02-28');
+  assert.equal(api.state.calendarMonth,'2026-02');
+  api.state.calendarSelected = '2026-12-31';
+  api.state.calendarMonth = '2026-12';
+  api.shiftCalendarMonth(1);
+  assert.equal(api.state.calendarSelected,'2027-01-31');
+  assert.equal(api.selectCalendarDate('2027-02-30'),false);
+  assert.equal(api.selectCalendarDate('not-a-date'),false);
+  assert.equal(api.state.calendarSelected,'2027-01-31');
+  assert.equal(api.state.viewWeek,week);
+  assert.equal(api.state.selectedDay,day);
+  assert.equal(JSON.stringify(api.RAW_DATA),courses);
+});
+
+test('calendar provides one shared component, an accessible mobile entry and a full-screen view', () => {
+  for (const id of ['monthCalendar','calendarInlineHost','calendarMobileHost','calendarPage','openCalendar','closeCalendar','calendarGrid','calendarDetail']) {
+    assert.equal(html.split('id="'+id+'"').length-1,1,id);
+  }
+  assert.ok(html.indexOf('id="calendarInlineHost"') > html.indexOf('id="todayList"'));
+  assert.ok(html.indexOf('id="calendarInlineHost"') < html.indexOf('id="weekSection"'));
+  assert.match(html, /id="openCalendar"[^>]*aria-haspopup="dialog"/);
+  assert.match(css, /\.calendar-page\[open\][\s\S]*?100dvh/);
+  assert.match(css, /\.month-calendar-grid\s*\{[^}]*repeat\(7,\s*minmax\(0,\s*1fr\)\)/);
+});
+
+function calendarFixture() {
+  const nodes = new Map();
+  for (const id of ['calendarGrid','calendarEntryDay','calendarEntryHint','calendarMonthLabel','calendarPrev','calendarNext','calendarDetail','calendarSource']) {
+    let markup = '';
+    nodes.set(id, {
+      textContent: '', attributes: {}, writes: 0,
+      setAttribute(key,value) { this.attributes[key]=value; },
+      querySelector() { return null; },
+      get innerHTML() { return markup; },
+      set innerHTML(value) { markup=value; this.writes++; }
+    });
+  }
+  const sandbox = { console, document: { activeElement: null, getElementById: id => nodes.get(id) || null } };
+  vm.runInNewContext(testSource,sandbox,{filename:'calendar-test.js'});
+  return { app:sandbox.__kustTest,nodes };
+}
+
+test('calendar preserves browsing across background refresh and follows China midnight only on today', () => {
+  const { app,nodes }=calendarFixture();
+  app.renderMonthCalendar(new Date('2026-09-07T15:59:00Z'));
+  assert.equal(app.state.calendarSelected,'2026-09-07');
+  const writes=nodes.get('calendarGrid').writes;
+  app.renderMonthCalendar(new Date('2026-09-07T15:59:30Z'));
+  assert.equal(nodes.get('calendarGrid').writes,writes,'unchanged minute refresh reuses grid DOM');
+  app.renderMonthCalendar(new Date('2026-09-07T16:00:00Z'));
+  assert.equal(app.state.calendarSelected,'2026-09-08');
+  app.selectCalendarDate('2026-10-10');
+  app.renderMonthCalendar(new Date('2026-09-08T16:00:00Z'));
+  assert.equal(app.state.calendarSelected,'2026-10-10','browsed date is not pulled back to today');
+  assert.equal(app.state.calendarMonth,'2026-10');
+  assert.match(nodes.get('calendarDetail').innerHTML,/国庆节 · 调休上班/);
+  assert.match(nodes.get('calendarDetail').innerHTML,/学校停课、补课以通知为准/);
+  assert.match(nodes.get('calendarDetail').innerHTML,/9月20日、10月10日调休上班/);
+});
+
+test('calendar rendering labels unknown years and differentiates holidays from ordinary weekends', () => {
+  const { app,nodes }=calendarFixture(), now=new Date('2026-09-07T09:00:00Z');
+  for (const [date,pattern] of [['2026-09-25',/中秋节 · 放假/],['2026-09-19',/周末/],['2027-01-01',/2027年放假调休安排待更新/]]) {
+    app.selectCalendarDate(date);
+    app.renderMonthCalendar(now);
+    assert.match(nodes.get('calendarDetail').innerHTML,pattern);
+    assert.equal((nodes.get('calendarGrid').innerHTML.match(/aria-pressed="true"/g)||[]).length,1);
+    assert.equal((nodes.get('calendarGrid').innerHTML.match(/tabindex="0"/g)||[]).length,1);
+  }
+  assert.match(nodes.get('calendarSource').innerHTML,/暂未收录2027年官方安排/);
+  assert.doesNotMatch(nodes.get('calendarSource').innerHTML,/<a/);
+});
 
 // Each sync test gets a separate application state and an in-memory, read-only server.
 function syncFixture() {
