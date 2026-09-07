@@ -1633,7 +1633,7 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=2.7">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=2.8">
 </head>
 <body class="app-locked">
   <section class="login-gate" id="loginGate" aria-labelledby="loginTitle">
@@ -1757,7 +1757,7 @@
           <span><i class="legend-active"></i>本周上课</span>
           <span><i class="legend-experience"></i>第2周体验课 · 必须参加</span>
           <span><i class="legend-mentor">★</i>导师/带教课 · 不可缺席</span>
-          <span><i class="legend-pending"></i>待退选</span>
+          <span><i class="legend-pending"></i>待退选 · 无需上课</span>
           <span><i class="legend-unselected"></i>非选课 · 无需上课</span>
           <span><i class="legend-off"></i>此时间段无课</span>
         </div>
@@ -1828,7 +1828,7 @@
 
       <div class="footer-bottom">
         <p><strong>提示：</strong>本页为个人整理工具，并非学校官方系统。课程、教室与临时调课请以学院和任课教师最新通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">2.7</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">2.8</span></span>
       </div>
     </div>
   </footer>
@@ -2134,7 +2134,7 @@
   <script>
     'use strict';
 
-    const RAW_DATA = [{"星期":"星期一","节次":"第1-2节","时间":"08:00-09:35","课程":"农业与生物系统工程专论","授课分段":[{"周次":"2-7","教师":"张兆国"}],"教室":["公教楼129"]},{"星期":"星期二","节次":"第1-2节","时间":"08:00-09:35","课程":"专业外语（农水专硕）","授课分段":[{"周次":"2-5","教师":"陶文梅"},{"周次":"6-9","教师":"唐振亚"},{"周次":"10-13","教师":"王德金"}],"教室":["公教楼450"]},{"星期":"星期五","节次":"第1-2节","时间":"08:00-09:35","课程":"土壤微生物学","授课分段":[{"周次":"2-13","教师":"唐振亚"}],"教室":["公教楼247"]},{"星期":"星期一","节次":"第3-5节","时间":"09:50-12:15","课程":"SPAC系统水分运转与调控","授课分段":[{"周次":"2-5","教师":"王卫华"},{"周次":"6-9","教师":"郭金金"}],"教室":["公教楼448"]},{"星期":"星期一","节次":"第3-5节","时间":"09:50-12:15","课程":"设施农业与装备（专硕）","授课分段":[{"周次":"11-16","教师":"周伟"}],"教室":["公教楼249"]},{"星期":"星期二","节次":"第3-5节","时间":"09:50-12:15","课程":"农业生态与环境工程","授课分段":[{"周次":"8-13","教师":"王海东"}],"教室":["公教楼138"]},{"星期":"星期二","节次":"第3-5节","时间":"09:50-12:15","课程":"土壤微生物学","授课分段":[{"周次":"14-17","教师":"彭小瑜"}],"教室":["公教楼247"]},{"星期":"星期三","节次":"第3-5节","时间":"09:50-12:15","课程":"数值分析","授课分段":[{"周次":"2-19","教师":"杨超"}],"教室":["公教楼246"]},{"星期":"星期四","节次":"第3-4节","时间":"09:50-11:25","课程":"硕士研究生思政课程（一）","授课分段":[{"周次":"2-19","教师":"杜永梅"}],"教室":["公教楼446"]},{"星期":"星期五","节次":"第3-5节","时间":"09:50-12:15","课程":"试验设计与数据处理（农水）","授课分段":[{"周次":"2-7","教师":"郭金金"},{"周次":"8-9","教师":"刘艳伟"},{"周次":"10-11","教师":"周立峰"},{"周次":"12-13","教师":"袁勇"}],"教室":["公教楼132"]},{"星期":"星期六","节次":"第3-5节","时间":"09:50-12:15","课程":"现代灌排理论与新技术（专硕）","授课分段":[{"周次":"7-7","教师":"徐丹"}],"教室":["公教楼346"]},{"星期":"星期日","节次":"第3-5节","时间":"09:50-12:15","课程":"农业面源污染控制工程（农生方向）","授课分段":[{"周次":"8-9","教师":"彭红波"},{"周次":"2-7","教师":"袁勇"}],"教室":["公教楼345"]},{"星期":"星期一","节次":"第6-8节","时间":"13:30-15:55","课程":"农业生态与环境工程","授课分段":[{"周次":"2-7","教师":"程铭慧"}],"教室":["公教楼552"]},{"星期":"星期一","节次":"第6-8节","时间":"13:30-15:55","课程":"生态水文原理及应用（专硕）","授课分段":[{"周次":"9-11","教师":"彭小瑜"},{"周次":"12-14","教师":"刘艳伟"}],"教室":["公教楼454","公教楼346"]},{"星期":"星期二","节次":"第6-8节","时间":"13:30-15:55","课程":"现代灌排理论与新技术（专硕）","授课分段":[{"周次":"2-3","教师":"刘小刚"},{"周次":"4-6","教师":"董建华"},{"周次":"8-8","教师":"董建华"}],"教室":["公教楼250","公教楼352"]},{"星期":"星期二","节次":"第6-8节","时间":"13:30-15:55","课程":"SPAC系统水分运转与调控","授课分段":[{"周次":"10-13","教师":"李悦"}],"教室":["公教楼446"]},{"星期":"星期三","节次":"第6-8节","时间":"13:30-15:55","课程":"现代灌排理论与新技术（专硕）","授课分段":[{"周次":"9-13","教师":"韩焕豪"}],"教室":["公教楼137"]},{"星期":"星期四","节次":"第6-8节","时间":"13:30-15:55","课程":"生态水文原理及应用（专硕）","授课分段":[{"周次":"6-8","教师":"袁勇"}],"教室":["公教楼448"]},{"星期":"星期四","节次":"第6-8节","时间":"13:30-15:55","课程":"农业面源污染控制工程（农水方向）","授课分段":[{"周次":"2-5","教师":"韩焕豪"}],"教室":["公教楼132"]},{"星期":"星期五","节次":"第6-8节","时间":"13:30-15:55","课程":"地理信息系统","授课分段":[{"周次":"11-12","教师":"刘艳伟"}],"教室":["公教楼247"]},{"星期":"星期五","节次":"第6-8节","时间":"13:30-15:55","课程":"农业生物环境控制工程","授课分段":[{"周次":"2-10","教师":"陶文梅"}],"教室":["公教楼247"]},{"星期":"星期六","节次":"第6-8节","时间":"13:30-15:55","课程":"生态水文原理及应用（专硕）","授课分段":[{"周次":"5-5","教师":"王德金"}],"教室":["公教楼448"]},{"星期":"星期六","节次":"第6-8节","时间":"13:30-15:55","课程":"农业面源污染控制工程（农水方向）","授课分段":[{"周次":"6-13","教师":"韩焕豪"}],"教室":["公教楼132"]},{"星期":"星期一","节次":"第9-11节","时间":"16:10-18:35","课程":"土壤水分溶质动力学","授课分段":[{"周次":"2-5","教师":"谭帅"},{"周次":"6-9","教师":"陈绍民"},{"周次":"10-13","教师":"李娜"}],"教室":["公教楼248"]},{"星期":"星期二","节次":"第9-11节","时间":"16:10-18:35","课程":"农林废弃物处理工程","授课分段":[{"周次":"5-7","教师":"温磊"}],"教室":["公教楼448"]},{"星期":"星期二","节次":"第9-11节","时间":"16:10-18:35","课程":"农业与生物系统工程专论","授课分段":[{"周次":"8-9","教师":"李加念"},{"周次":"10-11","教师":"梁嘉平"},{"周次":"12-13","教师":"范旭东"},{"周次":"14-17","教师":"王法安"},{"周次":"18-21","教师":"武占东"}],"教室":["公教楼246"]},{"星期":"星期二","节次":"第9-11节","时间":"16:10-18:35","课程":"生态水文原理及应用（专硕）","授课分段":[{"周次":"3-4","教师":"王德金"}],"教室":["公教楼448"]},{"星期":"星期三","节次":"第9-10节","时间":"16:10-17:45","课程":"学科前沿讲座","授课分段":[{"周次":"2-2","教师":"张兆国"},{"周次":"3-3","教师":"张付杰"},{"周次":"4-4","教师":"朱惠斌"},{"周次":"5-5","教师":"苏有勇"},{"周次":"6-6","教师":"杨启良"},{"周次":"7-7","教师":"刘小刚"},{"周次":"8-8","教师":"李加念"},{"周次":"9-9","教师":"王卫华"},{"周次":"10-10","教师":"彭红波"}],"教室":["公教楼246"]},{"星期":"星期三","节次":"第9-10节","时间":"16:10-17:45","课程":"农业生物环境控制工程","授课分段":[{"周次":"11-13","教师":"陶文梅"}],"教室":["公教楼247"]},{"星期":"星期四","节次":"第9-11节","时间":"16:10-18:35","课程":"土壤农化分析","授课分段":[{"周次":"2-5","教师":"唐振亚"},{"周次":"6-9","教师":"彭小瑜"},{"周次":"10-13","教师":"王海东"}],"教室":["公教楼247"]},{"星期":"星期五","节次":"第9-11节","时间":"16:10-18:35","课程":"农林废弃物处理工程","授课分段":[{"周次":"2-4","教师":"温磊"}],"教室":["公教楼132"]},{"星期":"星期五","节次":"第9-11节","时间":"16:10-18:35","课程":"设施农业与装备（专硕）","授课分段":[{"周次":"5-10","教师":"喻黎明"}],"教室":["公教楼247"]},{"星期":"星期六","节次":"第9-11节","时间":"16:10-18:35","课程":"农林废弃物处理工程","授课分段":[{"周次":"8-13","教师":"范旭东"}],"教室":["公教楼132"]},{"星期":"星期三","节次":"第11节","时间":"17:50-18:35","课程":"农业生物环境控制工程","授课分段":[{"周次":"11-13","教师":"陶文梅"}],"教室":["公教楼247"]},{"星期":"星期一","节次":"第12-13节","时间":"19:30-21:05","课程":"地理信息系统","授课分段":[{"周次":"3-9","教师":"王德金"},{"周次":"10-10","教师":"王德金"}],"教室":["公教楼247"]},{"星期":"星期二","节次":"第12-13节","时间":"19:30-21:05","课程":"农业面源污染控制工程（农生方向）","授课分段":[{"周次":"10-15","教师":"温磊"}],"教室":["公教楼345"]},{"星期":"星期四","节次":"第12-13节","时间":"19:30-21:05","课程":"地理信息系统","授课分段":[{"周次":"3-9","教师":"王德金"}],"教室":["公教楼247"]}];
+    const RAW_DATA = [{"星期":"星期一","节次":"第1-2节","时间":"08:00-09:35","课程":"农业与生物系统工程专论","授课分段":[{"周次":"2-7","教师":"张兆国"}],"教室":["公教楼129"]},{"星期":"星期二","节次":"第1-2节","时间":"08:00-09:35","课程":"专业外语（农水专硕）","授课分段":[{"周次":"3-9","教师":"陶文梅"},{"周次":"10-13","教师":"陶文梅"},{"周次":"16-16","教师":"陶文梅"}],"教室":["公教楼450"]},{"星期":"星期一","节次":"第3-5节","时间":"09:50-12:15","课程":"SPAC系统水分运转与调控","授课分段":[{"周次":"2-5","教师":"王卫华"},{"周次":"6-9","教师":"郭金金"}],"教室":["公教楼448"]},{"星期":"星期一","节次":"第3-5节","时间":"09:50-12:15","课程":"设施农业与装备（专硕）","授课分段":[{"周次":"11-16","教师":"周伟"}],"教室":["公教楼249"]},{"星期":"星期三","节次":"第3-5节","时间":"09:50-12:15","课程":"数值分析","授课分段":[{"周次":"2-19","教师":"杨超"}],"教室":["公教楼246"]},{"星期":"星期四","节次":"第3-4节","时间":"09:50-11:25","课程":"硕士研究生思政课程（一）","授课分段":[{"周次":"2-19","教师":"杜永梅"}],"教室":["公教楼446"]},{"星期":"星期五","节次":"第3-5节","时间":"09:50-12:15","课程":"试验设计与数据处理（农水）","授课分段":[{"周次":"2-7","教师":"郭金金"},{"周次":"8-9","教师":"刘艳伟"},{"周次":"10-11","教师":"周立峰"},{"周次":"12-13","教师":"董建华"}],"教室":["公教楼132"]},{"星期":"星期一","节次":"第6-8节","时间":"13:30-15:55","课程":"生态水文原理及应用（专硕）","授课分段":[{"周次":"9-11","教师":"彭小瑜"},{"周次":"12-14","教师":"刘艳伟"}],"教室":["公教楼454","公教楼346"]},{"星期":"星期二","节次":"第6-8节","时间":"13:30-15:55","课程":"现代灌排理论与新技术（专硕）","授课分段":[{"周次":"2-3","教师":"刘小刚"},{"周次":"4-6","教师":"董建华"},{"周次":"8-8","教师":"董建华"}],"教室":["公教楼250","公教楼352"]},{"星期":"星期二","节次":"第6-8节","时间":"13:30-15:55","课程":"SPAC系统水分运转与调控","授课分段":[{"周次":"10-13","教师":"李悦"}],"教室":["公教楼446"]},{"星期":"星期三","节次":"第6-8节","时间":"13:30-15:55","课程":"现代灌排理论与新技术（专硕）","授课分段":[{"周次":"9-13","教师":"韩焕豪"}],"教室":["公教楼137"]},{"星期":"星期四","节次":"第6-8节","时间":"13:30-15:55","课程":"生态水文原理及应用（专硕）","授课分段":[{"周次":"6-8","教师":"袁勇"}],"教室":["公教楼448"]},{"星期":"星期六","节次":"第6-8节","时间":"13:30-15:55","课程":"生态水文原理及应用（专硕）","授课分段":[{"周次":"5-5","教师":"王德金"}],"教室":["公教楼448"]},{"星期":"星期一","节次":"第9-11节","时间":"16:10-18:35","课程":"土壤水分溶质动力学","授课分段":[{"周次":"2-5","教师":"谭帅"},{"周次":"6-9","教师":"陈绍民"},{"周次":"10-13","教师":"李娜"}],"教室":["公教楼248"]},{"星期":"星期二","节次":"第9-11节","时间":"16:10-18:35","课程":"农业与生物系统工程专论","授课分段":[{"周次":"8-9","教师":"李加念"},{"周次":"10-11","教师":"梁嘉平"},{"周次":"12-13","教师":"范旭东"},{"周次":"14-17","教师":"王法安"},{"周次":"18-21","教师":"武占东"}],"教室":["公教楼246"]},{"星期":"星期二","节次":"第9-11节","时间":"16:10-18:35","课程":"生态水文原理及应用（专硕）","授课分段":[{"周次":"3-4","教师":"王德金"}],"教室":["公教楼448"]},{"星期":"星期三","节次":"第9-10节","时间":"16:10-17:45","课程":"学科前沿讲座","授课分段":[{"周次":"2-2","教师":"杨启良"},{"周次":"3-3","教师":"李加念"},{"周次":"4-4","教师":"彭红波"},{"周次":"5-5","教师":"朱惠斌"},{"周次":"6-6","教师":"张付杰"},{"周次":"7-7","教师":"苏有勇"},{"周次":"8-8","教师":"刘小刚"},{"周次":"9-9","教师":"王卫华"},{"周次":"10-10","教师":"张兆国"}],"教室":["公教楼246"]},{"星期":"星期五","节次":"第9-11节","时间":"16:10-18:35","课程":"设施农业与装备（专硕）","授课分段":[{"周次":"5-10","教师":"喻黎明"}],"教室":["公教楼247"]},{"星期":"星期六","节次":"第9-11节","时间":"16:10-18:35","课程":"现代灌排理论与新技术（专硕）","授课分段":[{"周次":"7-7","教师":"徐丹"}],"教室":["公教楼346"]}];
 
     deepFreeze(RAW_DATA);
     const FALLBACK_DATA = RAW_DATA;
@@ -2174,8 +2174,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '2.7';
-    const SITE_UPDATED_AT = '2026-09-03T12:11:05+08:00';
+    const SITE_VERSION = '2.8';
+    const SITE_UPDATED_AT = '2026-09-07T15:06:23+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -2512,8 +2512,8 @@
     }
 
     function isPersonalCourse(course, week) {
-      if (Number.isFinite(Number(week))) return courseSelectionStatus(course, Number(week)) !== 'unselected';
-      return courseSelectionStatus(course) !== 'unselected' || hasMentorCoursePart(course);
+      if (Number.isFinite(Number(week))) return courseSelectionStatus(course, Number(week)) === 'selected';
+      return courseSelectionStatus(course) === 'selected' || hasMentorCoursePart(course);
     }
 
     function requiresAttendance(course, week) {
@@ -2695,8 +2695,8 @@
       const unselectedCount = list.length - personalCount;
       const container = document.getElementById('todayList');
       document.getElementById('todayCount').textContent = personalCount
-        ? personalCount + ' 门需上' + (unselectedCount ? ' · ' + unselectedCount + ' 条非选课' : '')
-        : (unselectedCount ? '无课 · ' + unselectedCount + ' 条非选课' : '无安排');
+        ? personalCount + ' 门需上' + (unselectedCount ? ' · ' + unselectedCount + ' 条无需上课' : '')
+        : (unselectedCount ? '无课 · ' + unselectedCount + ' 条无需上课' : '无安排');
 
       if (!list.length) {
         const copy = emptyTodayCopy(now);
@@ -2719,7 +2719,7 @@
           ? '<span class="experience-label">体验课 · 必须参加</span>'
           : selection === 'unselected'
           ? '<span class="unselected-label">非选课内容 · 无需上课</span>'
-          : (selection === 'pending-drop' ? '<span class="pending-drop-label">待退选 · 退选前请确认</span>' : '');
+          : (selection === 'pending-drop' ? '<span class="pending-drop-label">待退选 · 无需上课</span>' : '');
         const partLabel = '<span class="daypart-label part-' + part.key + '">' + part.label + '</span>';
         return '<article class="timeline-item ' + status + ' part-' + part.key + (mentor ? ' mentor-course' : '') + (selection === 'unselected' ? ' is-unselected' : '') + (selection === 'pending-drop' ? ' is-pending-drop' : '') + (experienceCourse ? ' is-experience' : '') + '" tabindex="0" role="button" data-course-index="' + course.id + '"><div class="timeline-time"><span>' + course.start + '</span><span class="time-end">' + course.end + '</span></div><span class="timeline-dot" aria-hidden="true"></span><div class="timeline-body"><div>' + partLabel + '<span class="slot-label">' + esc(course.slot) + '</span>' + stateLabel + mentorLabel + selectionLabel + '</div><div class="timeline-name">' + esc(course.name) + '</div><div class="row-meta">' + ICONS.user + '<span>' + esc(info.teachers) + '</span><span>·</span>' + ICONS.pin + '<span>' + esc(info.rooms) + '</span></div></div></article>';
       }).join('');
@@ -2798,7 +2798,7 @@
             let badge = '';
             if (experienceCourse) badge = '<span class="matrix-badge is-experience-status">体验课 · 必须参加</span>';
             else if (selection === 'unselected') badge = '<span class="matrix-badge is-unselected-status">非选课 · 无需上课</span>';
-            else if (selection === 'pending-drop') badge = '<span class="matrix-badge is-pending-status">待退选 · 请确认</span>';
+            else if (selection === 'pending-drop') badge = '<span class="matrix-badge is-pending-status">待退选 · 无需上课</span>';
             else if (mentor) badge = '<span class="matrix-badge">★ 导师/带教课 · 不可缺席</span>';
             else if (live) badge = '<span class="matrix-badge">正在上课</span>';
             else if (!on) badge = '<span class="matrix-badge is-off-status">此时间段无课' + (mentorPlan ? ' · ' + esc(mentorPlan) : '') + '</span>';
@@ -2820,7 +2820,7 @@
       const termNote = document.getElementById('weekTermNote');
       if (termNote) termNote.textContent = state.viewWeek === EXPERIENCE_WEEK
         ? scheduleTermForDate(now) + ' · 第2周体验课，所有实际排课必须参加'
-        : scheduleTermForDate(now) + ' · 仅已选与待退选课程参与上课提醒';
+        : scheduleTermForDate(now) + ' · 仅需参加的课程进入上课提醒';
       const currentWeek = teachingWeek(now);
       const currentButton = document.getElementById('weekCurrent');
       const weekStart = dateForWeekDay(state.viewWeek, 0);
@@ -2841,7 +2841,7 @@
       const activeUnselectedCount = list.filter(function (course) { return isActive(course, state.viewWeek) && !requiresAttendance(course, state.viewWeek); }).length;
       const inactiveCount = list.length - activePersonalCount - activeUnselectedCount;
       const selectedDate = dateForWeekDay(state.viewWeek, state.selectedDay);
-      document.getElementById('weekSummary').textContent = DAYS_FULL[state.selectedDay] + ' · ' + longDate(selectedDate) + ' · ' + activePersonalCount + ' 门需上' + (activeUnselectedCount ? '，' + activeUnselectedCount + ' 条非选课' : '') + '，' + inactiveCount + ' 个本周无课';
+      document.getElementById('weekSummary').textContent = DAYS_FULL[state.selectedDay] + ' · ' + longDate(selectedDate) + ' · ' + activePersonalCount + ' 门需上' + (activeUnselectedCount ? '，' + activeUnselectedCount + ' 条无需上课' : '') + '，' + inactiveCount + ' 个本周无课';
 
       const container = document.getElementById('weekList');
       const courseRows = list.map(function (course) {
@@ -2859,7 +2859,7 @@
         else if (mentorPlan) labels.push('<span class="mentor-schedule-label">' + esc(mentorPlan) + '</span>');
         if (experienceCourse) labels.push('<span class="experience-label">体验课 · 必须参加</span>');
         else if (selection === 'unselected') labels.push('<span class="unselected-label">非选课内容 · 无需上课</span>');
-        else if (selection === 'pending-drop') labels.push('<span class="pending-drop-label">待退选 · 退选前请确认</span>');
+        else if (selection === 'pending-drop') labels.push('<span class="pending-drop-label">待退选 · 无需上课</span>');
         if (on && !experienceCourse && selection !== 'unselected') labels.push('<span class="on-label">本周上课</span>');
         if (live) labels.push('<span class="live-label">上课中</span>');
         if (!on) labels.push('<span class="off-label">此时间段无课</span>');

@@ -71,9 +71,9 @@ test('required interactive ids exist exactly once', () => {
   }
 });
 
-test('fallback data is immutable and contains all 37 course meetings', () => {
-  assert.equal(api.RAW_DATA.length, 37);
-  assert.equal(api.COURSES.length, 37);
+test('fallback data is immutable and contains the 18 latest personal meetings plus one Li Na meeting', () => {
+  assert.equal(api.RAW_DATA.length, 19);
+  assert.equal(api.COURSES.length, 19);
   assert.ok(Object.isFrozen(api.FALLBACK_DATA));
   assert.ok(Object.isFrozen(api.FALLBACK_DATA[0]));
   assert.ok(Object.isFrozen(api.FALLBACK_DATA[0]['授课分段']));
@@ -87,23 +87,21 @@ test('merged source cells preserve shorter and longer real class periods', () =>
   const lateMorning = api.RAW_DATA.filter((course) => course['节次'] === '第3-5节');
   const longAfternoon = api.RAW_DATA.filter((course) => course['节次'] === '第9-11节');
   const shortAfternoon = api.RAW_DATA.filter((course) => course['节次'] === '第9-10节');
-  assert.equal(lateMorning.length, 8);
-  assert.equal(longAfternoon.length, 8);
-  assert.equal(shortAfternoon.length, 2);
+  assert.equal(lateMorning.length, 4);
+  assert.equal(longAfternoon.length, 5);
+  assert.equal(shortAfternoon.length, 1);
   assert.ok(longAfternoon.every((course) => course['时间'] === '16:10-18:35'));
   assert.ok(shortAfternoon.every((course) => course['星期'] === '星期三' && course['时间'] === '16:10-17:45'));
 
   const standaloneEleventh = api.RAW_DATA.find((course) => course['节次'] === '第11节');
-  assert.equal(standaloneEleventh['星期'], '星期三');
-  assert.equal(standaloneEleventh['课程'], '农业生物环境控制工程');
+  assert.equal(standaloneEleventh, undefined);
   assert.equal(api.MATRIX_BANDS.length, 6, 'mixed durations should not create duplicate desktop rows');
 
   const ideologyActive = api.currentStatus(localDate(2026, 9, 3, 11, 20));
   assert.equal(ideologyActive.course, '硕士研究生思政课程（一）');
   assert.equal(ideologyActive.type, 'active');
   const afterIdeology = api.currentStatus(localDate(2026, 9, 3, 11, 30));
-  assert.equal(afterIdeology.type, 'next');
-  assert.equal(afterIdeology.label, '下一节 13:30');
+  assert.equal(afterIdeology.type, 'finished');
   const longClassActive = api.currentStatus(localDate(2026, 8, 31, 18, 0));
   assert.equal(longClassActive.course, '土壤水分溶质动力学');
   assert.equal(longClassActive.type, 'active');
@@ -120,14 +118,24 @@ test('course selection marks match the submitted plan without hiding timetable r
   assert.equal(api.courseSelectionStatus({ name: '新增个人课程' }), 'selected', 'newly added personal courses should remain visible as selected by default');
   assert.equal(api.requiresAttendance({ name: '土壤微生物学' }, 2), true, 'every scheduled course is mandatory during experience week');
   assert.equal(api.requiresAttendance({ name: '土壤微生物学' }, 3), false, 'non-selected courses stop entering reminders after experience week');
+  assert.equal(api.requiresAttendance({ name: '生态水文原理及应用（专硕）' }, 3), false, 'pending-drop courses no longer enter reminders');
 
   const unselectedNames = new Set(api.COURSES.filter((course) => api.courseSelectionStatus(course) === 'unselected').map((course) => course.name));
-  assert.deepEqual(Array.from(unselectedNames).sort(), [
-    '农业生态与环境工程', '农业生物环境控制工程', '农业面源污染控制工程（农水方向）',
-    '农业面源污染控制工程（农生方向）', '农林废弃物处理工程', '土壤农化分析',
-    '土壤微生物学', '土壤水分溶质动力学', '地理信息系统'
-  ].sort());
-  assert.equal(api.COURSES.some((course) => course.name === '农业水土环境'), false, 'the current 37 meetings do not contain this pending-drop course');
+  assert.deepEqual(Array.from(unselectedNames), ['土壤水分溶质动力学']);
+  assert.equal(api.COURSES.some((course) => course.name === '农业水土环境'), false, 'the latest printout still has no scheduled meeting for this pending-drop course');
+});
+
+test('latest printout teacher and week changes are preserved exactly', () => {
+  const language = api.RAW_DATA.find((course) => course['课程'] === '专业外语（农水专硕）');
+  assert.equal(JSON.stringify(language['授课分段']), JSON.stringify([
+    { '周次': '3-9', '教师': '陶文梅' },
+    { '周次': '10-13', '教师': '陶文梅' },
+    { '周次': '16-16', '教师': '陶文梅' }
+  ]));
+  const experiment = api.RAW_DATA.find((course) => course['课程'] === '试验设计与数据处理（农水）');
+  assert.equal(JSON.stringify(experiment['授课分段'].at(-1)), JSON.stringify({ '周次': '12-13', '教师': '董建华' }));
+  const lecture = api.RAW_DATA.find((course) => course['课程'] === '学科前沿讲座');
+  assert.equal(lecture['授课分段'].map((part) => part['教师']).join('|'), '杨启良|李加念|彭红波|朱惠斌|张付杰|苏有勇|刘小刚|王卫华|张兆国');
 });
 
 test('first teaching week begins on Monday August 24 and Sunday stays day seven', () => {
@@ -194,7 +202,7 @@ test('week heading term follows the current academic date', () => {
   assert.equal(api.scheduleTermForDate(localDate(2027, 8, 20)), '第二学期课程');
   assert.equal(api.scheduleTermForDate(localDate(2027, 8, 21)), '新学年课程');
   assert.match(html, /id="weekTermNote"/);
-  assert.match(html, /scheduleTermForDate\(now\) \+ ' · 仅已选与待退选课程参与上课提醒'/);
+  assert.match(html, /scheduleTermForDate\(now\) \+ ' · 仅需参加的课程进入上课提醒'/);
 });
 
 test('live status reports current class, next class and remaining time', () => {
@@ -212,15 +220,15 @@ test('live status reports current class, next class and remaining time', () => {
   assert.equal(next.countdownLabel, '还有');
 });
 
-test('experience week requires every scheduled class, then personal filtering starts in week three', () => {
-  const experienceOnly = api.currentStatus(localDate(2026, 9, 6, 10, 30));
+test('experience week requires every scheduled class, then pending-drop filtering starts in week three', () => {
+  const experienceOnly = api.currentStatus(localDate(2026, 8, 31, 18, 0));
   assert.equal(experienceOnly.type, 'active');
-  assert.equal(experienceOnly.course, '农业面源污染控制工程（农生方向）');
+  assert.equal(experienceOnly.course, '土壤水分溶质动力学');
   assert.equal(experienceOnly.experience, true);
 
-  const experienceAfternoon = api.currentStatus(localDate(2026, 8, 31, 14, 0));
+  const experienceAfternoon = api.currentStatus(localDate(2026, 8, 31, 10, 0));
   assert.equal(experienceAfternoon.type, 'active');
-  assert.equal(experienceAfternoon.course, '农业生态与环境工程');
+  assert.equal(experienceAfternoon.course, 'SPAC系统水分运转与调控');
   assert.equal(experienceAfternoon.experience, true);
 
   const nonSelectedAfterExperience = api.currentStatus(localDate(2026, 9, 13, 10, 30));
@@ -231,10 +239,12 @@ test('experience week requires every scheduled class, then personal filtering st
   assert.equal(afterPersonalClasses.type, 'finished');
   assert.notEqual(afterPersonalClasses.course, '农业生态与环境工程');
 
-  const pendingDrop = api.currentStatus(localDate(2026, 9, 8, 16, 30));
-  assert.equal(pendingDrop.type, 'active');
-  assert.equal(pendingDrop.course, '生态水文原理及应用（专硕）');
-  assert.equal(api.courseSelectionStatus({ name: pendingDrop.course }), 'pending-drop');
+  const pendingDropMeeting = api.COURSES.find((course) => course.name === '生态水文原理及应用（专硕）' && course.dayLabel === '星期二');
+  assert.equal(api.courseSelectionStatus(pendingDropMeeting), 'pending-drop');
+  assert.equal(api.requiresAttendance(pendingDropMeeting, 3), false);
+  const duringPendingDrop = api.currentStatus(localDate(2026, 9, 8, 16, 30));
+  assert.notEqual(duringPendingDrop.type, 'active');
+  assert.notEqual(duringPendingDrop.course, '生态水文原理及应用（专硕）');
 });
 
 test('day parts follow the published class times', () => {
@@ -296,7 +306,7 @@ test('desktop matrix renders all seven days, six time bands and mentor warning',
   assert.match(matrix.innerHTML, /设施农业与装备（专硕）/);
   assert.match(matrix.innerHTML, /导师\/带教课 · 不可缺席/);
   assert.match(matrix.innerHTML, /非选课 · 无需上课/);
-  assert.match(matrix.innerHTML, /待退选 · 请确认/);
+  assert.match(matrix.innerHTML, /待退选 · 无需上课/);
   assert.match(matrix.innerHTML, /本周上课/);
   assert.match(matrix.innerHTML, /此时间段无课/);
   assert.match(matrix.innerHTML, />上午</);
@@ -834,7 +844,7 @@ test('China time formatting and remembered-secret storage behave deterministical
   const siteUpdatedAt = html.match(/const SITE_UPDATED_AT = '([^']+)'/)[1];
   assert.equal(api.latestModifiedAt(null), siteUpdatedAt);
   assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), api.formatUpdatedAt(siteUpdatedAt));
-  assert.equal(api.latestModifiedAt('2026-09-04T00:00:00.000Z'), '2026-09-04T00:00:00.000Z');
+  assert.equal(api.latestModifiedAt('2026-09-08T00:00:00.000Z'), '2026-09-08T00:00:00.000Z');
 
   const remembered = new Map();
   context.localStorage = {
