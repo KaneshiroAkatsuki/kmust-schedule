@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 
-const WEATHER_URL = 'https://kmust-schedule-sync.kaneshiroakatsuki.workers.dev/api/weather';
+const WEATHER_URL = 'https://kmust-schedule-sync.yuheng-kaneshiro.workers.dev/api/weather';
 const OUTPUT_PATH = new URL('../data/weather.json', import.meta.url);
 
 async function downloadWeather() {

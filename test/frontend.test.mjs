@@ -775,7 +775,7 @@ test('login gate, card actions and cloud recycle bin are available on every layo
   assert.match(html, /method: 'POST'[\s\S]*?auth: secret/);
   assert.equal(api.normalizeNumericSecret(' １１４ ５１４ '), '114514');
   assert.match(html, /window\.addEventListener\('online'/);
-  assert.match(html, /const SYNC_ENDPOINT = 'https:\/\/kmust-schedule-cn-gateway\.pages\.dev'/);
+  assert.match(html, /const SYNC_ENDPOINT = 'https:\/\/yuheng-institute-gateway\.pages\.dev'/);
   assert.doesNotMatch(html, /const SYNC_ENDPOINT = 'https:\/\/kmust-schedule-sync\.kaneshiroakatsuki\.workers\.dev'/);
   assert.match(css, /@media \(max-width: 800px\)[\s\S]*?\.tool-dialog \{ width: 100vw/);
 });
@@ -979,7 +979,7 @@ test('weather is readable, cached locally and refreshed automatically or on dema
         ok: true,
         data: {
           ...cachedData,
-          fetchedAt: String(url).includes('kmust-schedule-cn-gateway.pages.dev') ? new Date().toISOString() : cachedData.fetchedAt,
+          fetchedAt: String(url).includes('yuheng-institute-gateway.pages.dev') ? new Date().toISOString() : cachedData.fetchedAt,
           current: { condition: '晴', temperature: 19, feelsLike: 18 }
         }
       })
@@ -996,7 +996,7 @@ test('weather is readable, cached locally and refreshed automatically or on dema
   assert.equal(await api.loadWeather({ force: true }), true);
   assert.equal(fetchCalls.length, 2, 'a stale snapshot should automatically continue to the live gateway');
   assert.match(fetchCalls[0], /^data\/weather\.json\?v=\d+$/, 'mobile refresh should use the same-origin snapshot first');
-  assert.match(fetchCalls[1], /kmust-schedule-cn-gateway\.pages\.dev\/api\/weather$/);
+  assert.match(fetchCalls[1], /yuheng-institute-gateway\.pages\.dev\/api\/weather$/);
   assert.equal(elements.weatherPrimary.textContent, '19°');
   assert.equal(elements.weatherSecondary.textContent, '晴');
   assert.match(storage.get('kust-lab-weather-cache-v1'), /\"temperature\":19/);
@@ -1008,7 +1008,7 @@ test('weather is readable, cached locally and refreshed automatically or on dema
   };
   assert.equal(await api.loadWeather({ force: true }), true);
   assert.match(fetchCalls.at(-2), /^data\/weather\.json\?v=/);
-  assert.match(fetchCalls.at(-1), /kmust-schedule-cn-gateway\.pages\.dev\/api\/weather$/, 'the mainland-accessible gateway should remain a fallback when the same-origin snapshot is unavailable');
+  assert.match(fetchCalls.at(-1), /yuheng-institute-gateway\.pages\.dev\/api\/weather$/, 'the same-origin snapshot should retain the configured gateway fallback');
 
   api.state.weatherBusy = true;
   api.state.weatherData = {
@@ -1029,7 +1029,7 @@ test('weather is readable, cached locally and refreshed automatically or on dema
 
   const manualStart = fetchCalls.length;
   await elements.refreshWeather.emitAsync('click');
-  assert.match(fetchCalls[manualStart], /kmust-schedule-cn-gateway\.pages\.dev\/api\/weather$/, 'manual refresh should request the live mainland gateway first');
+  assert.match(fetchCalls[manualStart], /yuheng-institute-gateway\.pages\.dev\/api\/weather$/, 'manual refresh should request the live gateway first');
   assert.equal(elements.refreshWeather.attributes['aria-busy'], 'false');
   assert.match(elements.refreshWeather.className, /is-warning/);
   assert.match(elements.weatherDialogUpdated.textContent, /暂无新数据 · 保留 .* 的天气/);

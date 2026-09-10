@@ -1,6 +1,6 @@
 # 玉衡山科学院
 
-个人多功能空间：课表、资金规划、统一设置。v3.5 为本地候选版本，云端发布完成前原站仍为 v3.4。
+个人多功能空间：课表、资金规划、统一设置。当前前端版本 v3.5。
 
 ## 多功能入口与账户
 
@@ -13,13 +13,15 @@
 
 部署顺序：先运行 `cloudflare-worker/migrations/0003_institute_sessions_finance.sql` 的增量迁移，再发布 Worker 与 Pages 网关，最后更新静态网页。迁移不会修改课表表；真实预算快照只导入私有后端。发布需要现有 Cloudflare 账户的有效授权。
 
+2026-09-10 按用户要求在新 Cloudflare 账户重建服务，使用 `yuheng-institute-db`。课表按完整文档迁移，保留原修订号和修改时间；原云端资源未删除。新账户初始化需要先运行 `cloudflare-worker/schema.sql`，再运行会话/预算迁移。同步入口改变不影响下方 GitHub Pages 网页地址；已打开的旧页面需要刷新后连接新服务。
+
 昆明理工大学呈贡校区研究生智能课表：实时课程状态、完整周课表、导师课提醒，以及电脑和手机之间的课表同步。
 
 ## 在线访问
 
 - 网页：[https://kaneshiroakatsuki.github.io/kmust-schedule/](https://kaneshiroakatsuki.github.io/kmust-schedule/)
-- 手机与网页同步入口：`https://kmust-schedule-cn-gateway.pages.dev`
-- 数据服务：`https://kmust-schedule-sync.kaneshiroakatsuki.workers.dev`（由同步入口转发，网页不再要求设备直接连接此域名）
+- 手机与网页同步入口：`https://yuheng-institute-gateway.pages.dev`
+- 数据服务：`https://kmust-schedule-sync.yuheng-kaneshiro.workers.dev`（由同步入口转发，网页不再要求设备直接连接此域名）
 
 网页使用统一登录入口。课表内置基础数据；财务模块没有公开兜底数据，登录或私有服务不可用时不会显示虚构余额。
 
@@ -27,7 +29,7 @@
 
 ## 天气更新
 
-呈贡区天气由 Cloudflare Worker 每小时整点自动向百度地图天气更新，并保存到云端 D1；GitHub Actions 随后把经过校验的天气快照更新到本站 `data/weather.json`。手机和电脑优先读取这个同域文件，同域文件不可用时再通过大陆可直连的 Pages 网关读取，不要求设备直接连接 `workers.dev`。即使所有设备都没有打开网页，两个定时任务仍会继续运行。天气入口位于首页数字时钟旁，点击后可查看当前指标、未来 24 小时和未来 7 日天气，也可以手动检查最新快照；接口临时失败时会保留上次成功结果并标注“缓存”。
+呈贡区天气由 Cloudflare Worker 每小时整点自动向百度地图天气更新，并保存到云端 D1；GitHub Actions 随后把经过校验的天气快照更新到本站 `data/weather.json`。手机和电脑优先读取这个同域文件，同域文件不可用时再通过 Pages 网关读取，不要求设备直接连接 `workers.dev`。即使所有设备都没有打开网页，两个定时任务仍会继续运行。天气入口位于首页数字时钟旁，点击后可查看当前指标、未来 24 小时和未来 7 日天气，也可以手动检查最新快照；接口临时失败时会保留上次成功结果并标注“缓存”。
 
 ## 管理课表
 

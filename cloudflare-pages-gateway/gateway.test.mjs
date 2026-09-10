@@ -23,7 +23,7 @@ test('gateway preserves method and body without exposing an open proxy', async (
     return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   });
   assert.equal(response.status, 200);
-  assert.equal(new URL(forwarded.url).hostname, 'kmust-schedule-sync.kaneshiroakatsuki.workers.dev');
+  assert.equal(new URL(forwarded.url).hostname, 'kmust-schedule-sync.yuheng-kaneshiro.workers.dev');
   assert.equal(forwarded.method, 'POST');
   assert.equal(forwarded.redirect, 'manual');
   assert.equal(forwarded.headers.get('Origin'), SITE);
