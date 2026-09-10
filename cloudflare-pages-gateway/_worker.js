@@ -1,6 +1,6 @@
 const UPSTREAM_ORIGIN = 'https://kmust-schedule-sync.kaneshiroakatsuki.workers.dev';
 const SITE_ORIGIN = 'https://kaneshiroakatsuki.github.io';
-const ALLOWED_PATHS = new Set(['/api/auth/verify', '/api/schedule', '/api/weather']);
+const ALLOWED_PATHS = new Set(['/api/auth/verify', '/api/auth/login', '/api/session', '/api/sessions', '/api/finance', '/api/schedule', '/api/weather']);
 
 function json(body, status, origin) {
   const headers = new Headers({

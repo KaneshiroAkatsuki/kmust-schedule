@@ -1,3 +1,4 @@
+import { createD1InstituteStore, createInstituteService } from './institute.mjs';
 const SCHEMA_VERSION = 2;
 const MAX_BODY_BYTES = 256 * 1024;
 const MAX_COURSES = 200;
@@ -538,7 +539,10 @@ export function createD1WeatherStore(database) {
   };
 }
 
-export function createApp({ store, adminSecret, allowedOrigin, now = () => new Date().toISOString(), weatherProvider = null }) {
+export function createApp({ store, adminSecret, allowedOrigin, now = () => new Date().toISOString(), weatherProvider = null, sessionService = null }) {
+  const authorized = async (token,request) => token.startsWith('ys_')
+    ? Boolean(sessionService && await sessionService.authenticate(token))
+    : sessionService ? sessionService.checkLegacyPassword(token,request) : secureEqual(token,adminSecret);
   return {
     async fetch(request) {
       const url = new URL(request.url);
@@ -550,6 +554,10 @@ export function createApp({ store, adminSecret, allowedOrigin, now = () => new D
       if (request.method === 'OPTIONS') {
         if (!origin) return json({ ok: false, error: { code: 'ORIGIN_REQUIRED', message: '缺少来源' } }, 403, '', allowedOrigin);
         return new Response(null, { status: 204, headers: responseHeaders(origin, allowedOrigin) });
+      }
+      if (sessionService) {
+        const handled = await sessionService.handle(request);
+        if (handled) return handled;
       }
       if (url.pathname === '/api/health' && request.method === 'GET') {
         return json({ ok: true }, 200, origin, allowedOrigin);
@@ -588,7 +596,7 @@ export function createApp({ store, adminSecret, allowedOrigin, now = () => new D
         if (token.length > 128) {
           return json({ ok: false, error: { code: 'UNAUTHORIZED', message: '管理密码错误' } }, 401, origin, allowedOrigin);
         }
-        if (!(await secureEqual(token, adminSecret))) {
+        if (!(await authorized(token, request))) {
           return json({ ok: false, error: { code: 'UNAUTHORIZED', message: '管理密码错误' } }, 401, origin, allowedOrigin);
         }
         return json({ ok: true }, 200, origin, allowedOrigin);
@@ -626,7 +634,7 @@ export function createApp({ store, adminSecret, allowedOrigin, now = () => new D
         const authorization = request.headers.get('Authorization') || '';
         const headerToken = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
         const token = headerToken || (request.method === 'POST' && typeof parsed.auth === 'string' ? parsed.auth : '');
-        if (!(await secureEqual(token, adminSecret))) {
+        if (!(await authorized(token, request))) {
           return json({ ok: false, error: { code: 'UNAUTHORIZED', message: '管理密码错误' } }, 401, origin, allowedOrigin);
         }
         const payload = cleanPayload(parsed);
@@ -669,6 +677,7 @@ export default {
       store: createD1Store(env.DB),
       adminSecret: env.ADMIN_SECRET,
       allowedOrigin: env.ALLOWED_ORIGIN,
+      sessionService: createInstituteService({store:createD1InstituteStore(env.DB),checkPassword:token=>secureEqual(token,env.ADMIN_SECRET),allowedOrigin:env.ALLOWED_ORIGIN}),
       weatherProvider: () => weatherService.get()
     });
     return app.fetch(request);

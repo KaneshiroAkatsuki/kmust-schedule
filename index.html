@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f4f0e8">
   <meta name="color-scheme" content="light">
-  <meta name="description" content="昆明理工大学呈贡校区研究生智能课表">
-  <title>KUST·Lab</title>
+  <meta name="description" content="玉衡山科学院：个人课表、资金规划与统一设置">
+  <title>玉衡山科学院</title>
   <style>
     :root {
       --bg: #f7fbfc;
@@ -1621,7 +1621,8 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=3.4">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=3.5">
+  <link rel="stylesheet" href="assets/institute.css?v=3.5">
 </head>
 <body class="app-locked">
   <section class="login-gate" id="loginGate" aria-labelledby="loginTitle">
@@ -1634,15 +1635,15 @@
       <div class="login-layout">
         <aside class="login-campus" aria-label="昆明理工大学呈贡校区校园照片">
           <span class="login-campus-label">CHENGGONG CAMPUS</span>
-          <div class="login-campus-caption"><h2>KUST·Lab</h2><p>昆明理工大学 · 呈贡校区</p></div>
+          <div class="login-campus-caption"><h2>玉衡山科学院</h2><p>课表 · 资金规划 · 个人空间</p></div>
         </aside>
     <form class="login-card" id="loginForm" novalidate>
-      <div class="login-copy"><p>个人账户</p><h1 id="loginTitle">登录课表</h1><span>电脑和手机，共用一份课表。</span></div>
+      <div class="login-copy"><p>个人账户</p><h1 id="loginTitle">欢迎回来</h1><span>一次登录，进入你的个人空间。</span></div>
       <label class="login-field"><span>账号</span><input id="loginAccount" value="KANESHIRO" autocomplete="username" autocapitalize="characters" spellcheck="false"></label>
       <label class="login-field"><span>密码</span><span class="login-password"><input id="loginPassword" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="32" autocomplete="current-password" placeholder="请输入管理员密码"><button id="toggleLoginPassword" type="button" aria-label="显示密码">显示</button></span></label>
       <label class="login-remember"><input id="rememberLogin" type="checkbox"><span>在此设备记住密码</span></label>
       <p class="login-note">密码为纯数字。忘记密码请联系金城中月管理员。</p>
-      <button class="login-submit" id="loginSubmit" type="submit">进入 KUST·Lab</button>
+      <button class="login-submit" id="loginSubmit" type="submit">进入玉衡山科学院</button>
       <p class="login-status" id="loginStatus" role="status" aria-live="polite"></p>
     </form>
       </div>
@@ -1652,15 +1653,15 @@
   <a class="skip-link" href="#mainContent">跳到课表内容</a>
   <header class="site-header" aria-label="站点标题">
     <div class="nav-inner">
-      <a class="site-brand" href="#mainContent" aria-label="KUST·Lab 课表首页">
+      <a class="site-brand" href="#mainContent" aria-label="玉衡山科学院课表首页" data-module-target="schedule">
         <span class="brand-logo" role="img" aria-label="昆明理工大学官方校标"></span>
         <span class="brand-divider" aria-hidden="true"></span>
-        <span class="product-name">KUST·Lab</span>
+        <span class="product-name">玉衡山科学院</span>
       </a>
       <div class="nav-actions">
-        <button class="nav-manage account-button" id="openManagerTop" type="button" aria-label="打开账户与课表工具">
+        <button class="nav-manage account-button" id="openManagerTop" type="button" aria-label="打开设置">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5h16M6.5 16.5l.8-4.1L16 3.7a1.4 1.4 0 0 1 2 0l2.3 2.3a1.4 1.4 0 0 1 0 2l-8.7 8.7-4.1.8Z"/><path d="m14.8 4.9 4.3 4.3"/></svg>
-          <span>KANESHIRO</span>
+          <span>设置</span>
         </button>
         <button class="nav-cloud-save" id="saveCloud" type="button" disabled aria-label="当前没有待上传修改">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18.5H5.8A3.8 3.8 0 0 1 5.3 11 6.7 6.7 0 0 1 18 9.2a4.7 4.7 0 0 1 .2 9.3H17"/><path d="M12 20V11m-3 3 3-3 3 3"/></svg>
@@ -1675,6 +1676,15 @@
       </div>
     </div>
   </header>
+
+  <nav class="suite-nav" aria-label="功能导航">
+    <span class="suite-nav-brand">个人空间 <small id="suiteModuleTitle">课表</small></span>
+    <div class="suite-nav-tabs">
+      <button type="button" data-module-target="schedule" class="is-active" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 11h16m-11 4h2m2 0h2"/></svg><span>课表</span></button>
+      <button type="button" data-module-target="finance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 9h18m-6 5h3"/></svg><span>资金规划</span></button>
+      <button type="button" data-module-target="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="currentColor"/><circle cx="15" cy="17" r="3" fill="currentColor"/></svg><span>设置</span></button>
+    </div>
+  </nav>
 
   <main class="app" id="mainContent">
     <div class="left-rail">
@@ -1805,11 +1815,27 @@
 
   </main>
 
+  <section class="suite-page" id="financePage" hidden aria-labelledby="financeHeading">
+    <header class="suite-page-head"><div><p class="suite-eyebrow">PERSONAL FINANCE</p><h1 id="financeHeading">资金规划</h1><p>收支预算与还款安排 · Excel 为主账本</p></div><button type="button" class="suite-button" id="financeRefresh">更新预算</button></header>
+    <p class="suite-status" id="financeStatus" role="status" aria-live="polite">登录后读取你的预算。</p>
+    <div id="financeContent"></div>
+  </section>
+
+  <section class="suite-page" id="settingsPage" hidden aria-labelledby="settingsHeading">
+    <header class="suite-page-head"><div><p class="suite-eyebrow">PREFERENCES</p><h1 id="settingsHeading">设置</h1><p>账户、数据和这台设备的偏好。</p></div><span class="suite-account">KANESHIRO</span></header>
+    <div class="settings-grid">
+      <section class="suite-card settings-sessions"><div class="suite-card-head"><div><h2>登录的浏览器</h2><p class="suite-note">换网络不影响识别；清除网站数据或换浏览器，可能产生新记录。</p></div><button type="button" class="suite-button" id="sessionsRefresh">刷新</button></div><p class="suite-status" id="settingsStatus" role="status" aria-live="polite"></p><div id="sessionList"></div><p class="suite-note">仅显示升级后登记的登录。退出其他浏览器将在对方下次联网验证时生效。</p></section>
+      <section class="suite-card"><h2>数据与备份</h2><div class="settings-actions"><button type="button" id="settingsCourseBackup"><strong>课表导入与导出</strong><small>备份或恢复课程</small></button><button type="button" id="settingsTrash"><strong>课表回收站</strong><small>查看与恢复已删除课程</small></button><button type="button" id="financeExport"><strong>导出资金计划</strong><small>文件包含私人账目，请妥善保管</small></button><label class="suite-file"><strong>导入预算快照</strong><small>经核对的 JSON · 不修改原 Excel</small><input id="financeImport" type="file" accept=".json,application/json"></label></div><p id="financeTransferStatus" class="suite-status" role="status" aria-live="polite"></p></section>
+      <section class="suite-card"><h2>此设备偏好</h2><label class="settings-toggle"><span><strong>减少动态效果</strong><small>仅对当前浏览器生效</small></span><input type="checkbox" id="reduceMotion"></label><p class="suite-note">系统开启减少动态效果时，也会自动遵循。</p></section>
+      <section class="suite-card"><h2>关于与账户</h2><p class="suite-note">玉衡山科学院 · 版本 <span id="suiteVersion"></span><br>个人整理工具，非学校官方系统。</p><button type="button" class="suite-button danger-text" id="settingsLogout">退出当前登录</button></section>
+    </div>
+  </section>
+
   <footer class="site-footer">
     <div class="footer-inner">
       <div class="footer-lead">
         <div>
-          <p class="footer-mark">KUST·Lab</p>
+          <p class="footer-mark">玉衡山科学院</p>
           <p class="footer-tagline">昆明理工大学 · 呈贡校区 · 研究生课表</p>
         </div>
         <div class="footer-school">KUNMING · CHENGGONG</div>
@@ -1852,7 +1878,7 @@
 
       <div class="footer-bottom">
         <p>个人课表，非学校官方系统。上课安排以学院和任课教师通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">3.4</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">3.5</span></span>
       </div>
     </div>
   </footer>
@@ -1879,7 +1905,7 @@
   <dialog class="calendar-page" id="calendarPage" aria-labelledby="calendarPageTitle">
     <header class="calendar-page-header">
       <button type="button" id="closeCalendar" aria-label="返回课表" autofocus><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg><span>课表</span></button>
-      <h2 id="calendarPageTitle">日历</h2><span class="calendar-page-brand">KUST·Lab</span>
+      <h2 id="calendarPageTitle">日历</h2><span class="calendar-page-brand">玉衡山科学院</span>
     </header>
     <div class="calendar-mobile-host" id="calendarMobileHost"></div>
   </dialog>
@@ -1889,7 +1915,7 @@
       <div class="mobile-more-handle" aria-hidden="true"></div>
       <header class="mobile-more-head">
         <div>
-          <p class="mobile-more-eyebrow">KUST·Lab</p>
+          <p class="mobile-more-eyebrow">玉衡山科学院</p>
           <h2 id="mobileMoreTitle">更多功能</h2>
         </div>
         <button class="mobile-more-close" id="closeMoreMobile" type="button" aria-label="收起更多功能">
@@ -2164,6 +2190,7 @@
     </div>
   </dialog>
 
+  <script src="assets/institute.js?v=3.5"></script>
   <script>
     'use strict';
 
@@ -2209,8 +2236,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '3.4';
-    const SITE_UPDATED_AT = '2026-09-07T17:52:08+08:00';
+    const SITE_VERSION = '3.5';
+    const SITE_UPDATED_AT = '2026-09-10T15:12:15+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -2902,6 +2929,7 @@
     }
 
     function reducedMotion() {
+      if (typeof document !== 'undefined' && document.body && document.body.classList.contains('suite-reduced-motion')) return true;
       return Boolean(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     }
 
@@ -4020,6 +4048,7 @@
     }
 
     function getSessionSecret() {
+      if (typeof window !== 'undefined' && window.Institute) return window.Institute.token();
       try { return sessionStorage.getItem(SECRET_KEY) || ''; } catch (_) { return ''; }
     }
 
@@ -4028,6 +4057,7 @@
     }
 
     function clearSessionSecret() {
+      if (typeof window !== 'undefined' && window.Institute) window.Institute.clearLocal();
       try { sessionStorage.removeItem(SECRET_KEY); } catch (_) {}
     }
 
@@ -4278,6 +4308,7 @@
     }
 
     function openManagerDialog(options) {
+      if (window.Institute && !getSessionSecret()) { lockApplication(); return; }
       const settings = options && typeof options === 'object' ? options : {};
       state.uploadAfterAuth = Boolean(settings.uploadAfterAuth);
       const dialog = document.getElementById('managerDialog');
@@ -4740,6 +4771,7 @@
     }
 
     function setupLogin() {
+      if (window.Institute) { window.Institute.setupLogin(); return; }
       const remembered = getRememberedSecret();
       document.getElementById('loginPassword').value = remembered;
       document.getElementById('rememberLogin').checked = Boolean(remembered);
@@ -4772,7 +4804,7 @@
           status.textContent = error.name === 'AbortError' ? '云端连接超时，请检查手机网络后重试。' : '无法连接云端：' + error.message;
         } finally {
           button.disabled = false;
-          button.textContent = '进入 KUST·Lab';
+          button.textContent = '进入玉衡山科学院';
         }
       });
     }
@@ -4788,7 +4820,7 @@
       document.getElementById('accountAddCourse').addEventListener('click', function () { document.getElementById('accountDialog').close(); openNewCourse(); });
       document.getElementById('accountTrash').addEventListener('click', function () { document.getElementById('accountDialog').close(); renderTrashList(); document.getElementById('trashDialog').showModal(); });
       document.getElementById('accountImportExport').addEventListener('click', function () { document.getElementById('accountDialog').close(); openManagerDialog(); });
-      document.getElementById('accountLogout').addEventListener('click', function () { document.getElementById('accountDialog').close(); clearSessionSecret(); lockApplication(); });
+      document.getElementById('accountLogout').addEventListener('click', function () { if (window.Institute) { window.Institute.logout(); return; } document.getElementById('accountDialog').close(); clearSessionSecret(); lockApplication(); });
       document.querySelectorAll('input[name="actionScope"]').forEach(function (input) { input.addEventListener('change', updateActionScopeView); });
       document.getElementById('scopeStart').addEventListener('change', updateActionScopeView);
       document.getElementById('scopeEnd').addEventListener('change', updateActionScopeView);
@@ -4865,7 +4897,7 @@
       }).join('');
 
       document.getElementById('openManager').addEventListener('click', function () { openNewCourse(); });
-      document.getElementById('openManagerTop').addEventListener('click', function () { renderTrashList(); document.getElementById('accountDialog').showModal(); });
+      document.getElementById('openManagerTop').addEventListener('click', function () { if (window.Institute) { window.Institute.show('settings'); return; } renderTrashList(); document.getElementById('accountDialog').showModal(); });
       document.getElementById('openManagerMobile').addEventListener('click', function () { openNewCourse(); });
       document.getElementById('closeManager').addEventListener('click', closeManagerDialog);
       document.getElementById('managerDialog').addEventListener('cancel', function (event) { event.preventDefault(); closeManagerDialog(); });
@@ -5102,6 +5134,7 @@
       if (minuteKey !== state.lastMinuteKey) {
         renderWeatherUpdateStatus();
         renderToday(now);
+        renderMonthCalendar(now);
         renderWeek(now);
         state.lastMinuteKey = minuteKey;
       }
@@ -5109,6 +5142,12 @@
 
     function init() {
       const now = new Date();
+      if (window.Institute) window.Institute.init({
+        endpoint: SYNC_ENDPOINT, version: SITE_VERSION, normalize: normalizeNumericSecret,
+        dirty: function () { return state.managerDirty || state.formDirty; },
+        lock: lockApplication,
+        loggedIn: async function () { unlockApplication(); await loadCloudSchedule(); await runAutomaticUnselectedCleanup(); }
+      });
       document.getElementById('footerVersion').textContent = SITE_VERSION;
       state.currentWeek = teachingWeek(now);
       state.viewWeek = Math.max(1, Math.min(MAX_WEEK, state.currentWeek));

@@ -362,8 +362,9 @@ test('weather feedback always uses observation time rather than fetch or click t
 });
 
 test('page keeps its identity, local assets and responsive layout system', () => {
-  assert.match(html, /<title>KUST·Lab<\/title>/);
-  assert.doesNotMatch(html, /<script\b[^>]*\bsrc=/i);
+  assert.match(html, /<title>玉衡山科学院<\/title>/);
+  assert.doesNotMatch(html, /<script\b[^>]*\bsrc=["'](?:https?:)?\/\//i);
+  assert.match(html, /<script src="assets\/institute\.js\?v=/);
   assert.match(html, /assets\/kust-lab-v2\.css/);
   assert.match(html, /昆明理工大学官方校标/);
   assert.match(html, /https:\/\/www\.kmust\.edu\.cn\/info\/1020\/20442\.htm/);
@@ -1225,7 +1226,8 @@ test('China time formatting and remembered-secret storage behave deterministical
   const siteUpdatedAt = html.match(/const SITE_UPDATED_AT = '([^']+)'/)[1];
   assert.equal(api.latestModifiedAt(null), siteUpdatedAt);
   assert.equal(api.formatUpdatedAt(api.latestModifiedAt(null)), api.formatUpdatedAt(siteUpdatedAt));
-  assert.equal(api.latestModifiedAt('2026-09-08T00:00:00.000Z'), '2026-09-08T00:00:00.000Z');
+  const newerTimestamp = new Date(new Date(siteUpdatedAt).getTime() + 86400000).toISOString();
+  assert.equal(api.latestModifiedAt(newerTimestamp), newerTimestamp);
 
   const remembered = new Map();
   context.localStorage = {
