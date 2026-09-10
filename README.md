@@ -11,6 +11,8 @@
 - 浏览器会话由服务器登记和撤销；未记住登录有效期1天，记住登录有效期90天。撤销后下次联网检查失效，知道密码的用户仍可主动重新登录。
 - 财务读取、导出与导入必须通过服务端会话校验，响应不缓存；真实财务数据不进入本仓库。旧课表的公开读取模式保持兼容，不应把财务数据混入课表接口。
 
+资金规划后续由负责 Excel 更新的任务核对后直接发布，使用网站密码和 `scripts/publish-finance.mjs`，不依赖 Cloudflare 开发授权。具体步骤与失败处理见 [资金规划更新交接](docs/finance-publishing.md)。
+
 部署顺序：先运行 `cloudflare-worker/migrations/0003_institute_sessions_finance.sql` 的增量迁移，再发布 Worker 与 Pages 网关，最后更新静态网页。迁移不会修改课表表；真实预算快照只导入私有后端。发布需要现有 Cloudflare 账户的有效授权。
 
 2026-09-10 按用户要求在新 Cloudflare 账户重建服务，使用 `yuheng-institute-db`。课表按完整文档迁移，保留原修订号和修改时间；原云端资源未删除。新账户初始化需要先运行 `cloudflare-worker/schema.sql`，再运行会话/预算迁移。同步入口改变不影响下方 GitHub Pages 网页地址；已打开的旧页面需要刷新后连接新服务。
