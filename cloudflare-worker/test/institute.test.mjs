@@ -7,6 +7,14 @@ import {DatabaseSync} from 'node:sqlite';
 import {createD1InstituteStore} from '../src/institute.mjs';
 const ORIGIN='https://schedule.test',PASSWORD='synthetic-test-password';
 const sample=()=>({schemaVersion:1,source:{version:'test',file:'synthetic.xlsx',asOf:'2026-09-10'},opening:{availableCents:10000,lockedCents:0,asOf:'2026-09-10'},months:[{month:'2026-09',incomeCents:1000,expenseCents:500,balanceCents:10500,notes:'测试'}],items:[{id:'1',month:'2026-09',direction:'income',amountCents:1000,name:'测试收入'},{id:'2',month:'2026-09',direction:'expense',amountCents:500,name:'测试支出'}],rules:[]});
+test('optional opening accounts remain separate and must reconcile exactly',()=>{
+  const doc=sample();assert.equal(validateFinance(doc).opening.accounts,undefined);
+  doc.opening.accounts=[{name:'账户甲',amountCents:8000},{name:'账户乙',amountCents:2000}];
+  assert.deepEqual(validateFinance(doc).opening.accounts,doc.opening.accounts);
+  for(const accounts of [[],null,[{name:'甲',amountCents:9999}],[{name:'甲',amountCents:5000},{name:'甲',amountCents:5000}],[{name:'',amountCents:10000}],[{name:'甲',amountCents:-100},{name:'乙',amountCents:10100}]]){
+    assert.throws(()=>validateFinance({...doc,opening:{...doc.opening,accounts}}));
+  }
+});
 function fixture(){
   let time=new Date('2026-09-10T08:00:00Z');
   const store=createMemoryInstituteStore(),service=createInstituteService({store,checkPassword:async p=>p===PASSWORD,allowedOrigin:ORIGIN,now:()=>time});

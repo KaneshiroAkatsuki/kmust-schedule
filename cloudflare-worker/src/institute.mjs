@@ -21,6 +21,13 @@ export function validateFinance(input) {
     }
   }
   const opening={availableCents:money(input.opening?.availableCents),lockedCents:money(input.opening?.lockedCents),asOf:text(input.opening?.asOf,40)};
+  if(input.opening.accounts!==undefined){
+    if(!Array.isArray(input.opening.accounts)||!input.opening.accounts.length||input.opening.accounts.length>12)throw new Error('预算账户格式不正确');
+    const accounts=input.opening.accounts.map(a=>({name:text(a?.name,60),amountCents:money(a?.amountCents)}));
+    if(accounts.some(a=>!a.name||a.amountCents<0)||new Set(accounts.map(a=>a.name)).size!==accounts.length)throw new Error('预算账户名称或金额不正确');
+    if(accounts.reduce((sum,a)=>sum+a.amountCents,0)!==opening.availableCents)throw new Error('预算账户合计与可用余额不一致');
+    opening.accounts=accounts;
+  }
   return {schemaVersion:1,source:{version:text(input.source.version,80),file:text(input.source.file,160),asOf:text(input.source.asOf,40)},opening,months,items,rules:(Array.isArray(input.rules)?input.rules:[]).slice(0,30).map(r=>text(r,1000))};
 }
 

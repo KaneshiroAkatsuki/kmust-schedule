@@ -67,3 +67,10 @@ test('zero balances are not presented as deficits',()=>{
   assert.match(nodes.financeMonthDetail.innerHTML,/预计结余/);
   assert.doesNotMatch(nodes.financeContent.innerHTML,/最大月末缺口/);
 });
+test('separate opening accounts are visible without double counting',()=>{
+  const d=synthetic();d.opening.accounts=[{name:'现金测试',amountCents:8000},{name:'餐饮账户测试',amountCents:2000}];
+  const {nodes,view}=financeView(d);view.renderFinance();
+  assert.match(nodes.financeContent.innerHTML,/现金测试/);assert.match(nodes.financeContent.innerHTML,/餐饮账户测试/);
+  assert.match(nodes.financeContent.innerHTML,/合计/);
+  assert.match(nodes.financeMonthDetail.innerHTML,/基准可用余额<b>¥100.00/);
+});
