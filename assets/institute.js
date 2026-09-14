@@ -83,18 +83,36 @@
   function renderFinance(){const host=$('financeContent');if(!finance){host.innerHTML='<div class="suite-empty"><h2>预算待接入</h2><p>接入核对后的资金计划后，可在这里查看月度预算与还款安排。</p></div>';return;}
     const d=finance.document,old=$('financeMonth')?.value;const nowMonth=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit'}).format(new Date());
     const selected=d.months.some(m=>m.month===old)?old:d.months.some(m=>m.month===nowMonth)?nowMonth:d.months[0]?.month;
-    const lowest=d.months.reduce((a,b)=>!a||b.balanceCents<a.balanceCents?b:a,null);
-    host.innerHTML='<div class="finance-kpis"><article><span>已核对可用余额</span><strong>'+money(d.opening.availableCents)+'</strong><small>截至 '+escape(d.opening.asOf)+' · 非实时余额</small></article><article><span>锁定资金</span><strong>'+money(d.opening.lockedCents)+'</strong><small>单列，不重复计入可用余额</small></article><article class="'+(lowest?.balanceCents<0?'is-negative':'')+'"><span>预测最低月末余额</span><strong>'+money(lowest?.balanceCents)+'</strong><small>'+escape(lowest?.month||'暂无月份')+' · 按现有预算</small></article></div>'+
-      '<section class="suite-card"><div class="suite-card-head"><div><p class="suite-eyebrow">MONTHLY PLAN</p><h2>月度计划</h2></div><label class="suite-month">月份<select id="financeMonth">'+d.months.map(m=>'<option value="'+escape(m.month)+'"'+(selected===m.month?' selected':'')+'>'+escape(m.month)+'</option>').join('')+'</select></label></div><div id="financeMonthDetail"></div></section>'+
-      '<section class="suite-card"><h2>月末余额预测</h2><div class="finance-trend">'+d.months.map(m=>'<div class="finance-trend-row"><span>'+escape(m.month)+'</span><span class="finance-trend-track"><i style="width:'+Math.max(2,Math.min(100,Math.abs(m.balanceCents)/Math.max(1,...d.months.map(x=>Math.abs(x.balanceCents)))*100))+'%" class="'+(m.balanceCents<0?'is-negative':'')+'"></i></span><strong class="'+(m.balanceCents<0?'is-negative':'')+'">'+money(m.balanceCents)+'</strong></div>').join('')+'</div></section>'+
-      '<details class="suite-card finance-rules"><summary>数据来源与计算口径</summary><p>来源：'+escape(d.source.version)+' · '+escape(d.source.file)+'</p><p>Excel 为主账本。网页为预算看板，修改工作簿后需重新导入快照。</p><ul>'+d.rules.map(r=>'<li>'+escape(r)+'</li>').join('')+'</ul></details>';
-    host.querySelector('.finance-kpis article:nth-child(2) > span').textContent='基准日锁定资金';
-    host.querySelector('.finance-kpis article:nth-child(2) > small').textContent='截至 '+d.opening.asOf+' · 单列，不重复计入可用余额';
+    const lowest=d.months.reduce((a,b)=>!a||b.balanceCents<a.balanceCents?b:a,null),gaps=d.months.filter(m=>m.balanceCents<0);
+    const scale=Math.max(1,...d.months.map(m=>Math.abs(m.balanceCents)));
+    host.innerHTML='<div class="finance-kpis"><article class="finance-baseline"><span>已核对可用余额</span><strong>'+money(d.opening.availableCents)+'</strong><small>截至 '+escape(d.opening.asOf)+' · 非实时余额</small></article><article><span>基准日锁定资金</span><strong>'+money(d.opening.lockedCents)+'</strong><small>单列，不计入上面的可用余额</small></article><article class="'+(gaps.length?'finance-shortfall':'')+'"><span>'+(gaps.length?'最大月末缺口':'预测最低月末结余')+'</span><strong>'+money(lowest?Math.abs(lowest.balanceCents):undefined)+'</strong><small>'+escape(lowest?.month||'暂无月份')+(gaps.length?' · '+gaps.length+' 个月预计有缺口':' · 按现有预算')+'</small></article></div>'+
+      '<div class="finance-workspace"><section class="suite-card finance-plan"><div class="suite-card-head"><div><p class="suite-eyebrow">MONTHLY PLAN</p><h2>月度计划</h2></div><div class="finance-month-nav"><button type="button" id="financePrev" aria-label="上一个月">‹</button><label class="suite-month"><span class="finance-sr-only">月份</span><select id="financeMonth">'+d.months.map(m=>'<option value="'+escape(m.month)+'"'+(selected===m.month?' selected':'')+'>'+escape(m.month)+'</option>').join('')+'</select></label><button type="button" id="financeNext" aria-label="下一个月">›</button></div></div><div id="financeMonthDetail" aria-live="polite"></div></section>'+
+      '<aside class="suite-card finance-outlook"><p class="suite-eyebrow">OUTLOOK</p><h2>月末余额预测</h2><p class="suite-note">点击月份查看收支明细</p><div class="finance-trend-legend" aria-hidden="true"><span>← 缺口</span><span>0</span><span>结余 →</span></div><div class="finance-trend">'+d.months.map(m=>{
+        const negative=m.balanceCents<0,label=(negative?'缺口 ':'结余 ')+money(Math.abs(m.balanceCents));
+        return '<button type="button" class="finance-trend-row'+(negative?' has-shortfall':'')+'" data-finance-month="'+escape(m.month)+'" aria-label="'+escape(m.month+'，'+label)+'" aria-pressed="'+(selected===m.month)+'"><span>'+escape(m.month)+'</span><strong>'+label+'</strong><span class="finance-trend-track" aria-hidden="true"><i style="width:'+Math.abs(m.balanceCents)/scale*50+'%;'+(negative?'right':'left')+':50%" class="'+(negative?'is-negative':'')+'"></i></span></button>';
+      }).join('')+'</div></aside></div>'+
+      '<details class="suite-card finance-rules"><summary>账本来源与计算说明</summary><p>来源：'+escape(d.source.version)+' · '+escape(d.source.file)+'</p><p>Excel 为主账本，网页显示最近一次同步的预算。</p><ul>'+d.rules.map(r=>'<li>'+escape(r)+'</li>').join('')+'</ul></details>';
     $('financeMonth').addEventListener('change',renderFinanceMonth);renderFinanceMonth();
+    $('financePrev').onclick=()=>moveFinanceMonth(-1);$('financeNext').onclick=()=>moveFinanceMonth(1);
+    host.querySelectorAll('[data-finance-month]').forEach(button=>button.addEventListener('click',()=>{
+      $('financeMonth').value=button.dataset.financeMonth;renderFinanceMonth();
+      $('financeMonth').focus({preventScroll:true});$('financeMonthDetail').scrollIntoView({block:'nearest',behavior:'instant'});
+    }));
+  }
+  function moveFinanceMonth(step){const select=$('financeMonth'),next=select.selectedIndex+step;if(next<0||next>=select.options.length)return;select.selectedIndex=next;renderFinanceMonth();}
+  function financeLedger(items,direction){const rows=items.filter(i=>i.direction===direction),income=direction==='income',label=income?'计划收入':'计划支出';
+    return '<section class="finance-ledger-group"><h3><span class="finance-kind '+direction+'" aria-hidden="true">'+(income?'收':'支')+'</span>'+label+'<small>'+rows.length+' 笔</small></h3><div class="finance-ledger">'+(rows.length?rows.map(i=>'<article><div><strong>'+escape(i.name)+'</strong>'+(i.category?'<small>'+escape(i.category)+'</small>':'')+(i.notes?'<details class="finance-item-note"><summary>备注</summary><p>'+escape(i.notes)+'</p></details>':'')+'</div><b>'+(income?'+':'−')+money(i.amountCents)+'</b></article>').join(''):'<p class="suite-note">暂无'+label+'</p>')+'</div></section>';
   }
   function renderFinanceMonth(){if(!finance)return;const key=$('financeMonth').value,d=finance.document,m=d.months.find(x=>x.month===key);if(!m)return;
-    const items=d.items.filter(x=>x.month===key);
-    $('financeMonthDetail').innerHTML='<div class="finance-month-totals"><span>计划收入<b>'+money(m.incomeCents)+'</b></span><span>计划支出<b>'+money(m.expenseCents)+'</b></span><span>预计月末<b class="'+(m.balanceCents<0?'is-negative':'')+'">'+money(m.balanceCents)+'</b></span></div><p class="suite-note">'+escape(m.notes)+'</p><div class="finance-ledger">'+items.map(i=>'<article><div><span class="finance-kind '+i.direction+'">'+(i.direction==='income'?'收':'支')+'</span><strong>'+escape(i.name)+'</strong><small>'+escape(i.category)+(i.notes?' · '+escape(i.notes):'')+'</small></div><b>'+(i.direction==='income'?'+':'−')+money(i.amountCents)+'</b></article>').join('')+'</div>';
+    const items=d.items.filter(x=>x.month===key),index=d.months.indexOf(m),carry=index?d.months[index-1].balanceCents:d.opening.availableCents;
+    const adjustment=m.balanceCents-(carry+m.incomeCents-m.expenseCents),negative=m.balanceCents<0;
+    $('financePrev').disabled=index===0;$('financeNext').disabled=index===d.months.length-1;
+    $('financeMonthDetail').innerHTML='<div class="finance-result'+(negative?' finance-shortfall':'')+'"><div><span>'+escape(key)+' · '+(negative?'预计缺口':'预计结余')+'</span><strong>'+money(Math.abs(m.balanceCents))+'</strong></div><p>'+(negative?'按现有计划，月末资金不足。':'当月收支计入后的月末余额。')+'</p></div>'+
+      '<div class="finance-month-totals"><span>'+(index?'上月结转':'基准可用余额')+'<b>'+money(carry)+'</b></span><span>计划收入<b>+'+money(m.incomeCents)+'</b></span><span>计划支出<b>−'+money(m.expenseCents)+'</b></span></div>'+
+      (adjustment?'<p class="finance-adjustment">其他余额调整 <b>'+(adjustment>0?'+':'−')+money(Math.abs(adjustment))+'</b><small>不计作收入或支出，具体口径见账本说明。</small></p>':'')+
+      (m.notes?'<details class="finance-month-note"><summary>本月说明</summary><p class="suite-note">'+escape(m.notes)+'</p></details>':'')+
+      '<div class="finance-ledger-columns">'+financeLedger(items,'income')+financeLedger(items,'expense')+'</div>';
+    $('financeContent').querySelectorAll('[data-finance-month]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.financeMonth===key)));
   }
   let sessionsBusy=false;
   async function loadSessions(){if(sessionsBusy)return;sessionsBusy=true;$('sessionsRefresh').disabled=true;announce('settingsStatus','正在核对登录记录…');
