@@ -392,9 +392,9 @@ test('required interactive ids exist exactly once', () => {
   }
 });
 
-test('fallback data is immutable and contains the 18 latest personal meetings plus one Li Na meeting', () => {
-  assert.equal(api.RAW_DATA.length, 19);
-  assert.equal(api.COURSES.length, 19);
+test('fallback data is immutable and includes the confirmed academic irrigation course', () => {
+  assert.equal(api.RAW_DATA.length, 20);
+  assert.equal(api.COURSES.length, 20);
   assert.ok(Object.isFrozen(api.FALLBACK_DATA));
   assert.ok(Object.isFrozen(api.FALLBACK_DATA[0]));
   assert.ok(Object.isFrozen(api.FALLBACK_DATA[0]['授课分段']));
@@ -408,7 +408,7 @@ test('merged source cells preserve shorter and longer real class periods', () =>
   const lateMorning = api.RAW_DATA.filter((course) => course['节次'] === '第3-5节');
   const longAfternoon = api.RAW_DATA.filter((course) => course['节次'] === '第9-11节');
   const shortAfternoon = api.RAW_DATA.filter((course) => course['节次'] === '第9-10节');
-  assert.equal(lateMorning.length, 4);
+  assert.equal(lateMorning.length, 5);
   assert.equal(longAfternoon.length, 5);
   assert.equal(shortAfternoon.length, 1);
   assert.ok(longAfternoon.every((course) => course['时间'] === '16:10-18:35'));
@@ -426,6 +426,30 @@ test('merged source cells preserve shorter and longer real class periods', () =>
   const longClassActive = api.currentStatus(localDate(2026, 8, 31, 18, 0));
   assert.equal(longClassActive.course, '土壤水分溶质动力学');
   assert.equal(longClassActive.type, 'active');
+});
+
+test('confirmed academic irrigation course has exact weeks, periods and attendance reminders', () => {
+  const name = '现代灌排理论与新技术（学硕）';
+  const raw = api.RAW_DATA.filter(course => course['课程'] === name);
+  assert.equal(raw.length, 1);
+  assert.equal(raw[0]['星期'], '星期二');
+  assert.equal(raw[0]['节次'], '第3-5节');
+  assert.equal(raw[0]['时间'], '09:50-12:15');
+  assert.equal(raw[0]['教室'].join(), '农工楼412');
+  assert.equal(raw[0]['授课分段'][0]['教师'], '周立峰');
+  assert.equal(raw[0]['授课分段'][0]['周次'], '3-13');
+  const course = api.COURSES.find(course => course.name === name);
+  assert.equal(api.classPeriodCount(course), 3);
+  assert.equal(api.courseSelectionStatus(course, 4), 'selected');
+  for (const week of [3,4,13]) assert.equal(api.isActive(course, week), true);
+  for (const week of [2,14]) assert.equal(api.isActive(course, week), false);
+  const next = api.currentStatus(localDate(2026, 9, 15, 9, 40));
+  assert.equal(next.course, name);
+  const active = api.currentStatus(localDate(2026, 9, 15, 12, 14));
+  assert.equal(active.course, name);
+  assert.equal(active.type, 'active');
+  assert.notEqual(api.currentStatus(localDate(2026, 9, 15, 12, 15)).course, name);
+  assert.equal(api.COURSES.filter(course => course.name === '现代灌排理论与新技术（专硕）').length, 3);
 });
 
 test('course selection marks match the submitted plan without hiding timetable reference rows', () => {
