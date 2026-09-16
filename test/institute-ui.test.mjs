@@ -43,6 +43,16 @@ function financeView(document){
   return {nodes,view:sandbox.window.Institute};
 }
 const synthetic=()=>({source:{version:'test',file:'synthetic.xlsx'},opening:{asOf:'2026-09-01',availableCents:10000,lockedCents:2000},months:[{month:'2026-09',incomeCents:1000,expenseCents:12000,balanceCents:-1000,notes:'月度说明'},{month:'2026-10',incomeCents:0,expenseCents:0,balanceCents:1000,notes:'资金释放'}],items:[{id:'a',month:'2026-09',direction:'income',name:'测试收入',amountCents:1000},{id:'b',month:'2026-09',direction:'expense',name:'<img src=x>',amountCents:12000,notes:'<script>unsafe</script>'}],rules:[]});
+test('private pinned rules appear above balances, escape content and do not repeat in collapsed rules',()=>{
+  const d=synthetic();d.rules=['置顶提示：测试提醒 <img src=x>','普通说明'];
+  const {nodes,view}=financeView(d);view.renderFinance();const output=nodes.financeContent.innerHTML;
+  assert(output.indexOf('finance-notice')<output.indexOf('finance-kpis'));
+  assert.match(output,/<section[^>]*finance-notice/);assert.match(output,/特别提示 · 给我自己看/);
+  assert.match(output,/测试提醒 &lt;img src=x&gt;/);assert.doesNotMatch(output,/<img src=x>/);
+  assert.equal(output.split('测试提醒').length-1,1);assert.match(output,/普通说明/);
+  d.rules=[];view.renderFinance();assert.doesNotMatch(nodes.financeContent.innerHTML,/finance-notice/);
+  assert.match(css,/\.finance-notice p \{[^}]*overflow-wrap:anywhere/);
+});
 test('finance separates plans, explicitly labels shortfalls and escapes all notes',()=>{
   const {nodes,view}=financeView(synthetic());view.renderFinance();
   assert.match(nodes.financeContent.innerHTML,/最大月末缺口/);

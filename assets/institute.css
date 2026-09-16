@@ -77,6 +77,10 @@
 .finance-trend-track::after { content:"";position:absolute;left:50%;top:-2px;width:1px;height:10px;background:#847b71; }
 .finance-trend-track i { position:absolute;display:block;height:100%;border-radius:3px;background:#547562; }
 .finance-trend-track i.is-negative { background:#a1322a; }
+.finance-notice { min-width:0;margin:0 0 20px;padding:clamp(16px,3vw,24px);border-left:3px solid var(--kust-red);background:var(--paper-muted); }
+.finance-notice h2 { margin:0 0 10px;font-size:14px;line-height:1.6;color:var(--graphite); }
+.finance-notice p { margin:0;font-size:15px;line-height:1.9;color:var(--graphite);overflow-wrap:anywhere; }
+.finance-notice p+p { margin-top:8px; }
 .finance-rules summary { min-height:44px;padding:12px 0;font-size:14px;font-weight:700;cursor:pointer; }
 .finance-rules p,.finance-rules li { color:var(--graphite-soft);font-size:12px;line-height:1.85;overflow-wrap:anywhere; }
 .finance-rules ul { padding-left:20px; }
