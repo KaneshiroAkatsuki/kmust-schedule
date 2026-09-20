@@ -260,9 +260,9 @@ test('course detail attendance agrees with selected and pending-drop labels', ()
   for (const id of ['detailWeekStatus', 'detailSelection', 'detailTime', 'detailRoom', 'detailTeacher', 'detailWeeks', 'detailSegments', 'detailMentor']) {
     nodes.set(id, { textContent: '', parentElement: { classList: { toggle() {} } } });
   }
-  app.state.workingData = app.RAW_DATA;
+  app.state.workingData = [...app.RAW_DATA, {'星期':'星期二','节次':'第9-11节','时间':'16:10-18:35','课程':'生态水文原理及应用（专硕）','授课分段':[{'周次':'3-4','教师':'王德金'}],'教室':['公教楼448']}];
   app.state.viewWeek = 3;
-  const index = app.RAW_DATA.findIndex(course => course['课程'] === '生态水文原理及应用（专硕）' && course['星期'] === '星期二');
+  const index = app.state.workingData.length - 1;
   app.populateCourseDetail(index);
   assert.match(nodes.get('detailWeekStatus').textContent, /无需上课/);
   assert.equal(nodes.get('detailSelection').textContent, '待退选课程');
@@ -393,8 +393,8 @@ test('required interactive ids exist exactly once', () => {
 });
 
 test('fallback data is immutable and includes the confirmed academic irrigation course', () => {
-  assert.equal(api.RAW_DATA.length, 20);
-  assert.equal(api.COURSES.length, 20);
+  assert.equal(api.RAW_DATA.length, 21);
+  assert.equal(api.COURSES.length, 21);
   assert.ok(Object.isFrozen(api.FALLBACK_DATA));
   assert.ok(Object.isFrozen(api.FALLBACK_DATA[0]));
   assert.ok(Object.isFrozen(api.FALLBACK_DATA[0]['授课分段']));
@@ -408,14 +408,15 @@ test('merged source cells preserve shorter and longer real class periods', () =>
   const lateMorning = api.RAW_DATA.filter((course) => course['节次'] === '第3-5节');
   const longAfternoon = api.RAW_DATA.filter((course) => course['节次'] === '第9-11节');
   const shortAfternoon = api.RAW_DATA.filter((course) => course['节次'] === '第9-10节');
-  assert.equal(lateMorning.length, 5);
-  assert.equal(longAfternoon.length, 5);
+  assert.equal(lateMorning.length, 6);
+  assert.equal(longAfternoon.length, 3);
   assert.equal(shortAfternoon.length, 1);
   assert.ok(longAfternoon.every((course) => course['时间'] === '16:10-18:35'));
   assert.ok(shortAfternoon.every((course) => course['星期'] === '星期三' && course['时间'] === '16:10-17:45'));
 
   const standaloneEleventh = api.RAW_DATA.find((course) => course['节次'] === '第11节');
-  assert.equal(standaloneEleventh, undefined);
+  assert.equal(standaloneEleventh['课程'], '现代灌排理论与新技术（学硕）');
+  assert.equal(standaloneEleventh['时间'], '17:50-18:35');
   assert.equal(api.MATRIX_BANDS.length, 6, 'mixed durations should not create duplicate desktop rows');
 
   const ideologyActive = api.currentStatus(localDate(2026, 9, 3, 11, 20));
@@ -423,14 +424,14 @@ test('merged source cells preserve shorter and longer real class periods', () =>
   assert.equal(ideologyActive.type, 'active');
   const afterIdeology = api.currentStatus(localDate(2026, 9, 3, 11, 30));
   assert.equal(afterIdeology.type, 'finished');
-  const longClassActive = api.currentStatus(localDate(2026, 8, 31, 18, 0));
-  assert.equal(longClassActive.course, '土壤水分溶质动力学');
+  const longClassActive = api.currentStatus(localDate(2026, 9, 25, 18, 0));
+  assert.equal(longClassActive.course, '设施农业与装备（专硕）');
   assert.equal(longClassActive.type, 'active');
 });
 
 test('confirmed academic irrigation course has exact weeks, periods and attendance reminders', () => {
   const name = '现代灌排理论与新技术（学硕）';
-  const raw = api.RAW_DATA.filter(course => course['课程'] === name);
+  const raw = api.RAW_DATA.filter(course => course['课程'] === name && course['星期'] === '星期二');
   assert.equal(raw.length, 1);
   assert.equal(raw[0]['星期'], '星期二');
   assert.equal(raw[0]['节次'], '第3-5节');
@@ -449,7 +450,7 @@ test('confirmed academic irrigation course has exact weeks, periods and attendan
   assert.equal(active.course, name);
   assert.equal(active.type, 'active');
   assert.notEqual(api.currentStatus(localDate(2026, 9, 15, 12, 15)).course, name);
-  assert.equal(api.COURSES.filter(course => course.name === '现代灌排理论与新技术（专硕）').length, 3);
+  assert.equal(api.COURSES.filter(course => course.name === '现代灌排理论与新技术（专硕）').length, 5);
 });
 
 test('course selection marks match the submitted plan without hiding timetable reference rows', () => {
@@ -460,22 +461,22 @@ test('course selection marks match the submitted plan without hiding timetable r
   assert.equal(api.courseSelectionStatus({ name: '农业水土环境' }), 'pending-drop');
   assert.equal(api.courseSelectionStatus({ name: '土壤微生物学' }), 'unselected');
   assert.equal(api.courseSelectionStatus({ name: '农业面源污染控制工程（农水方向）' }), 'unselected');
-  assert.equal(api.courseSelectionStatus({ name: '新增个人课程' }), 'selected', 'newly added personal courses should remain visible as selected by default');
-  assert.equal(api.requiresAttendance({ name: '土壤微生物学' }, 2), true, 'every scheduled course is mandatory during experience week');
+  assert.equal(api.courseSelectionStatus({ name: '新增个人课程' }), 'unselected', 'new rows do not silently expand the confirmed study plan');
+  assert.equal(api.requiresAttendance({ name: '土壤微生物学' }, 2), false, 'study plan also gates historical experience reminders');
   assert.equal(api.requiresAttendance({ name: '土壤微生物学' }, 3), false, 'non-selected courses stop entering reminders after experience week');
   assert.equal(api.requiresAttendance({ name: '生态水文原理及应用（专硕）' }, 3), false, 'pending-drop courses no longer enter reminders');
 
   const unselectedNames = new Set(api.COURSES.filter((course) => api.courseSelectionStatus(course) === 'unselected').map((course) => course.name));
-  assert.deepEqual(Array.from(unselectedNames), ['土壤水分溶质动力学']);
+  assert.deepEqual(Array.from(unselectedNames), []);
   assert.equal(api.COURSES.some((course) => course.name === '农业水土环境'), false, 'the latest printout still has no scheduled meeting for this pending-drop course');
 });
 
 test('pending-drop courses remain visible for week three and move to trash from week four', () => {
-  const pending = api.RAW_DATA.find((course) => course['课程'] === '生态水文原理及应用（专硕）');
-  const protectedCourse = api.RAW_DATA.find((course) => course['课程'] === '土壤水分溶质动力学');
+  const pending = {'课程':'生态水文原理及应用（专硕）'};
+  const excludedCourse = {'课程':'土壤水分溶质动力学','授课分段':[{'周次':'10-13','教师':'李娜'}]};
   assert.equal(api.automaticCleanupReason(pending, 3), '');
   assert.equal(api.automaticCleanupReason(pending, 4), '保留一周后移除待退选课程');
-  assert.equal(api.automaticCleanupReason(protectedCourse, 5), '', 'Li Na teaching data must not be removed');
+  assert.equal(api.automaticCleanupReason(excludedCourse, 5), '第5周起清理非本人课程', 'mentor labels do not protect excluded courses from cleanup');
 });
 
 test('latest printout teacher and week changes are preserved exactly', () => {
@@ -483,7 +484,7 @@ test('latest printout teacher and week changes are preserved exactly', () => {
   assert.equal(JSON.stringify(language['授课分段']), JSON.stringify([
     { '周次': '3-9', '教师': '陶文梅' },
     { '周次': '10-13', '教师': '陶文梅' },
-    { '周次': '16-16', '教师': '陶文梅' }
+    { '周次': '16', '教师': '陶文梅' }
   ]));
   const experiment = api.RAW_DATA.find((course) => course['课程'] === '试验设计与数据处理（农水）');
   assert.equal(JSON.stringify(experiment['授课分段'].at(-1)), JSON.stringify({ '周次': '12-13', '教师': '董建华' }));
@@ -592,11 +593,10 @@ test('live status reports current class, next class and remaining time', () => {
   assert.equal(next.countdownLabel, '还有');
 });
 
-test('experience week requires every scheduled class, then pending-drop filtering starts in week three', () => {
+test('experience labels do not restore courses removed by the current study plan', () => {
   const experienceOnly = api.currentStatus(localDate(2026, 8, 31, 18, 0));
-  assert.equal(experienceOnly.type, 'active');
-  assert.equal(experienceOnly.course, '土壤水分溶质动力学');
-  assert.equal(experienceOnly.experience, true);
+  assert.equal(experienceOnly.type, 'finished');
+  assert.notEqual(experienceOnly.course, '土壤水分溶质动力学');
 
   const experienceAfternoon = api.currentStatus(localDate(2026, 8, 31, 10, 0));
   assert.equal(experienceAfternoon.type, 'active');
@@ -611,7 +611,7 @@ test('experience week requires every scheduled class, then pending-drop filterin
   assert.equal(afterPersonalClasses.type, 'finished');
   assert.notEqual(afterPersonalClasses.course, '农业生态与环境工程');
 
-  const pendingDropMeeting = api.COURSES.find((course) => course.name === '生态水文原理及应用（专硕）' && course.dayLabel === '星期二');
+  const pendingDropMeeting = { name: '生态水文原理及应用（专硕）', parts: [{start: 3, end: 4, teacher: '王德金'}] };
   assert.equal(api.courseSelectionStatus(pendingDropMeeting), 'pending-drop');
   assert.equal(api.requiresAttendance(pendingDropMeeting, 3), false);
   const duringPendingDrop = api.currentStatus(localDate(2026, 9, 8, 16, 30));
@@ -625,6 +625,35 @@ test('day parts follow the published class times', () => {
   assert.equal(api.dayPartForMinutes(13 * 60 + 30).label, '下午');
   assert.equal(api.dayPartForMinutes(17 * 60 + 50).label, '下午');
   assert.equal(api.dayPartForMinutes(19 * 60 + 30).label, '晚上');
+});
+
+test('September 20 cancellation and Wednesday irrigation changes match the new printout', () => {
+  const professional = '现代灌排理论与新技术（专硕）';
+  const sunday = api.COURSES.filter(c => c.dayLabel === '星期日' && api.isActive(c, 4));
+  assert.equal(sunday.length, 2);
+  assert.equal(sunday.some(c => c.name === professional), false);
+  assert.equal(api.currentStatus(localDate(2026,9,20,13,30)).type, 'finished');
+  const moved = api.currentStatus(localDate(2026,9,16,14,0));
+  assert.equal(moved.course, professional);
+  assert.equal(moved.teacher, '董建华');
+  assert.equal(moved.room, '公教楼249');
+  assert.notEqual(api.currentStatus(localDate(2026,9,15,14,0)).type, 'active');
+  const later = api.currentStatus(localDate(2026,9,22,14,0));
+  assert.equal(later.course, professional);
+  assert.equal(later.room, '公教楼352');
+  const first = api.currentStatus(localDate(2026,9,1,14,0));
+  assert.equal(first.room, '公教楼250');
+});
+
+test('historical Wednesday academic irrigation covers three actual periods but not dinner break', () => {
+  const name = '现代灌排理论与新技术（学硕）';
+  const blocks = api.COURSES.filter(c=>c.dayLabel==='星期三'&&c.name===name);
+  assert.equal(blocks.reduce((n,c)=>n+api.classPeriodCount(c),0),3);
+  assert.equal(api.currentStatus(localDate(2026,9,2,18,0)).type,'active');
+  assert.equal(api.currentStatus(localDate(2026,9,2,18,0)).course,name);
+  assert.equal(api.currentStatus(localDate(2026,9,2,18,45)).type,'next');
+  assert.equal(api.currentStatus(localDate(2026,9,2,20,0)).course,name);
+  assert.notEqual(api.currentStatus(localDate(2026,9,2,21,5)).type,'active');
 });
 
 test('mentor class is specially marked only during mentor teaching weeks', () => {
@@ -648,23 +677,25 @@ test('mentor class is specially marked only during mentor teaching weeks', () =>
   assert.match(html, /导师\/带教课 · 不可缺席/);
 });
 
-test('Li Na teaching segment is mandatory without turning other teachers segments into selected classes', () => {
-  const meeting = api.COURSES.find((course) => course.name === '土壤水分溶质动力学');
-  assert.ok(meeting);
+test('study plan exclusions take precedence over mentor names and teaching segments', () => {
+  assert.equal(api.COURSES.some(course => course.name === '土壤水分溶质动力学'), false);
+  const meeting = { name: '土壤水分溶质动力学', parts: [{start: 6, end: 9, teacher: '陈绍民'}, {start: 10, end: 13, teacher: '李娜'}] };
   assert.equal(api.courseSelectionStatus(meeting), 'unselected', 'the course is still not part of the submitted selection');
   assert.equal(api.isMentorCourse(meeting, 9), false);
   assert.equal(api.requiresAttendance(meeting, 9), false, 'the Chen Shaomin segment remains optional');
-  assert.equal(api.isMentorCourse(meeting, 10), true);
-  assert.equal(api.courseSelectionStatus(meeting, 10), 'selected');
-  assert.equal(api.requiresAttendance(meeting, 10), true, 'the Li Na segment must be attended');
-  assert.equal(api.requiresAttendance(meeting, 13), true);
+  assert.equal(api.isMentorCourse(meeting, 10), false);
+  assert.equal(api.courseSelectionStatus(meeting, 10), 'unselected');
+  assert.equal(api.requiresAttendance(meeting, 10), false);
+  assert.equal(api.requiresAttendance(meeting, 13), false);
+  assert.equal(api.isPersonalCourse(meeting), false);
+  assert.equal(api.requiresAttendance(meeting, 2), false);
 
   const live = api.currentStatus(localDate(2026, 10, 26, 16, 30));
-  assert.equal(live.course, '土壤水分溶质动力学');
-  assert.equal(live.teacher, '李娜');
-  assert.equal(live.room, '公教楼248');
-  assert.equal(live.mentor, true);
-  assert.match(html, /李娜授课分段 · 不可缺席/);
+  assert.notEqual(live.course, '土壤水分溶质动力学');
+  assert.equal(api.isPersonalCourse({name:'培养计划外新课',parts:[{start:1,end:21,teacher:'李娜'}]}),false);
+  for (const name of ['学术素养','人工智能原理','实验室安全讲座','农业节水与供水工程']) {
+    assert.equal(api.courseSelectionStatus({name}), 'selected', 'Unscheduled plan courses remain selected');
+  }
 });
 
 test('desktop matrix renders all seven days, six time bands and mentor warning', () => {
@@ -677,8 +708,7 @@ test('desktop matrix renders all seven days, six time bands and mentor warning',
   assert.equal((matrix.innerHTML.match(/class="matrix-cell/g) || []).length, 42);
   assert.match(matrix.innerHTML, /设施农业与装备（专硕）/);
   assert.match(matrix.innerHTML, /导师\/带教课 · 不可缺席/);
-  assert.match(matrix.innerHTML, /非选课 · 无需上课/);
-  assert.match(matrix.innerHTML, /待退选 · 无需上课/);
+  assert.doesNotMatch(matrix.innerHTML, /土壤水分溶质动力学|生态水文原理及应用/);
   assert.match(matrix.innerHTML, /本周上课/);
   assert.match(matrix.innerHTML, /此时间段无课/);
   assert.match(matrix.innerHTML, />上午</);
@@ -695,7 +725,7 @@ test('desktop matrix renders all seven days, six time bands and mentor warning',
   api.state.viewWeek = 2;
   api.renderWeekMatrix(localDate(2026, 8, 31, 14, 0));
   assert.match(matrix.innerHTML, /体验课 · 必须参加/);
-  assert.match(matrix.innerHTML, /class="matrix-card[^"\n]*is-unselected[^"\n]*is-experience/);
+  assert.doesNotMatch(matrix.innerHTML, /class="matrix-card[^"\n]*is-unselected[^"\n]*is-experience/);
   assert.match(css, /\.matrix-card\.is-experience\.is-unselected/);
 });
 
