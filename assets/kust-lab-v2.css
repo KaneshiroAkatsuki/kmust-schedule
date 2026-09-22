@@ -570,6 +570,7 @@ body {
 .week-current.is-offset { color: var(--kust-red); border-color: rgba(178,12,37,.25); background: var(--kust-red-soft); }
 .day-tabs { border-radius: 12px; background: #f0ece5; }
 .day-tab { border-radius: 8px; }
+.schedule-day-mark { margin-left: 3px; font-size: 10px; font-weight: 700; }
 .day-tab[aria-selected="true"] { background: var(--kust-red); box-shadow: 0 5px 14px rgba(178,12,37,.18); }
 .day-tab.is-today:not([aria-selected="true"]) { color: var(--kust-red); background: var(--kust-red-soft); }
 .week-summary { color: #77716a; }

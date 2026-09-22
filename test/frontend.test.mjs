@@ -19,7 +19,7 @@ const exposedNames = [
   'RAW_DATA', 'FALLBACK_DATA', 'DAYS_FULL', 'SLOT_TIMES', 'MATRIX_BANDS', 'state', 'COURSES',
   'dayPartForMinutes', 'setMarkup', 'revealElement', 'renderClock', 'renderStatus',
   'teachingWeek', 'academicPhase', 'dateForWeekDay', 'dayIndex', 'isActive',
-  'scheduleTermForDate',
+  'scheduleTermForDate', 'isScheduled', 'holidayForDate', 'todayCourses', 'renderToday', 'renderWeek', 'renderMakeupAssistant',
   'HOLIDAY_YEARS', 'calendarDateKey', 'calendarChinaDate', 'calendarDayInfo', 'monthCalendarCells',
   'shiftCalendarMonth', 'selectCalendarDate', 'renderMonthCalendar', 'setupMonthCalendar',
   'courseSelectionStatus', 'isPersonalCourse', 'requiresAttendance',
@@ -153,7 +153,7 @@ test('calendar preserves browsing across background refresh and follows China mi
   assert.equal(app.state.calendarSelected,'2026-10-10','browsed date is not pulled back to today');
   assert.equal(app.state.calendarMonth,'2026-10');
   assert.match(nodes.get('calendarDetail').innerHTML,/国庆节 · 调休上班/);
-  assert.match(nodes.get('calendarDetail').innerHTML,/学校停课、补课以通知为准/);
+  assert.match(nodes.get('calendarDetail').innerHTML,/假期不排课；调休补课按已确认的课表安排/);
   assert.match(nodes.get('calendarDetail').innerHTML,/9月20日、10月10日调休上班/);
 });
 
@@ -192,6 +192,97 @@ function syncFixture() {
   };
   return { app, cloud, nodes, sandbox };
 }
+
+test('holidays suppress all live classes and reminders without changing source records', () => {
+  const before = JSON.stringify(api.RAW_DATA);
+  for (const [month, start, end, name] of [[9,25,27,'中秋节'], [10,1,7,'国庆节']]) {
+    for (let day = start; day <= end; day++) {
+      for (const [hour, minute] of [[0,0],[8,0],[10,0],[14,0],[16,30],[18,0],[20,0],[23,59]]) {
+        const date = localDate(2026, month, day, hour, minute);
+        const status = api.currentStatus(date);
+        assert.equal(status.type, 'free');
+        assert.equal(status.label, name + ' · 放假');
+        assert.equal(status.course, '今天不上课');
+        assert.equal(status.countdown, undefined);
+        assert.equal(api.todayCourses(date, { includeUnselected: true }).length, 0);
+        for (const course of api.COURSES.filter(c => c.day === api.dayIndex(date))) {
+          assert.equal(api.isActive(course, api.teachingWeek(date)), false);
+        }
+      }
+    }
+  }
+  const affected = api.COURSES.filter(c => c.day === 4 && api.isScheduled(c, 5));
+  assert.equal(affected.length, 2, 'original Friday courses remain available for makeup planning');
+  assert.equal(JSON.stringify(api.RAW_DATA), before);
+  assert.equal(api.holidayForDate(localDate(2027,1,1)), null, 'unknown years are not invented');
+});
+
+test('normal dates and confirmed weekend makeup survive holiday filtering', () => {
+  for (const day of [24,28,29]) assert.ok(api.todayCourses(localDate(2026,9,day)).length > 0);
+  assert.equal(api.currentStatus(localDate(2026,9,20,8,30)).course, '专业外语（农水专硕）');
+  assert.equal(api.currentStatus(localDate(2026,9,20,10,0)).course, '现代灌排理论与新技术（学硕）');
+  assert.notEqual(api.currentStatus(localDate(2026,9,20,14,0)).type, 'active', 'cancelled afternoon stays cancelled');
+  const saturday = api.todayCourses(localDate(2026,10,10));
+  assert.equal(saturday.length, 1, 'no guessed weekday schedule on a national workday');
+  assert.equal(saturday[0].name, '现代灌排理论与新技术（专硕）');
+  assert.equal(api.currentStatus(localDate(2026,10,10,17,0)).teacher, '徐丹');
+  assert.equal(api.currentStatus(localDate(2026,10,9,16,30)).type, 'active');
+  assert.equal(api.holidayForDate(localDate(2026,9,24,23,59)), null);
+  assert.equal(api.currentStatus(localDate(2026,9,25,0,0)).label, '中秋节 · 放假');
+  assert.equal(api.holidayForDate(localDate(2026,9,28,0,0)), null);
+});
+
+function holidayViewFixture() {
+  const { app, nodes } = syncFixture();
+  const ids = ['todayList','todayCount','weekTermNote','weekCurrent','prevWeek','nextWeek','dayTabs','weekMatrix','weekSummary','weekList','makeupAssistant','makeupTitle','makeupList',
+    'detailWeekStatus','detailSelection','detailTime','detailRoom','detailTeacher','detailWeeks','detailSegments','detailMentor'];
+  for (const id of ids) nodes.set(id, {
+    textContent: '', innerHTML: '', dataset: {}, classList: { toggle() {} },
+    contains() { return false; }, querySelectorAll() { return []; },
+    parentElement: { classList: { toggle() {} } }
+  });
+  app.state.workingData = app.RAW_DATA;
+  return { app, nodes };
+}
+
+test('mobile list, desktop cards, today and details agree on holiday closures', () => {
+  const { app, nodes } = holidayViewFixture();
+  for (const [week, month, day, name] of [[5,9,25,'中秋节'], [6,10,2,'国庆节']]) {
+    app.state.viewWeek = week;
+    app.state.selectedDay = 4;
+    const now = localDate(2026,month,day,16,30);
+    app.renderToday(now);
+    app.renderWeek(now);
+    assert.equal(nodes.get('todayCount').textContent, '放假');
+    assert.match(nodes.get('todayList').innerHTML, /今天不上课/);
+    assert.match(nodes.get('weekSummary').textContent, new RegExp(name + '放假，不上课'));
+    assert.doesNotMatch(nodes.get('weekList').innerHTML, /本周上课|上课中|不可缺席/);
+    assert.match(nodes.get('weekList').innerHTML, new RegExp(name + ' · 假期停课'));
+    assert.match(nodes.get('dayTabs').innerHTML, /schedule-day-mark/);
+    const mentor = app.COURSES.find(c => c.day === 4 && c.name === '设施农业与装备（专硕）');
+    const card = nodes.get('weekMatrix').innerHTML.match(new RegExp('<article[^>]*data-course-index="' + mentor.id + '"[^>]*>[\\s\\S]*?<\\/article>'))[0];
+    assert.match(card, /is-off/);
+    assert.match(card, new RegExp(name + ' · 假期停课'));
+    assert.doesNotMatch(card, /is-live|is-mentor|不可缺席|本周上课/);
+    app.populateCourseDetail(mentor.id);
+    assert.match(nodes.get('detailWeekStatus').textContent, new RegExp(name + ' · 假期停课'));
+    assert.equal(nodes.get('detailMentor').hidden, true);
+  }
+  app.state.viewWeek = 7;
+  app.populateCourseDetail(app.COURSES.find(c => c.day === 4 && c.name === '设施农业与装备（专硕）').id);
+  assert.match(nodes.get('detailWeekStatus').textContent, /本周上课/);
+  assert.equal(nodes.get('detailMentor').hidden, false);
+});
+
+test('makeup assistant retains originally planned holiday courses in affected tab', () => {
+  const { app, nodes } = holidayViewFixture();
+  app.state.viewWeek = 7;
+  app.renderMakeupAssistant();
+  assert.equal(nodes.get('makeupAssistant').hidden, false);
+  assert.match(nodes.get('makeupList').innerHTML, /试验设计与数据处理（农水）/);
+  assert.match(nodes.get('makeupList').innerHTML, /设施农业与装备（专硕）/);
+  assert.doesNotMatch(nodes.get('makeupList').innerHTML, /土壤水分溶质动力学|生态水文原理及应用/);
+});
 
 test('background cloud reads preserve typed, staged and newly opened course editors', async () => {
   for (const mode of ['formDirty', 'managerDirty', 'pristineEditor']) {
@@ -424,7 +515,7 @@ test('merged source cells preserve shorter and longer real class periods', () =>
   assert.equal(ideologyActive.type, 'active');
   const afterIdeology = api.currentStatus(localDate(2026, 9, 3, 11, 30));
   assert.equal(afterIdeology.type, 'finished');
-  const longClassActive = api.currentStatus(localDate(2026, 9, 25, 18, 0));
+  const longClassActive = api.currentStatus(localDate(2026, 10, 9, 18, 0));
   assert.equal(longClassActive.course, '设施农业与装备（专硕）');
   assert.equal(longClassActive.type, 'active');
 });
@@ -669,7 +760,7 @@ test('mentor class is specially marked only during mentor teaching weeks', () =>
   assert.equal(api.isMentorCourseName('农业节水与供水工程'), true);
   assert.equal(api.isMentorCourseName('普通课程'), false);
 
-  const live = api.currentStatus(localDate(2026, 9, 25, 16, 30));
+  const live = api.currentStatus(localDate(2026, 10, 9, 16, 30));
   assert.equal(live.course, '设施农业与装备（专硕）');
   assert.equal(live.teacher, '喻黎明');
   assert.equal(live.room, '公教楼247');
@@ -701,8 +792,8 @@ test('study plan exclusions take precedence over mentor names and teaching segme
 test('desktop matrix renders all seven days, six time bands and mentor warning', () => {
   const matrix = { innerHTML: '' };
   context.document = { getElementById: (id) => id === 'weekMatrix' ? matrix : null };
-  api.state.viewWeek = 5;
-  api.renderWeekMatrix(localDate(2026, 9, 25, 16, 30));
+  api.state.viewWeek = 7;
+  api.renderWeekMatrix(localDate(2026, 10, 9, 16, 30));
   assert.equal((matrix.innerHTML.match(/class="matrix-head/g) || []).length, 7);
   assert.equal((matrix.innerHTML.match(/class="matrix-slot/g) || []).length, 6);
   assert.equal((matrix.innerHTML.match(/class="matrix-cell/g) || []).length, 42);

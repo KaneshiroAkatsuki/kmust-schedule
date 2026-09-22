@@ -1621,8 +1621,8 @@
       .course-form { padding: 13px; }
     }
   </style>
-  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=4.0">
-  <link rel="stylesheet" href="assets/institute.css?v=4.0">
+  <link rel="stylesheet" href="assets/kust-lab-v2.css?v=4.1">
+  <link rel="stylesheet" href="assets/institute.css?v=4.1">
 </head>
 <body class="app-locked">
   <section class="login-gate" id="loginGate" aria-labelledby="loginTitle">
@@ -1878,7 +1878,7 @@
 
       <div class="footer-bottom">
         <p>个人课表，非学校官方系统。上课安排以学院和任课教师通知为准。</p>
-        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">4.0</span></span>
+        <span>@玉衡山科学院·KANESHIRO · 版本 <span id="footerVersion">4.1</span></span>
       </div>
     </div>
   </footer>
@@ -2190,7 +2190,7 @@
     </div>
   </dialog>
 
-  <script src="assets/institute.js?v=4.0"></script>
+  <script src="assets/institute.js?v=4.1"></script>
   <script>
     'use strict';
 
@@ -2238,8 +2238,8 @@
     const SECRET_KEY = 'kust-lab-admin-secret';
     const REMEMBERED_SECRET_KEY = 'kust-lab-remembered-admin-secret';
     // 发布规则：每次页面改动都要同时更新 SITE_VERSION 与 SITE_UPDATED_AT。
-    const SITE_VERSION = '4.0';
-    const SITE_UPDATED_AT = '2026-09-20T13:34:22+08:00';
+    const SITE_VERSION = '4.1';
+    const SITE_UPDATED_AT = '2026-09-22T15:24:00+08:00';
     const SYNC_INTERVAL_MS = 5 * 60 * 1000;
     const WEATHER_REFRESH_MS = 60 * 60 * 1000;
     const FETCH_TIMEOUT_MS = 8000;
@@ -2292,7 +2292,7 @@
       summerEnd: new Date(2027, 7, 20, 12, 0, 0, 0)
     };
 
-    // Official national arrangements only; these do not move or suppress university courses.
+    // User-confirmed policy: holidays suspend classes; makeup weekdays are never inferred.
     const HOLIDAY_YEARS = deepFreeze({
       2026: {
         source: 'https://www.gov.cn/zhengce/content/202511/content_7047090.htm',
@@ -2609,7 +2609,7 @@
         if (holiday.workdays.length) detail += '；' + holiday.workdays.map(dateLabel).join('、') + '调休上班。';
         else detail += '，不另调休。';
       } else detail = info.kind === 'weekend' ? '是否上课以课表为准。' : '课程按课表安排。';
-      const disclaimer = info.known ? '学校停课、补课以通知为准。' : year + '年放假调休安排待更新。';
+      const disclaimer = info.known ? '假期不排课；调休补课按已确认的课表安排。' : year + '年放假调休安排待更新。';
       setMarkup(document.getElementById('calendarDetail'), '<div class="calendar-detail-top"><time datetime="' + info.key + '">' + longDate(selected) + ' · ' + DAYS_FULL[dayIndex(selected)] + '</time><strong class="calendar-detail-label is-' + info.kind + '">' + esc(info.label) + '</strong></div><p>' + esc(detail) + '</p><small>' + esc(disclaimer) + '</small>');
       const source = HOLIDAY_YEARS[year];
       setMarkup(document.getElementById('calendarSource'), source ? '依据 <a href="' + source.source + '" target="_blank" rel="noopener noreferrer">国务院' + year + '年放假通知 ↗</a>' : '暂未收录' + year + '年官方安排，未标记法定假期与调休。');
@@ -2743,7 +2743,21 @@
       return parts.filter(function (part) { return week >= part.start && week <= part.end; });
     }
 
-    function isActive(course, week) { return activeParts(course, week).length > 0; }
+    // Preserve planned weeks for editing and makeup recommendations.
+    function isScheduled(course, week) { return activeParts(course, week).length > 0; }
+
+    function holidayForDate(date) {
+      const info = calendarDayInfo(date);
+      return info.kind === 'holiday' ? info.holiday : null;
+    }
+
+    function courseHoliday(course, week) {
+      return holidayForDate(dateForWeekDay(week, course.day));
+    }
+
+    function isActive(course, week) {
+      return isScheduled(course, week) && !courseHoliday(course, week);
+    }
 
     function isMentorCourseName(name) {
       const normalized = String(name || '').replace(/\s+/g, '').trim();
@@ -2867,6 +2881,8 @@
         return { type: 'outside', label: '本学年已结束', course: '校历状态已更新至2027年8月20日', meta: '新学年安排请以学校最新通知为准', period: '2026—2027学年' };
       }
 
+      const holiday = holidayForDate(now);
+      if (holiday) return { type: 'free', label: holiday.name + ' · 放假', course: '今天不上课', meta: longDate(calendarDateFromKey(holiday.start)) + '—' + longDate(calendarDateFromKey(holiday.end)) + '放假', period: '原排课程暂停，补课以已确认安排为准' };
       const list = todayCourses(now);
       const current = list.find(function (course) { return currentMinute >= course.startMin && currentMinute < course.endMin; });
       if (current) {
@@ -3004,6 +3020,7 @@
 
     function courseState(course, now) {
       const week = teachingWeek(now);
+      if (!isActive(course, week)) return 'off';
       if (!requiresAttendance(course, week)) return 'unselected';
       const minute = nowMinuteFloat(now);
       if (minute >= course.endMin) return 'done';
@@ -3014,6 +3031,8 @@
     }
 
     function emptyTodayCopy(now) {
+      const holiday = holidayForDate(now);
+      if (holiday) return { title: holiday.name + ' · 放假', note: '今天不上课' };
       const key = academicPhase(now).key;
       if (key === 'orientation') return { title: '新生教育周', note: '研究生课程8月31日开始' };
       if (key === 'first-registration') return { title: '新生报到', note: '8月24日起开展新生教育' };
@@ -3037,7 +3056,7 @@
       const container = document.getElementById('todayList');
       document.getElementById('todayCount').textContent = personalCount
         ? personalCount + ' 门需上' + (unselectedCount ? ' · ' + unselectedCount + ' 条无需上课' : '')
-        : (unselectedCount ? '无课 · ' + unselectedCount + ' 条无需上课' : '无安排');
+        : (holidayForDate(now) ? '放假' : unselectedCount ? '无课 · ' + unselectedCount + ' 条无需上课' : '无安排');
 
       if (!list.length) {
         const copy = emptyTodayCopy(now);
@@ -3071,7 +3090,9 @@
       const restoreFocus = tabs.contains(document.activeElement);
       const markup = DAYS_SHORT.map(function (label, index) {
         const date = dateForWeekDay(state.viewWeek, index);
-        return '<button class="day-tab' + (sameDate(date, now) ? ' is-today' : '') + '" type="button" role="tab" tabindex="' + (index === state.selectedDay ? '0' : '-1') + '" aria-selected="' + (index === state.selectedDay) + '" data-day="' + index + '" aria-label="' + DAYS_FULL[index] + '，' + longDate(date) + '"><span class="day-name">' + label + '</span><span class="day-date">' + shortDate(date) + '</span></button>';
+        const info = calendarDayInfo(date);
+        const mark = info.kind === 'holiday' ? '休' : info.kind === 'workday' ? '调' : '';
+        return '<button class="day-tab' + (sameDate(date, now) ? ' is-today' : '') + '" type="button" role="tab" tabindex="' + (index === state.selectedDay ? '0' : '-1') + '" aria-selected="' + (index === state.selectedDay) + '" data-day="' + index + '" aria-label="' + DAYS_FULL[index] + '，' + longDate(date) + '，' + esc(info.label) + '"><span class="day-name">' + label + (mark ? '<small class="schedule-day-mark">' + mark + '</small>' : '') + '</span><span class="day-date">' + shortDate(date) + '</span></button>';
       }).join('');
       if (!setMarkup(tabs, markup)) return;
       tabs.querySelectorAll('[data-day]').forEach(function (button) {
@@ -3113,7 +3134,8 @@
       let html = '<div class="matrix-corner"><strong>节次 / 时间</strong></div>';
       DAYS_SHORT.forEach(function (label, day) {
         const date = dateForWeekDay(state.viewWeek, day);
-        html += '<div class="matrix-head' + (sameDate(date, now) ? ' is-today' : '') + '"><strong>周' + label + '</strong><span>' + shortDate(date) + '</span></div>';
+        const info = calendarDayInfo(date);
+        html += '<div class="matrix-head' + (sameDate(date, now) ? ' is-today' : '') + '"><strong>周' + label + '</strong><span>' + shortDate(date) + (info.kind === 'holiday' ? ' · ' + esc(info.short) + '休' : info.kind === 'workday' ? ' · 调休' : '') + '</span></div>';
       });
 
       MATRIX_BANDS.forEach(function (band) {
@@ -3138,6 +3160,7 @@
 
           const cards = courses.map(function (course) {
             const on = isActive(course, state.viewWeek);
+            const holiday = courseHoliday(course, state.viewWeek);
             const selection = courseSelectionStatus(course, state.viewWeek);
             const experienceCourse = on && state.viewWeek === EXPERIENCE_WEEK && requiresAttendance(course, state.viewWeek);
             const active = activeInfo(course, state.viewWeek);
@@ -3146,7 +3169,8 @@
             const mentor = on && isMentorCourse(course, state.viewWeek);
             const mentorPlan = mentorSchedule(course);
             let badge = '';
-            if (experienceCourse) badge = '<span class="matrix-badge is-experience-status">体验课 · 必须参加</span>';
+            if (holiday) badge = '<span class="matrix-badge is-off-status">' + esc(holiday.name) + ' · 假期停课</span>';
+            else if (experienceCourse) badge = '<span class="matrix-badge is-experience-status">体验课 · 必须参加</span>';
             else if (selection === 'unselected') badge = '<span class="matrix-badge is-unselected-status">非选课 · 无需上课</span>';
             else if (selection === 'pending-drop') badge = '<span class="matrix-badge is-pending-status">待退选 · 无需上课</span>';
             else if (mentor) badge = '<span class="matrix-badge">★ 导师/带教课 · 不可缺席</span>';
@@ -3191,7 +3215,9 @@
       const activeUnselectedCount = list.filter(function (course) { return isActive(course, state.viewWeek) && !requiresAttendance(course, state.viewWeek); }).length;
       const inactiveCount = list.length - activePersonalCount - activeUnselectedCount;
       const selectedDate = dateForWeekDay(state.viewWeek, state.selectedDay);
-      document.getElementById('weekSummary').textContent = DAYS_FULL[state.selectedDay] + ' · ' + longDate(selectedDate) + ' · ' + activePersonalCount + ' 门需上' + (activeUnselectedCount ? '，' + activeUnselectedCount + ' 条无需上课' : '') + '，' + inactiveCount + ' 个本周无课';
+      const dayInfo = calendarDayInfo(selectedDate);
+      const holiday = holidayForDate(selectedDate);
+      document.getElementById('weekSummary').textContent = DAYS_FULL[state.selectedDay] + ' · ' + longDate(selectedDate) + ' · ' + (holiday ? holiday.name + '放假，不上课' : activePersonalCount + ' 门需上' + (activeUnselectedCount ? '，' + activeUnselectedCount + ' 条无需上课' : '') + '，' + inactiveCount + ' 个本周无课' + (dayInfo.kind === 'workday' ? ' · 调休日，按已确认课表上课' : ''));
 
       const container = document.getElementById('weekList');
       const courseRows = list.map(function (course) {
@@ -3206,13 +3232,13 @@
         const labels = [];
         labels.push('<span class="daypart-badge part-' + part.key + '">' + part.label + '</span>');
         if (mentor) labels.push('<span class="mentor-label">导师/带教课 · 不可缺席</span>');
-        else if (mentorPlan) labels.push('<span class="mentor-schedule-label">' + esc(mentorPlan) + '</span>');
+        else if (mentorPlan && !holiday) labels.push('<span class="mentor-schedule-label">' + esc(mentorPlan) + '</span>');
         if (experienceCourse) labels.push('<span class="experience-label">体验课 · 必须参加</span>');
         else if (selection === 'unselected') labels.push('<span class="unselected-label">非选课内容 · 无需上课</span>');
         else if (selection === 'pending-drop') labels.push('<span class="pending-drop-label">待退选 · 无需上课</span>');
         if (on && !experienceCourse && requiresAttendance(course, state.viewWeek)) labels.push('<span class="on-label">本周上课</span>');
         if (live) labels.push('<span class="live-label">上课中</span>');
-        if (!on) labels.push('<span class="off-label">此时间段无课</span>');
+        if (!on) labels.push('<span class="off-label">' + (holiday ? esc(holiday.name) + ' · 假期停课' : '此时间段无课') + '</span>');
         const label = labels.length ? '<div class="week-badges">' + labels.join('') + '</div>' : '';
         const details = on
           ? '<span>' + esc(active.teachers) + ' · ' + esc(active.rooms) + '</span>'
@@ -4530,6 +4556,7 @@
       const course = buildCourses(state.workingData).find(function (item) { return item.id === index; });
       if (!rawCourse || !course) return;
       const activeThisWeek = isActive(course, state.viewWeek);
+      const holiday = courseHoliday(course, state.viewWeek);
       const info = activeThisWeek ? activeInfo(course, state.viewWeek) : { teachers: '本周不上课', rooms: rawCourse['教室'].join(' / ') };
       const selection = courseSelectionStatus(course, state.viewWeek);
       const selectionLabels = {
@@ -4539,7 +4566,7 @@
       };
       const status = document.getElementById('detailWeekStatus');
       const attendanceThisWeek = activeThisWeek && requiresAttendance(course, state.viewWeek);
-      status.textContent = '第' + state.viewWeek + '周 · ' + (activeThisWeek ? (attendanceThisWeek ? '本周上课' : '无需上课') : '本周不上课');
+      status.textContent = '第' + state.viewWeek + '周 · ' + (holiday ? holiday.name + ' · 假期停课' : activeThisWeek ? (attendanceThisWeek ? '本周上课' : '无需上课') : '本周不上课');
       status.parentElement.classList.toggle('is-off', !attendanceThisWeek);
       document.getElementById('detailSelection').textContent = selectionLabels[selection] || '我的课程';
       document.getElementById('detailTime').textContent = rawCourse['星期'] + ' · ' + rawCourse['时间'] + ' · ' + rawCourse['节次'];
@@ -4547,7 +4574,7 @@
       document.getElementById('detailTeacher').textContent = info.teachers || '教师待定';
       document.getElementById('detailWeeks').textContent = rawCourse['授课分段'].map(function (part) { return '第' + part['周次'] + '周'; }).join('、');
       document.getElementById('detailSegments').textContent = allSegments(course);
-      document.getElementById('detailMentor').hidden = !rawCourseHasMentor(rawCourse);
+      document.getElementById('detailMentor').hidden = !attendanceThisWeek || !rawCourseHasMentor(rawCourse);
     }
 
     function chooseCourseAction(action) {
@@ -4700,7 +4727,7 @@
       COURSES.forEach(function (course) {
         if (!isPersonalCourse(course)) return;
         holidayDates.forEach(function (date) {
-          if (course.day === dayIndex(date) && isActive(course, teachingWeek(date))) affectedNames.add(course.name);
+          if (course.day === dayIndex(date) && isScheduled(course, teachingWeek(date))) affectedNames.add(course.name);
         });
       });
       const tab = assistant.dataset.tab || 'affected';
