@@ -1,20 +1,20 @@
 {
   "ok": true,
-  "snapshotGeneratedAt": "2026-10-01T19:31:37.407Z",
+  "snapshotGeneratedAt": "2026-10-01T23:52:35.066Z",
   "data": {
     "source": "百度地图天气",
     "location": "呈贡区",
-    "observedAt": "2026-10-02T02:50:00+08:00",
-    "fetchedAt": "2026-10-01T19:01:09.102Z",
+    "observedAt": "2026-10-02T06:55:00+08:00",
+    "fetchedAt": "2026-10-01T23:01:02.787Z",
     "current": {
       "condition": "多云",
-      "temperature": 18,
+      "temperature": 17,
       "feelsLike": 17,
-      "humidity": 80,
+      "humidity": 90,
       "precipitation": 0,
-      "cloudCover": 52,
+      "cloudCover": 60,
       "visibility": 30000,
-      "airQualityIndex": 13,
+      "airQualityIndex": 16,
       "windDirection": "西南风",
       "windLevel": "2级"
     },
@@ -25,50 +25,6 @@
       "conditionNight": "小雨"
     },
     "hourly": [
-      {
-        "time": "2026-10-02T03:00:00+08:00",
-        "condition": "阴",
-        "temperature": 17,
-        "humidity": 93,
-        "precipitation": 0,
-        "precipitationProbability": 0,
-        "cloudCover": 92,
-        "windDirection": "南风",
-        "windLevel": "<3级"
-      },
-      {
-        "time": "2026-10-02T04:00:00+08:00",
-        "condition": "阴",
-        "temperature": 17,
-        "humidity": 92,
-        "precipitation": 0,
-        "precipitationProbability": 0,
-        "cloudCover": 88,
-        "windDirection": "南风",
-        "windLevel": "<3级"
-      },
-      {
-        "time": "2026-10-02T05:00:00+08:00",
-        "condition": "阴",
-        "temperature": 17,
-        "humidity": 92,
-        "precipitation": 0,
-        "precipitationProbability": 0,
-        "cloudCover": 84,
-        "windDirection": "南风",
-        "windLevel": "<3级"
-      },
-      {
-        "time": "2026-10-02T06:00:00+08:00",
-        "condition": "阴",
-        "temperature": 17,
-        "humidity": 90,
-        "precipitation": 0,
-        "precipitationProbability": 0,
-        "cloudCover": 82,
-        "windDirection": "南风",
-        "windLevel": "<3级"
-      },
       {
         "time": "2026-10-02T07:00:00+08:00",
         "condition": "阴",
@@ -282,6 +238,50 @@
         "time": "2026-10-03T02:00:00+08:00",
         "condition": "小雨",
         "temperature": 18,
+        "humidity": 84,
+        "precipitation": 0.7,
+        "precipitationProbability": 70,
+        "cloudCover": 70,
+        "windDirection": "南风",
+        "windLevel": "4~5级"
+      },
+      {
+        "time": "2026-10-03T03:00:00+08:00",
+        "condition": "小雨",
+        "temperature": 18,
+        "humidity": 84,
+        "precipitation": 0.7,
+        "precipitationProbability": 70,
+        "cloudCover": 70,
+        "windDirection": "南风",
+        "windLevel": "4~5级"
+      },
+      {
+        "time": "2026-10-03T04:00:00+08:00",
+        "condition": "小雨",
+        "temperature": 17,
+        "humidity": 85,
+        "precipitation": 0.7,
+        "precipitationProbability": 70,
+        "cloudCover": 70,
+        "windDirection": "南风",
+        "windLevel": "4~5级"
+      },
+      {
+        "time": "2026-10-03T05:00:00+08:00",
+        "condition": "小雨",
+        "temperature": 17,
+        "humidity": 86,
+        "precipitation": 0.7,
+        "precipitationProbability": 70,
+        "cloudCover": 70,
+        "windDirection": "南风",
+        "windLevel": "4~5级"
+      },
+      {
+        "time": "2026-10-03T06:00:00+08:00",
+        "condition": "小雨",
+        "temperature": 17,
         "humidity": 84,
         "precipitation": 0.7,
         "precipitationProbability": 70,
