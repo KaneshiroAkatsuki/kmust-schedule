@@ -36,8 +36,12 @@ const exposedNames = [
   'getRememberedSecret', 'setRememberedSecret', 'clearRememberedSecret', 'normalizeNumericSecret'
 ];
 
-const testSource = scriptMatch[1].replace(/\s*init\(\);\s*$/, '') +
+const releaseSource = scriptMatch[1].replace(/\s*init\(\);\s*$/, '') +
   `\nglobalThis.__kustTest = { ${exposedNames.join(', ')} };`;
+// Historical date scenarios must remain reproducible after one-time archival.
+// Current production data are verified independently in the November release tests below.
+const historicalCourses = JSON.parse(fs.readFileSync(path.join(root, 'test/fixtures/schedule-20260920.json'), 'utf8'));
+const testSource = releaseSource.replace(/const RAW_DATA = [^\r\n]+;/, 'const RAW_DATA = ' + JSON.stringify(historicalCourses) + ';');
 const context = { console };
 vm.runInNewContext(testSource, context, { filename: 'index-inline.js' });
 const api = context.__kustTest;
@@ -45,6 +49,62 @@ const api = context.__kustTest;
 function localDate(year, month, day, hour = 12, minute = 0) {
   return new Date(year, month - 1, day, hour, minute, 0, 0);
 }
+
+test('November production release retains only November 3 onward and all expected future meetings', () => {
+  const sandbox = { console };
+  vm.runInNewContext(releaseSource, sandbox);
+  const app = sandbox.__kustTest;
+  assert.equal(app.teachingWeek(localDate(2026,11,3)), 11);
+  assert.equal(app.RAW_DATA.length, 14);
+  assert.equal(new Set(app.RAW_DATA.map(c => c['课程'])).size, 10);
+  app.validateCoursesInput(app.RAW_DATA);
+  let meetings = 0;
+  for (const c of app.COURSES) {
+    assert.equal(app.isPersonalCourse(c), true);
+    for (const part of c.parts) for (let w = part.start; w <= part.end; w++) {
+      assert.ok(app.dateForWeekDay(w,c.day) >= localDate(2026,11,3), c.name);
+      assert.equal(app.isActive(c,w), true);
+      meetings++;
+    }
+  }
+  assert.equal(meetings, 53);
+  assert.equal(app.todayCourses(localDate(2026,11,2)).length, 0, 'yesterday is archived even within the current week');
+  assert.equal(app.todayCourses(localDate(2026,11,3)).length, 3, 'retain all of today, including its morning');
+  assert.equal(app.todayCourses(localDate(2026,11,4)).length, 3);
+  assert.equal(app.currentStatus(localDate(2026,11,3,16,30)).teacher, '梁嘉平');
+  assert.equal(app.currentStatus(localDate(2026,11,10,16,30)).teacher, '范旭东');
+  assert.equal(app.currentStatus(localDate(2026,11,17,16,30)).teacher, '范旭东');
+  assert.equal(app.currentStatus(localDate(2026,11,24,16,30)).teacher, '王法安');
+  assert.equal(app.currentStatus(localDate(2026,12,22,16,30)).teacher, '武占东');
+});
+
+test('November source changes preserve exact periods, rooms and week 16 weekend SPAC', () => {
+  const sandbox = { console };
+  vm.runInNewContext(releaseSource, sandbox);
+  const app = sandbox.__kustTest;
+  assert.equal(app.currentStatus(localDate(2026,11,4,14)).course,'现代灌排理论与新技术（专硕）');
+  assert.equal(app.currentStatus(localDate(2026,11,24,14)).room,'公教楼137');
+  assert.equal(app.currentStatus(localDate(2026,11,25,14)).course,'今天没有后续课程');
+  assert.equal(app.currentStatus(localDate(2026,11,9,10)).course,'设施农业与装备（专硕）');
+  assert.equal(app.currentStatus(localDate(2026,11,9,10)).room,'公教楼249');
+  assert.equal(app.currentStatus(localDate(2026,11,5,11,24)).type,'active');
+  assert.notEqual(app.currentStatus(localDate(2026,11,5,11,25)).type,'active');
+  assert.equal(app.currentStatus(localDate(2026,11,4,17,44)).course,'学科前沿讲座');
+  assert.notEqual(app.currentStatus(localDate(2026,11,4,17,45)).type,'active');
+  for (const day of [12,13]) {
+    assert.equal(app.teachingWeek(localDate(2026,12,day)),16);
+    assert.equal(app.todayCourses(localDate(2026,12,day)).length,2);
+    for (const [h,m] of [[13,30],[15,54],[16,10],[18,34]]) {
+      const status=app.currentStatus(localDate(2026,12,day,h,m));
+      assert.equal(status.course,'SPAC系统水分运转与调控');
+      assert.equal(status.teacher,'李悦');
+      assert.equal(status.room,'公教楼446');
+      assert.equal(status.type,'active');
+    }
+    assert.equal(app.currentStatus(localDate(2026,12,day,16,0)).type,'next');
+    assert.notEqual(app.currentStatus(localDate(2026,12,day,18,35)).type,'active');
+  }
+});
 
 test('calendar exactly matches all 2026 official holidays and makeup workdays', () => {
   const holidayKeys = new Set();
@@ -171,7 +231,7 @@ test('calendar rendering labels unknown years and differentiates holidays from o
 });
 
 // Each sync test gets a separate application state and an in-memory, read-only server.
-function syncFixture() {
+function syncFixture(source = testSource) {
   const nodes = new Map();
   for (const id of ['syncPill', 'syncText', 'footerSyncText', 'managerStatus', 'courseForm']) {
     nodes.set(id, { hidden: true, textContent: '', className: '' });
@@ -182,7 +242,7 @@ function syncFixture() {
     window: { setTimeout, clearTimeout },
     localStorage: { setItem() {} }
   };
-  vm.runInNewContext(testSource, sandbox, { filename: 'index-inline-sync.js' });
+  vm.runInNewContext(source, sandbox, { filename: 'index-inline-sync.js' });
   const app = sandbox.__kustTest;
   app.state.revision = 4;
   const cloud = { initialized: true, revision: 4, updatedAt: '2026-09-07T08:00:00Z', courses: app.RAW_DATA, trash: [] };
@@ -232,8 +292,8 @@ test('normal dates and confirmed weekend makeup survive holiday filtering', () =
   assert.equal(api.holidayForDate(localDate(2026,9,28,0,0)), null);
 });
 
-function holidayViewFixture() {
-  const { app, nodes } = syncFixture();
+function holidayViewFixture(source = testSource) {
+  const { app, nodes } = syncFixture(source);
   const ids = ['todayList','todayCount','weekTermNote','weekCurrent','prevWeek','nextWeek','dayTabs','weekMatrix','weekSummary','weekList','makeupAssistant','makeupTitle','makeupList',
     'detailWeekStatus','detailSelection','detailTime','detailRoom','detailTeacher','detailWeeks','detailSegments','detailMentor'];
   for (const id of ids) nodes.set(id, {
@@ -244,6 +304,28 @@ function holidayViewFixture() {
   app.state.workingData = app.RAW_DATA;
   return { app, nodes };
 }
+
+test('November production cards render consistently on mobile, desktop and details', () => {
+  const { app, nodes } = holidayViewFixture(releaseSource);
+  for (const week of [11,12,14,16,19,21]) for(let day=0;day<7;day++) {
+    app.state.viewWeek=week;
+    app.state.selectedDay=day;
+    const date=app.dateForWeekDay(week,day);
+    app.renderWeek(date);
+    app.renderToday(date);
+    const active=app.COURSES.filter(c=>c.day===day&&app.isActive(c,week));
+    assert.match(nodes.get('weekSummary').textContent,new RegExp(active.length+' 门需上'));
+    for(const course of active) {
+      for(const target of ['weekList','weekMatrix','todayList']) {
+        assert.ok(nodes.get(target).innerHTML.includes('data-course-index="'+course.id+'"'),target);
+      }
+      app.populateCourseDetail(course.id);
+      assert.match(nodes.get('detailWeekStatus').textContent,/本周上课/);
+      assert.equal(nodes.get('detailTeacher').textContent,app.activeInfo(course,week).teachers);
+      assert.equal(nodes.get('detailRoom').textContent,app.activeInfo(course,week).rooms);
+    }
+  }
+});
 
 test('mobile list, desktop cards, today and details agree on holiday closures', () => {
   const { app, nodes } = holidayViewFixture();
