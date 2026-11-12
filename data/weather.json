@@ -1,107 +1,30 @@
 {
   "ok": true,
-  "snapshotGeneratedAt": "2026-11-12T11:08:06.706Z",
+  "snapshotGeneratedAt": "2026-11-12T18:56:42.459Z",
   "data": {
     "source": "百度地图天气",
     "location": "呈贡区",
-    "observedAt": "2026-11-12T18:50:00+08:00",
-    "fetchedAt": "2026-11-12T11:00:08.106Z",
+    "observedAt": "2026-11-13T01:50:00+08:00",
+    "fetchedAt": "2026-11-12T18:00:08.094Z",
     "current": {
-      "condition": "多云",
-      "temperature": 14,
-      "feelsLike": 13,
-      "humidity": 69,
+      "condition": "阴",
+      "temperature": 12,
+      "feelsLike": 10,
+      "humidity": 83,
       "precipitation": 0,
-      "cloudCover": 60,
+      "cloudCover": 95,
       "visibility": 30000,
-      "airQualityIndex": 25,
+      "airQualityIndex": 16,
       "windDirection": "西南风",
       "windLevel": "2级"
     },
     "today": {
-      "high": 15,
-      "low": 9,
-      "conditionDay": "阴",
-      "conditionNight": "小雨"
+      "high": 16,
+      "low": 7,
+      "conditionDay": "多云",
+      "conditionNight": "晴"
     },
     "hourly": [
-      {
-        "time": "2026-11-12T19:00:00+08:00",
-        "condition": "小雨",
-        "temperature": 13,
-        "humidity": 80,
-        "precipitation": 0.1,
-        "precipitationProbability": 70,
-        "cloudCover": 82,
-        "windDirection": "南风",
-        "windLevel": "4~5级"
-      },
-      {
-        "time": "2026-11-12T20:00:00+08:00",
-        "condition": "阴",
-        "temperature": 12,
-        "humidity": 81,
-        "precipitation": 0,
-        "precipitationProbability": 0,
-        "cloudCover": 80,
-        "windDirection": "南风",
-        "windLevel": "3~4级"
-      },
-      {
-        "time": "2026-11-12T21:00:00+08:00",
-        "condition": "阴",
-        "temperature": 11,
-        "humidity": 83,
-        "precipitation": 0,
-        "precipitationProbability": 0,
-        "cloudCover": 73,
-        "windDirection": "南风",
-        "windLevel": "3~4级"
-      },
-      {
-        "time": "2026-11-12T22:00:00+08:00",
-        "condition": "阴",
-        "temperature": 11,
-        "humidity": 85,
-        "precipitation": 0,
-        "precipitationProbability": 0,
-        "cloudCover": 67,
-        "windDirection": "南风",
-        "windLevel": "4~5级"
-      },
-      {
-        "time": "2026-11-12T23:00:00+08:00",
-        "condition": "阴",
-        "temperature": 10,
-        "humidity": 87,
-        "precipitation": 0,
-        "precipitationProbability": 0,
-        "cloudCover": 62,
-        "windDirection": "南风",
-        "windLevel": "4~5级"
-      },
-      {
-        "time": "2026-11-13T00:00:00+08:00",
-        "condition": "阴",
-        "temperature": 10,
-        "humidity": 87,
-        "precipitation": 0,
-        "precipitationProbability": 0,
-        "cloudCover": 51,
-        "windDirection": "南风",
-        "windLevel": "4~5级"
-      },
-      {
-        "time": "2026-11-13T01:00:00+08:00",
-        "condition": "多云",
-        "temperature": 10,
-        "humidity": 88,
-        "precipitation": 0,
-        "precipitationProbability": 0,
-        "cloudCover": 40,
-        "windDirection": "南风",
-        "windLevel": "4~5级"
-      },
       {
         "time": "2026-11-13T02:00:00+08:00",
         "condition": "多云",
@@ -288,21 +211,86 @@
         "cloudCover": 10,
         "windDirection": "西风",
         "windLevel": "3~4级"
+      },
+      {
+        "time": "2026-11-13T19:00:00+08:00",
+        "condition": "多云",
+        "temperature": 14,
+        "humidity": 55,
+        "precipitation": 0,
+        "precipitationProbability": 0,
+        "cloudCover": 10,
+        "windDirection": "西南风",
+        "windLevel": "<3级"
+      },
+      {
+        "time": "2026-11-13T20:00:00+08:00",
+        "condition": "多云",
+        "temperature": 13,
+        "humidity": 53,
+        "precipitation": 0,
+        "precipitationProbability": 0,
+        "cloudCover": 10,
+        "windDirection": "南风",
+        "windLevel": "3~4级"
+      },
+      {
+        "time": "2026-11-13T21:00:00+08:00",
+        "condition": "多云",
+        "temperature": 12,
+        "humidity": 57,
+        "precipitation": 0,
+        "precipitationProbability": 0,
+        "cloudCover": 7,
+        "windDirection": "南风",
+        "windLevel": "3~4级"
+      },
+      {
+        "time": "2026-11-13T22:00:00+08:00",
+        "condition": "晴",
+        "temperature": 11,
+        "humidity": 64,
+        "precipitation": 0,
+        "precipitationProbability": 0,
+        "cloudCover": 5,
+        "windDirection": "南风",
+        "windLevel": "3~4级"
+      },
+      {
+        "time": "2026-11-13T23:00:00+08:00",
+        "condition": "晴",
+        "temperature": 10,
+        "humidity": 69,
+        "precipitation": 0,
+        "precipitationProbability": 0,
+        "cloudCover": 3,
+        "windDirection": "南风",
+        "windLevel": "<3级"
+      },
+      {
+        "time": "2026-11-14T00:00:00+08:00",
+        "condition": "晴",
+        "temperature": 9,
+        "humidity": 71,
+        "precipitation": 0,
+        "precipitationProbability": 0,
+        "cloudCover": 2,
+        "windDirection": "南风",
+        "windLevel": "<3级"
+      },
+      {
+        "time": "2026-11-14T01:00:00+08:00",
+        "condition": "晴",
+        "temperature": 9,
+        "humidity": 74,
+        "precipitation": 0,
+        "precipitationProbability": 0,
+        "cloudCover": 1,
+        "windDirection": "南风",
+        "windLevel": "<3级"
       }
     ],
     "daily": [
-      {
-        "date": "2026-11-12",
-        "week": "星期四",
-        "high": 15,
-        "low": 9,
-        "conditionDay": "阴",
-        "conditionNight": "小雨",
-        "windDirectionDay": "西南风",
-        "windDirectionNight": "西南风",
-        "windLevelDay": "3~4级",
-        "windLevelNight": "3~4级"
-      },
       {
         "date": "2026-11-13",
         "week": "星期五",
@@ -373,6 +361,18 @@
         "windDirectionDay": "东风",
         "windDirectionNight": "南风",
         "windLevelDay": "<3级",
+        "windLevelNight": "<3级"
+      },
+      {
+        "date": "2026-11-19",
+        "week": "星期四",
+        "high": 19,
+        "low": 9,
+        "conditionDay": "多云",
+        "conditionNight": "雨",
+        "windDirectionDay": "西南风",
+        "windDirectionNight": "东风",
+        "windLevelDay": "3~4级",
         "windLevelNight": "<3级"
       }
     ],
